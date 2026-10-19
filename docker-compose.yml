@@ -1,0 +1,84 @@
+# Settings come from .env (see .env.example); every one has a default here.
+services:
+  # Follows the chain live: catches up over HTTP, then subscribes to new blocks over the indexer's
+  # WebSocket and keeps data/out current (changed files rewritten every ~2s).
+  #   docker compose logs -f ingest
+  ingest:
+    build: ./batch
+    command: ["live"]
+    environment:
+      INDEXER_URL: ${INDEXER_URL:-https://indexer.gno.land/graphql/query}
+      INDEXER_WS_URL: ${INDEXER_WS_URL:-}
+      CHUNK_BLOCKS: ${CHUNK_BLOCKS:-10000}
+      REQUEST_DELAY: ${REQUEST_DELAY:-3s}
+      DATA_DIR: /data
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
+
+  # One-shot commands on the same data. fetch/build/all wait for nothing: they refuse to run while
+  # `ingest` holds the data lock (stop it first); stats only reads.
+  #   docker compose run --rm batch stats      # print distributions from the local cache
+  #   docker compose run --rm batch build      # rebuild data/out from the cache (no indexer calls)
+  batch:
+    build: ./batch
+    profiles: ["batch"]
+    environment:
+      INDEXER_URL: ${INDEXER_URL:-https://indexer.gno.land/graphql/query}
+      INDEXER_WS_URL: ${INDEXER_WS_URL:-}
+      CHUNK_BLOCKS: ${CHUNK_BLOCKS:-10000}
+      REQUEST_DELAY: ${REQUEST_DELAY:-3s}
+      DATA_DIR: /data
+    volumes:
+      - ./data:/data
+    command: ["all"]
+
+  # Backend on http://localhost:8080: serves the batch output (reloads a shard when the batch rewrites it).
+  #   GET /v1/{season}/{address}   GET /v1/{season}   GET /healthz
+  api:
+    build: ./api
+    ports:
+      - "8080:8080"
+    environment:
+      DATA_DIR: /data/out
+    volumes:
+      - ./data/out:/data/out:ro
+    restart: unless-stopped
+
+  # Frontend on http://localhost:3000 (production build). Reads data only through the api.
+  #   docker compose up -d --build web
+  web:
+    build:
+      context: ./web
+      args:
+        NEXT_PUBLIC_SHARE_BASE_URL: ${SHARE_BASE_URL:-http://localhost:3000}
+    ports:
+      - "3000:3000"
+    environment:
+      WRAPPED_API_URL: http://api:8080
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # Dev server with hot reload on http://localhost:3001.
+  #   docker compose --profile dev up web-dev
+  #   WRAPPED_FIXTURES=1 docker compose --profile dev up web-dev   # also serve web/fixtures (?fixture=whale)
+  web-dev:
+    image: node:24-alpine
+    profiles: ["dev"]
+    working_dir: /app
+    command: sh -c "npm ci && npx next dev -H 0.0.0.0 -p 3001"
+    ports:
+      - "3001:3001"
+    environment:
+      WRAPPED_API_URL: http://api:8080
+      WRAPPED_FIXTURES: ${WRAPPED_FIXTURES:-0}
+      NEXT_PUBLIC_WRAPPED_FIXTURES: ${WRAPPED_FIXTURES:-0}
+      NEXT_PUBLIC_SHARE_BASE_URL: http://localhost:3001
+      NEXT_TELEMETRY_DISABLED: "1"
+    depends_on:
+      - api
+    volumes:
+      - ./web:/app
+      - /app/node_modules # container's own (linux) modules, not the host's
+      - /app/.next

@@ -1,0 +1,17 @@
+# local batch output (raw indexer cache, generated JSON)
+/data/
+
+# local settings (.env.example is the template)
+/.env
+
+# go
+/batch/bin/
+
+# node / next
+node_modules/
+.next/
+out/
+.env*.local
+.vercel
+
+.DS_Store
