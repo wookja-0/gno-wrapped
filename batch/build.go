@@ -1,0 +1,610 @@
+package main
+
+import (
+	"crypto/sha256"
+	"encoding/json"
+	"fmt"
+	"log"
+	"math"
+	"os"
+	"path/filepath"
+	"slices"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+)
+
+type rawTx struct {
+	BlockHeight int    `json:"block_height"`
+	Index       int    `json:"index"`
+	Hash        string `json:"hash"`
+	Success     bool   `json:"success"`
+	GasFee      *struct {
+		Amount int64  `json:"amount"`
+		Denom  string `json:"denom"`
+	} `json:"gas_fee"`
+	Signatures []struct {
+		PubKey string `json:"pub_key"`
+	} `json:"signatures"`
+	Messages []struct {
+		Value struct {
+			Typename    string `json:"__typename"`
+			Caller      string `json:"caller"`
+			PkgPath     string `json:"pkg_path"`
+			Func        string `json:"func"`
+			FromAddress string `json:"from_address"`
+			Creator     string `json:"creator"`
+			Approver    string `json:"approver"`
+			Package     *struct {
+				Path string `json:"path"`
+			} `json:"package"`
+		} `json:"value"`
+	} `json:"messages"`
+	Response struct {
+		Events []struct {
+			Typename string `json:"__typename"`
+			Type     string `json:"type"`
+			PkgPath  string `json:"pkg_path"`
+		} `json:"events"`
+	} `json:"response"`
+}
+
+// actor is the account acting in the tx: the first message's caller / sender /
+// creator / approver. Falls back to the signer, which only chunks fetched from
+// an indexer with the `signatures` extension have.
+func (t *rawTx) actor() string {
+	for _, m := range t.Messages {
+		v := m.Value
+		for _, a := range []string{v.Caller, v.FromAddress, v.Creator, v.Approver} {
+			if a != "" {
+				return a
+			}
+		}
+	}
+	if len(t.Signatures) > 0 {
+		return t.Signatures[0].PubKey
+	}
+	return ""
+}
+
+func (t *rawTx) isSwap() bool {
+	for _, e := range t.Response.Events {
+		if e.Typename == "GnoEvent" && e.Type == "Swap" && strings.HasPrefix(e.PkgPath, "gno.land/r/gnoswap/") {
+			return true
+		}
+	}
+	return false
+}
+
+type acc struct {
+	txs       int
+	firstAt   time.Time
+	firstHash string
+	firstPos  [2]int               // (height, index) of the first tx, for arrival order
+	days      map[int]bool         // UTC days (since season start) with activity, for streaks
+	moments   map[string]time.Time // first swap / collect / deploy, 100th tx (see milestones)
+	gasUgnot  int64
+	swaps     int
+	weekly    []int
+	calls     map[string]map[string]int // pkg_path → func → count
+	deployed  []string
+	lastAt    time.Time
+	actions   map[string]int // message kind → count, for the bot heuristic
+	cats      map[string]int // message category → count, for personas
+	totalMsgs int
+	topActPct float64
+	perDay    float64
+	isBot     bool
+}
+
+// ---- JSON contract (keep in sync with web/) ----
+
+type realmStat struct {
+	Path    string `json:"path"`
+	TopFunc string `json:"topFunc"`
+	Calls   int    `json:"calls"`
+}
+
+type wrapped struct {
+	Address        string        `json:"address"` // "" behind a share link (see redact)
+	ShareID        string        `json:"shareId"`
+	Shared         bool          `json:"shared,omitempty"`
+	DataAsOf       string        `json:"dataAsOf"`
+	Season         Season        `json:"season"`
+	FirstTx        firstTx       `json:"firstTx"`
+	TxCount        int           `json:"txCount"`
+	Percentile     int           `json:"percentile"`
+	TopRealms      []realmStat   `json:"topRealms"`
+	RealmCount     int           `json:"realmCount"` // distinct realms called
+	DeployedRealms []string      `json:"deployedRealms"`
+	Swaps          swaps         `json:"swaps"`
+	GasFeeGnot     float64       `json:"gasFeeGnot"`
+	Persona        persona       `json:"persona"`
+	PersonaRank    *personaRank  `json:"personaRank,omitempty"` // within the persona; none for First Steps and bots
+	Arrival        arrival       `json:"arrival"`
+	Achievements   []achievement `json:"achievements"`
+	Milestones     []milestone   `json:"milestones"`
+}
+
+type firstTx struct {
+	Hash       string `json:"hash,omitempty"` // base64, as the indexer and gnoscan use it
+	Date       string `json:"date"`
+	MainnetDay int    `json:"mainnetDay"`
+}
+
+type swaps struct {
+	Count  int   `json:"count"`
+	Weekly []int `json:"weekly"`
+}
+
+type persona struct {
+	ID    string  `json:"id"`
+	Title string  `json:"title"`
+	Line  string  `json:"line"`
+	Share float64 `json:"share,omitempty"` // for category personas: share of messages in that category (0–1)
+}
+
+// ---- aggregation ----
+
+type dataset struct {
+	accs     map[string]*acc
+	st       fetchState
+	start    time.Time
+	end      time.Time // exclusive
+	weeks    int
+	totalTxs int
+}
+
+func loadDataset(c config) (*dataset, error) {
+	st, err := loadState(c)
+	if err != nil {
+		return nil, err
+	}
+	if st.FetchedTo <= 1 {
+		return nil, fmt.Errorf("raw cache is empty; run `wrapped fetch` first")
+	}
+	start, err := time.Parse("2006-01-02", season.Start)
+	if err != nil {
+		return nil, fmt.Errorf("season.start: %w", err)
+	}
+	end, err := time.Parse("2006-01-02", season.End)
+	if err != nil {
+		return nil, fmt.Errorf("season.end: %w", err)
+	}
+	end = end.AddDate(0, 0, 1)
+	d := &dataset{accs: map[string]*acc{}, st: st, start: start, end: end,
+		weeks: int(math.Ceil(end.Sub(start).Hours() / 24 / 7))}
+
+	if err := readChunks(c, d.applyChunk); err != nil {
+		return nil, err
+	}
+	d.markBots()
+	return d, nil
+}
+
+// applyChunk adds a chunk's successful in-season txs.
+func (d *dataset) applyChunk(ch chunk) error {
+	times := make(map[int]time.Time, len(ch.Blocks))
+	for _, b := range ch.Blocks {
+		times[b.Height] = b.Time
+	}
+	for _, raw := range ch.Txs {
+		var t rawTx
+		if err := json.Unmarshal(raw, &t); err != nil {
+			return fmt.Errorf("height %d-%d: %w", ch.From, ch.To, err)
+		}
+		at, ok := times[t.BlockHeight]
+		if !ok {
+			return fmt.Errorf("no block time for height %d", t.BlockHeight)
+		}
+		if !t.Success || at.Before(d.start) || !at.Before(d.end) {
+			continue
+		}
+		d.add(&t, at)
+	}
+	return nil
+}
+
+func (d *dataset) add(t *rawTx, at time.Time) {
+	who := t.actor()
+	if who == "" {
+		return
+	}
+	a := d.accs[who]
+	if a == nil {
+		a = &acc{firstAt: at, firstHash: t.Hash, firstPos: [2]int{t.BlockHeight, t.Index}, days: map[int]bool{}, moments: map[string]time.Time{}, weekly: make([]int, d.weeks), calls: map[string]map[string]int{}, actions: map[string]int{}, cats: map[string]int{}}
+		d.accs[who] = a
+	}
+	d.totalTxs++
+	a.txs++
+	a.lastAt = at
+	if t.GasFee != nil && t.GasFee.Denom == "ugnot" {
+		a.gasUgnot += t.GasFee.Amount
+	}
+	a.days[int(at.Sub(d.start).Hours()/24)] = true
+	if a.txs == 100 {
+		a.moment("tx-100", at)
+	}
+	if t.isSwap() {
+		a.swaps++
+		a.weekly[int(at.Sub(d.start).Hours()/24/7)]++
+		a.moment("first-swap", at)
+	}
+	for _, m := range t.Messages {
+		v := m.Value
+		a.totalMsgs++
+		cat := messageCategory(v.Typename, v.PkgPath, v.Func)
+		a.cats[cat]++
+		if cat == "collect" {
+			a.moment("first-collect", at)
+		}
+		if v.Typename == "MsgCall" {
+			a.actions["call "+v.Func]++ // by function name, so one bot driving many realms still counts as one
+		} else {
+			a.actions[v.Typename]++
+		}
+		switch v.Typename {
+		case "MsgCall":
+			if a.calls[v.PkgPath] == nil {
+				a.calls[v.PkgPath] = map[string]int{}
+			}
+			a.calls[v.PkgPath][v.Func]++
+		case "MsgAddPackage":
+			if v.Package != nil && strings.Contains(v.Package.Path, "/r/") && !slices.Contains(a.deployed, v.Package.Path) {
+				a.deployed = append(a.deployed, v.Package.Path)
+				a.moment("first-deploy", at)
+			}
+		}
+	}
+}
+
+// moment records the first time something happened (txs arrive in chain order).
+func (a *acc) moment(id string, at time.Time) {
+	if _, ok := a.moments[id]; !ok {
+		a.moments[id] = at
+	}
+}
+
+// markBots flags automated accounts: many txs that are either nearly all the
+// same action, or sent faster than a person plausibly would. They still get a
+// recap but are excluded from the percentile ranking.
+// TODO: tune personaRules.Bot* with `wrapped stats`.
+func (d *dataset) markBots() {
+	for _, a := range d.accs {
+		top := 0
+		for _, n := range a.actions {
+			top = max(top, n)
+		}
+		if a.totalMsgs > 0 {
+			a.topActPct = float64(top) / float64(a.totalMsgs)
+		}
+		days := a.lastAt.Sub(a.firstAt).Hours()/24 + 1
+		a.perDay = float64(a.txs) / days
+		a.isBot = a.txs >= personaRules.BotMinTxs &&
+			(a.topActPct >= personaRules.BotMinTopActionPct || a.perDay >= personaRules.BotMinTxsPerDay)
+	}
+}
+
+// percentiles: share of ranked (non-bot) accounts with strictly fewer txs.
+func (d *dataset) percentiles() map[string]int {
+	var counts []int
+	for _, a := range d.accs {
+		if !a.isBot {
+			counts = append(counts, a.txs)
+		}
+	}
+	sort.Ints(counts)
+	out := make(map[string]int, len(d.accs))
+	for addr, a := range d.accs {
+		below := sort.SearchInts(counts, a.txs)
+		p := 0
+		if len(counts) > 0 {
+			p = below * 100 / len(counts)
+		}
+		out[addr] = min(p, 99)
+	}
+	return out
+}
+
+// mainnetDay counts 24h periods since genesis, starting at Day 1.
+func (d *dataset) mainnetDay(t time.Time) int {
+	return int(t.Sub(d.st.GenesisTime).Hours()/24) + 1
+}
+
+var personas = map[string]persona{
+	"builder":          {ID: "builder", Title: "Builder", Line: "You shipped code to mainnet."},
+	"day-one-explorer": {ID: "day-one-explorer", Title: "Day-One Explorer", Line: "You were here before the map was drawn."},
+	"realm-hopper":     {ID: "realm-hopper", Title: "Realm Hopper", Line: "You never stayed in one realm for long."},
+	"defi-pilot":       {ID: "defi-pilot", Title: "DeFi Pilot", Line: "Swaps, pools and stakes: GnoSwap was your home base."},
+	"collector":        {ID: "collector", Title: "Collector", Line: "You minted and bought your way across gno.land."},
+	"player-one":       {ID: "player-one", Title: "Player One", Line: "On-chain games got the most of your moves."},
+	"gnot-courier":     {ID: "gnot-courier", Title: "GNOT Courier", Line: "You kept GNOT moving between wallets."},
+	"first-steps":      {ID: "first-steps", Title: "First Steps", Line: "Everyone starts somewhere."},
+}
+
+// personaOrder lists persona ids as `wrapped stats` prints them.
+var personaOrder = []string{"builder", "day-one-explorer", "realm-hopper", "defi-pilot", "collector", "player-one", "gnot-courier", "first-steps"}
+
+// choosePersona: first match wins. The dominant message category decides before tx count, so a
+// single NFT mint is a Collector; only accounts that just moved GNOT once or twice are First Steps.
+func choosePersona(a *acc, day int) persona {
+	top, n := "", 0
+	for _, c := range []string{"defi", "collect", "play", "transfer", "other"} { // fixed order: ties are stable
+		if a.cats[c] > n {
+			top, n = c, a.cats[c]
+		}
+	}
+	share := 0.0
+	if a.totalMsgs > 0 {
+		share = float64(n) / float64(a.totalMsgs)
+	}
+	dominant := share >= personaRules.CategoryMinShare
+	withShare := func(id string) persona {
+		p := personas[id]
+		p.Share = math.Round(share*100) / 100
+		return p
+	}
+	switch {
+	case len(a.deployed) > 0:
+		return personas["builder"]
+	case day <= personaRules.DayOneMaxDay:
+		return personas["day-one-explorer"]
+	case len(a.calls) >= personaRules.HopperMinRealms:
+		return personas["realm-hopper"]
+	case dominant && top == "defi":
+		return withShare("defi-pilot")
+	case dominant && top == "collect":
+		return withShare("collector")
+	case dominant && top == "play":
+		return withShare("player-one")
+	case top == "transfer" && a.txs >= personaRules.CourierMinTxs:
+		return withShare("gnot-courier")
+	}
+	return personas["first-steps"]
+}
+
+// personaRule describes when a persona applies, for the /personas page (GET /v1/{season}/personas).
+type personaRule struct {
+	Kind     string  `json:"kind"` // deployed | firstDay | realms | share | transfers | fallback
+	Category string  `json:"category,omitempty"`
+	Min      float64 `json:"min,omitempty"`
+	Max      float64 `json:"max,omitempty"`
+}
+
+func personaRuleFor(id string) personaRule {
+	r := personaRules
+	switch id {
+	case "builder":
+		return personaRule{Kind: "deployed", Min: 1}
+	case "day-one-explorer":
+		return personaRule{Kind: "firstDay", Max: float64(r.DayOneMaxDay)}
+	case "realm-hopper":
+		return personaRule{Kind: "realms", Min: float64(r.HopperMinRealms)}
+	case "defi-pilot":
+		return personaRule{Kind: "share", Category: "defi", Min: r.CategoryMinShare}
+	case "collector":
+		return personaRule{Kind: "share", Category: "collect", Min: r.CategoryMinShare}
+	case "player-one":
+		return personaRule{Kind: "share", Category: "play", Min: r.CategoryMinShare}
+	case "gnot-courier":
+		return personaRule{Kind: "transfers", Min: float64(r.CourierMinTxs)}
+	}
+	return personaRule{Kind: "fallback"}
+}
+
+func topRealms(a *acc, n int) []realmStat {
+	out := make([]realmStat, 0, len(a.calls))
+	for path, fns := range a.calls {
+		r := realmStat{Path: path}
+		best := -1
+		for fn, c := range fns {
+			r.Calls += c
+			if c > best || (c == best && fn < r.TopFunc) {
+				best, r.TopFunc = c, fn
+			}
+		}
+		out = append(out, r)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Calls != out[j].Calls {
+			return out[i].Calls > out[j].Calls
+		}
+		return out[i].Path < out[j].Path
+	})
+	return out[:min(n, len(out))]
+}
+
+// render turns the dataset into every output file, keyed by path relative to out/:
+//
+//	<season>/<xx>.json         address → recap (owner view)
+//	<season>/share/<yy>.json   share ID → redacted recap (share links)
+//	<season>/personas.json     persona rules + counts
+//	<season>/meta.json
+func (d *dataset) render(ids *shareIDs, updatedAt time.Time) (map[string][]byte, error) {
+	d.markBots()
+	asOf := d.st.TipTime.UTC().Format("2006-01-02")
+	pct := d.percentiles()
+	counts := map[string]int{}
+
+	personaOf := map[string]string{}
+	chosen := map[string]persona{}
+	for addr, a := range d.accs {
+		p := choosePersona(a, d.mainnetDay(a.firstAt))
+		chosen[addr], personaOf[addr] = p, p.ID
+	}
+	ranks := personaRanks(d.accs, personaOf)
+	ex := d.extras()
+	achCounts := map[string]int{}
+
+	shards := map[string]map[string]wrapped{}
+	shared := map[string]map[string]wrapped{}
+	for addr, a := range d.accs {
+		day := d.mainnetDay(a.firstAt)
+		w := wrapped{
+			Address:        addr,
+			ShareID:        ids.get(addr),
+			DataAsOf:       asOf,
+			Season:         season,
+			FirstTx:        firstTx{Date: a.firstAt.UTC().Format("2006-01-02"), MainnetDay: day, Hash: a.firstHash},
+			TxCount:        a.txs,
+			Percentile:     pct[addr],
+			TopRealms:      topRealms(a, 3),
+			RealmCount:     len(a.calls),
+			DeployedRealms: append([]string{}, a.deployed...),
+			Swaps:          swaps{Count: a.swaps, Weekly: a.weekly},
+			GasFeeGnot:     roundGnot(a.gasUgnot),
+			Persona:        chosen[addr],
+			PersonaRank:    ranks[addr],
+			Arrival:        ex.arrival[addr],
+			Achievements:   orEmpty(ex.achievements[addr]),
+			Milestones:     orEmpty(ex.milestones[addr]),
+		}
+		if err := validate(w, d.weeks); err != nil {
+			return nil, fmt.Errorf("%s: %w", addr, err)
+		}
+		counts[w.Persona.ID]++
+		for _, a := range w.Achievements {
+			achCounts[a.ID]++
+		}
+		put(shards, shardKey(addr), addr, w)
+		put(shared, w.ShareID[:2], w.ShareID, redact(w))
+	}
+
+	files := map[string][]byte{}
+	for key, m := range shards {
+		files[filepath.Join(season.ID, key+".json")], _ = json.Marshal(m)
+	}
+	for key, m := range shared {
+		files[filepath.Join(season.ID, "share", key+".json")], _ = json.Marshal(m)
+	}
+	type personaInfo struct {
+		persona
+		Rule   personaRule `json:"rule"`
+		RankBy string      `json:"rankBy,omitempty"`
+		Count  int         `json:"count"`
+	}
+	var list []personaInfo
+	for _, id := range personaOrder {
+		rankBy, _, _, _ := rankMetric(id, &acc{})
+		list = append(list, personaInfo{persona: personas[id], Rule: personaRuleFor(id), RankBy: rankBy, Count: counts[id]})
+	}
+	files[filepath.Join(season.ID, "personas.json")], _ = json.MarshalIndent(map[string]any{
+		"season": season, "dataAsOf": asOf, "addresses": len(d.accs), "personas": list, "achievements": achCounts,
+	}, "", "  ")
+	files[filepath.Join(season.ID, "meta.json")], _ = json.MarshalIndent(map[string]any{
+		"dataAsOf": asOf, "updatedAt": updatedAt.UTC().Format(time.RFC3339), "season": season, "addresses": len(d.accs),
+		"transactions": d.totalTxs, "fetchedToHeight": d.st.FetchedTo - 1, "shards": len(shards),
+	}, "", "  ")
+	return files, nil
+}
+
+func orEmpty[T any](s []T) []T {
+	if s == nil {
+		return []T{}
+	}
+	return s
+}
+
+func put(m map[string]map[string]wrapped, shard, key string, w wrapped) {
+	if m[shard] == nil {
+		m[shard] = map[string]wrapped{}
+	}
+	m[shard][key] = w
+}
+
+// outWriter writes render output, skipping files whose bytes didn't change since the last write.
+// Each write is atomic, so the API never sees a partial file; files no longer produced are removed.
+type outWriter struct {
+	dir  string
+	last map[string][32]byte
+}
+
+func newOutWriter(c config) *outWriter {
+	return &outWriter{dir: filepath.Join(c.DataDir, "out"), last: map[string][32]byte{}}
+}
+
+func (o *outWriter) write(files map[string][]byte) (int, error) {
+	changed := 0
+	for rel, b := range files {
+		sum := sha256.Sum256(b)
+		if o.last[rel] == sum {
+			continue
+		}
+		path := filepath.Join(o.dir, rel)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			return changed, err
+		}
+		if err := writeFileAtomic(path, b); err != nil {
+			return changed, err
+		}
+		o.last[rel] = sum
+		changed++
+	}
+	for _, pattern := range []string{filepath.Join(season.ID, "*.json"), filepath.Join(season.ID, "share", "*.json")} {
+		stale, _ := filepath.Glob(filepath.Join(o.dir, pattern))
+		for _, p := range stale {
+			rel, _ := filepath.Rel(o.dir, p)
+			if _, ok := files[rel]; !ok {
+				if err := os.Remove(p); err != nil {
+					return changed, err
+				}
+				delete(o.last, rel)
+			}
+		}
+	}
+	return changed, nil
+}
+
+func build(c config) error {
+	d, err := loadDataset(c)
+	if err != nil {
+		return err
+	}
+	ids, err := loadShareIDs(c)
+	if err != nil {
+		return err
+	}
+	files, err := d.render(ids, time.Now())
+	if err != nil {
+		return err
+	}
+	if err := ids.save(); err != nil { // IDs first: a written share file must never point at an unsaved ID
+		return err
+	}
+	n, err := newOutWriter(c).write(files)
+	if err != nil {
+		return err
+	}
+	log.Printf("built %d addresses (%d txs in season), wrote %d files, data as of %s", len(d.accs), d.totalTxs, n, d.st.TipTime.UTC().Format("2006-01-02"))
+	return nil
+}
+
+// shardKey groups addresses by the two characters after "g1" (≤1,024 files).
+func shardKey(addr string) string {
+	if len(addr) < 4 || !strings.HasPrefix(addr, "g1") {
+		return "_"
+	}
+	return addr[2:4]
+}
+
+// validate enforces the contract the web app relies on. A bad file must fail
+// the build, not reach users.
+func validate(w wrapped, weeks int) error {
+	switch {
+	case w.Season.ID == "" || w.Season.Start == "" || w.Season.End == "":
+		return fmt.Errorf("season is incomplete")
+	case len(w.Swaps.Weekly) != weeks:
+		return fmt.Errorf("swaps.weekly has %d entries, season has %d weeks", len(w.Swaps.Weekly), weeks)
+	case w.TxCount < 1 || w.FirstTx.MainnetDay < 1:
+		return fmt.Errorf("txCount/firstTx out of range")
+	case w.Percentile < 0 || w.Percentile > 99:
+		return fmt.Errorf("percentile %d out of range", w.Percentile)
+	}
+	return nil
+}
+
+func roundGnot(ugnot int64) float64 {
+	v, _ := strconv.ParseFloat(strconv.FormatFloat(float64(ugnot)/1e6, 'f', 4, 64), 64)
+	return v
+}
