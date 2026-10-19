@@ -1,0 +1,65 @@
+{
+  "address": "g1wrappedsampleqqqqqqqqqqqqqqqqqqqqqqqqq",
+  "dataAsOf": "2026-12-30",
+  "season": {
+    "id": "s1",
+    "start": "2026-09-12",
+    "end": "2026-12-31"
+  },
+  "firstTx": {
+    "date": "2026-09-12",
+    "mainnetDay": 1
+  },
+  "txCount": 48210,
+  "percentile": 99,
+  "topRealms": [
+    {
+      "path": "gno.land/r/gnoswap/v1/protocol_fee/incentives/external/multi_hop_swap/router",
+      "topFunc": "ExactInSwapRoute",
+      "calls": 9840
+    },
+    {
+      "path": "gno.land/r/demo/boards",
+      "topFunc": "CreateThread",
+      "calls": 3120
+    },
+    {
+      "path": "gno.land/r/gnoland/blog",
+      "topFunc": "AddComment",
+      "calls": 612
+    }
+  ],
+  "deployedRealms": [
+    "gno.land/r/g1wrap.../vault",
+    "gno.land/r/g1wrap.../oracle",
+    "gno.land/r/g1wrap.../pool_router"
+  ],
+  "swaps": {
+    "count": 412,
+    "weekly": [
+      8,
+      14,
+      19,
+      22,
+      25,
+      31,
+      38,
+      44,
+      29,
+      27,
+      24,
+      33,
+      36,
+      28,
+      21,
+      13
+    ]
+  },
+  "gasFeeGnot": 1520.75,
+  "persona": {
+    "id": "defi-pilot",
+    "title": "DeFi Pilot",
+    "line": "Swaps, pools and stakes: GnoSwap was your home base."
+  },
+  "shareId": "fxwhale00000"
+}

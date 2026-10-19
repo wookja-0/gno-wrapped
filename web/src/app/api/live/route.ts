@@ -1,0 +1,18 @@
+import { CONFIG } from '@/lib/config';
+
+const API_URL = process.env.WRAPPED_API_URL ?? 'http://localhost:8080';
+
+/** Live season counters for the intro ticker (the api itself isn't exposed to browsers). */
+export async function GET() {
+  try {
+    const res = await fetch(`${API_URL}/v1/${CONFIG.CURRENT_SEASON.id}`, { cache: 'no-store' });
+    if (!res.ok) return Response.json({ error: 'unavailable' }, { status: 503 });
+    const m = (await res.json()) as { addresses: number; transactions: number; fetchedToHeight: number; updatedAt?: string };
+    return Response.json(
+      { addresses: m.addresses, transactions: m.transactions, height: m.fetchedToHeight, updatedAt: m.updatedAt ?? null },
+      { headers: { 'Cache-Control': 'no-store' } },
+    );
+  } catch {
+    return Response.json({ error: 'unavailable' }, { status: 503 });
+  }
+}

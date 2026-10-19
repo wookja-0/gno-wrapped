@@ -1,0 +1,64 @@
+{
+  "address": "g1wrappedsampleqqqqqqqqqqqqqqqqqqqqqqqqq",
+  "dataAsOf": "2026-12-30",
+  "season": {
+    "id": "s1",
+    "start": "2026-09-12",
+    "end": "2026-12-31"
+  },
+  "firstTx": {
+    "date": "2026-09-12",
+    "mainnetDay": 1
+  },
+  "txCount": 1284,
+  "percentile": 87,
+  "topRealms": [
+    {
+      "path": "gno.land/r/demo/boards",
+      "topFunc": "CreateThread",
+      "calls": 312
+    },
+    {
+      "path": "gno.land/r/gnoswap/v1/router",
+      "topFunc": "ExactInSwapRoute",
+      "calls": 198
+    },
+    {
+      "path": "gno.land/r/gnoland/blog",
+      "topFunc": "AddComment",
+      "calls": 41
+    }
+  ],
+  "deployedRealms": [
+    "gno.land/r/g1wrap.../hello",
+    "gno.land/r/g1wrap.../counter"
+  ],
+  "swaps": {
+    "count": 36,
+    "weekly": [
+      0,
+      0,
+      1,
+      3,
+      2,
+      5,
+      8,
+      4,
+      2,
+      1,
+      3,
+      4,
+      2,
+      1,
+      0,
+      0
+    ]
+  },
+  "gasFeeGnot": 12.4,
+  "persona": {
+    "id": "realm-hopper",
+    "title": "Realm Hopper",
+    "line": "You never stayed in one realm for long."
+  },
+  "shareId": "fxdayone0000"
+}

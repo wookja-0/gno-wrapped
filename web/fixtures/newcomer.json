@@ -1,0 +1,51 @@
+{
+  "address": "g1wrappedsampleqqqqqqqqqqqqqqqqqqqqqqqqq",
+  "dataAsOf": "2026-12-30",
+  "season": {
+    "id": "s1",
+    "start": "2026-09-12",
+    "end": "2026-12-31"
+  },
+  "firstTx": {
+    "date": "2026-12-18",
+    "mainnetDay": 98
+  },
+  "txCount": 2,
+  "percentile": 3,
+  "topRealms": [
+    {
+      "path": "gno.land/r/gnoland/users/v1",
+      "topFunc": "Register",
+      "calls": 1
+    }
+  ],
+  "deployedRealms": [],
+  "swaps": {
+    "count": 0,
+    "weekly": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  "gasFeeGnot": 0.02,
+  "persona": {
+    "id": "first-steps",
+    "title": "First Steps",
+    "line": "Two transactions in. Everyone starts somewhere."
+  },
+  "shareId": "fxnewcomer00"
+}
