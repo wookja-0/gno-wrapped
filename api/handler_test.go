@@ -22,6 +22,7 @@ func setup(t *testing.T) (string, http.Handler) {
 	write(t, dir, "s1/wr.json", `{"`+addr+`":{"address":"`+addr+`","txCount":2}}`)
 	write(t, dir, "s1/meta.json", `{"dataAsOf":"2026-10-19"}`)
 	write(t, dir, "s1/personas.json", `{"personas":[{"id":"builder"}]}`)
+	write(t, dir, "s1/season.json", `{"busiestDay":{"date":"2026-10-14"}}`)
 	if err := os.MkdirAll(filepath.Join(dir, "s1/share"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -58,6 +59,7 @@ func TestRecap(t *testing.T) {
 		{"/v1/s2/" + addr, 404, "no recap"},
 		{"/v1/s1", 200, `"dataAsOf":"2026-10-19"`},
 		{"/v1/s1/personas", 200, `"builder"`},
+		{"/v1/s1/season", 200, `"busiestDay"`},
 		{"/v1/s1/share/do439qv75pmz", 200, `"shared":true`},
 		{"/v1/s1/share/do439qv75pmx", 404, "no recap"},
 		{"/v1/s1/share/../../meta", 307, ""}, // ServeMux cleans the path and redirects; nothing reaches the file system

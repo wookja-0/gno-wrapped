@@ -28,15 +28,17 @@ func newHandler(st *store) http.Handler {
 		b, err := st.file(season, "meta.json")
 		respond(w, b, err, "no data for this season")
 	})
-	mux.HandleFunc("GET /v1/{season}/personas", func(w http.ResponseWriter, r *http.Request) {
-		season := r.PathValue("season")
-		if !seasonRE.MatchString(season) {
-			fail(w, http.StatusBadRequest, "invalid season")
-			return
-		}
-		b, err := st.file(season, "personas.json")
-		respond(w, b, err, "no data for this season")
-	})
+	for _, name := range []string{"personas", "season"} { // /personas and /season pages
+		mux.HandleFunc("GET /v1/{season}/"+name, func(w http.ResponseWriter, r *http.Request) {
+			season := r.PathValue("season")
+			if !seasonRE.MatchString(season) {
+				fail(w, http.StatusBadRequest, "invalid season")
+				return
+			}
+			b, err := st.file(season, name+".json")
+			respond(w, b, err, "no data for this season")
+		})
+	}
 	// Share links: the recap with every trace of the address removed (the batch redacts it).
 	mux.HandleFunc("GET /v1/{season}/share/{id}", func(w http.ResponseWriter, r *http.Request) {
 		season, id := r.PathValue("season"), r.PathValue("id")

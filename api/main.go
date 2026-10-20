@@ -2,6 +2,7 @@
 //
 //	GET /v1/{season}/{address}   one address's recap (the JSON contract in web/src/lib/wrapped.ts), 404 if none
 //	GET /v1/{season}             season meta: dataAsOf, totals
+//	GET /v1/{season}/season      the whole chain's season (/season page)
 //	GET /healthz
 //
 // It reads DATA_DIR/<season>/<xx>.json shards written by the batch and reloads a shard when the
