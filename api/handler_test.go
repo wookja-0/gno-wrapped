@@ -14,6 +14,8 @@ import (
 
 const addr = "g1wrappedsampleqqqqqqqqqqqqqqqqqqqqqqqqq"
 
+const anyRedirect = 3 // test case code: any 3xx
+
 func setup(t *testing.T) (string, http.Handler) {
 	dir := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(dir, "s1"), 0o755); err != nil {
@@ -62,14 +64,18 @@ func TestRecap(t *testing.T) {
 		{"/v1/s1/season", 200, `"busiestDay"`},
 		{"/v1/s1/share/do439qv75pmz", 200, `"shared":true`},
 		{"/v1/s1/share/do439qv75pmx", 404, "no recap"},
-		{"/v1/s1/share/../../meta", 307, ""}, // ServeMux cleans the path and redirects; nothing reaches the file system
+		{"/v1/s1/share/../../meta", anyRedirect, ""}, // ServeMux cleans the path and redirects (301 or 307 by Go version); nothing reaches the file system
 		{"/v1/s1/share/DO439QV75PMZ", 400, "invalid"},
 		{"/v1/s9", 404, "no data"},
 		{"/healthz", 200, "ok"},
 	}
 	for _, c := range cases {
 		rec := get(h, c.path)
-		if rec.Code != c.code || !strings.Contains(rec.Body.String(), c.body) {
+		code := rec.Code
+		if c.code == anyRedirect && code/100 == 3 {
+			code = anyRedirect
+		}
+		if code != c.code || !strings.Contains(rec.Body.String(), c.body) {
 			t.Errorf("%s: got %d %q, want %d containing %q", c.path, rec.Code, rec.Body.String(), c.code, c.body)
 		}
 	}

@@ -304,7 +304,8 @@ describe('personas and share links', () => {
 // Every address the batch produced must pass the same contract checks the app enforces.
 const OUT = path.join(__dirname, '../../data/out/s1');
 describe.runIf(existsSync(OUT))('real batch output', () => {
-  const all: WrappedData[] = readdirSync(OUT)
+  // vitest still evaluates a skipped describe's body, so read the folder only when it exists
+  const all: WrappedData[] = (existsSync(OUT) ? readdirSync(OUT) : [])
     .filter((f) => f.endsWith('.json') && !['meta.json', 'personas.json', 'season.json'].includes(f))
     .flatMap((f) => Object.values(JSON.parse(readFileSync(path.join(OUT, f), 'utf8')) as Record<string, WrappedData>));
 
