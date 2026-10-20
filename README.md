@@ -6,6 +6,8 @@ Paste a `g1…` address (or connect [Adena](https://adena.app)) and get a recap 
 when you arrived, the realms you called, your swaps and gas, a season persona, achievements,
 and a share card for X and Discord. It follows the chain live, so new activity shows up within seconds.
 
+**Try it: [gnowrapped.wookjin.cloud](https://gnowrapped.wookjin.cloud)**
+
 ![A recap: persona, rank, headline stats and achievements](docs/screenshots/recap.png)
 
 ## What's in a recap
@@ -13,14 +15,24 @@ and a share card for X and Discord. It follows the chain live, so new activity s
 - **Season persona**: one of eight (Builder, Day-One Explorer, Realm Hopper, DeFi Pilot, Collector,
   Player One, GNOT Courier, First Steps), picked by rules checked in order, with the reason in your
   own numbers and your rank among others with the same persona.
-- **Achievements**: Early Arrival, On a Roll, Triple Threat, Century, Validators' Friend, Gas Saver.
+- **Achievements**: Early Arrival, Realm Pioneer (among the first 10 to call a realm that 50+
+  addresses use), On a Roll, Triple Threat, Century, Validators' Friend, Gas Saver.
 - **Arrival**: your mainnet day, your place in arrival order, and a season timeline
   (first transaction, first swap, first NFT, first realm deployed, 100th transaction).
-- **Activity**: transactions and percentile, top realms, GnoSwap swaps by week, realms deployed, gas.
+- **Activity**: transactions and percentile, a day-by-day calendar with your longest streak, top realms,
+  GnoSwap swaps by week, realms deployed, gas.
+- **Since your last visit**: what changed since you last opened your recap (new transactions,
+  achievements, rank). The comparison is kept in your browser only.
 - **Sharing**: a post for X / Discord, a 1200×630 preview card, and a 1080×1920 image download.
 - **Links out**: your account, first transaction and realms on [Gnoscan](https://gnoscan.io).
 
 <p align="center"><img src="docs/screenshots/share-card.png" width="600" alt="Share card shown on X and Discord"></p>
+
+The site's `/season` page is the same recap for the whole chain: totals, transactions and new
+addresses per day, and the most-used realms.
+
+Every chart reads out the day (or week) under the pointer or the arrow keys, and has a Table view
+that shows the same numbers in the chart's place.
 
 How personas and achievements are decided is on the site's `/personas` page and in
 [`batch/build.go`](batch/build.go) and [`batch/achievements.go`](batch/achievements.go).
@@ -35,7 +47,9 @@ All data is public on-chain data. Share links still never carry the address:
   so the code being public doesn't let anyone map an ID back to an address.
 - Behind a share link the batch serves a redacted recap: no address in any form (the short
   `g1xxxx…xxxx` form alone identifies an address), no transaction hash, no exact arrival order,
-  and realm paths that contain the address are masked. The share card and image never show it either.
+  and realm paths that contain the address are masked. The calendar shows only active days per week
+  (a day-by-day pattern can be matched against the chain), and Realm Pioneer doesn't say which realms.
+  The share card and image never show the address either.
 - Persona ranks are shown only on the owner's own recap. There is no public leaderboard.
 
 Exact stats are still derived from public data, so a determined person could match a shared recap
@@ -53,8 +67,14 @@ tx-indexer ──────┤                                        ├─�
   [tx-indexer](https://github.com/gnolang/tx-indexer)'s GraphQL subscriptions. It applies a block once
   all of its transactions have arrived, rewrites changed per-address JSON every couple of seconds, and
   refills any gap (dropped connection, incomplete block) with range queries. Users never hit the indexer.
+- Every range is checked against its blocks' tx counts before it's cached (an incomplete answer is
+  retried, never stored). On start, and when a check every 10 minutes finds the cache's tx count
+  differing from the chain's `total_txs`, the batch verifies every cached chunk and fetches again the
+  ones that don't add up.
+- When the chain passes the season's last day, recaps are marked final and dated that day; earlier
+  seasons' output stays in `data/out/<season>/`.
 - **api** (Go) serves the batch output read-only and reloads a file when the batch rewrites it.
-- **web** (Next.js) renders the recap, `/personas`, share links and the preview card, reading only the api.
+- **web** (Next.js) renders the recap, `/personas`, `/season`, share links and the preview card, reading only the api.
 
 The indexer has no address index: any filter other than block height or transaction hash scans every
 transaction. The batch only ever queries by height range.
@@ -84,9 +104,11 @@ Back up `data/share-ids.json`: share links depend on it, and it can't be regener
 ```sh
 docker compose run --rm batch stats    # distributions for tuning persona and bot rules (read-only)
 docker compose stop ingest && docker compose run --rm batch build   # rebuild data/out from the cache
+docker compose stop ingest && docker compose run --rm batch verify  # check the cache against the chain, repair, rebuild
 ```
 
-`fetch`, `build` and `all` take a lock on the data directory, so they refuse to run while `ingest` is up.
+`fetch`, `verify`, `build` and `all` take a lock on the data directory, so they refuse to run while
+`ingest` is up. (`ingest` verifies the cache itself on every start.)
 
 ## Configuration
 
@@ -112,7 +134,7 @@ Any public tx-indexer for `gnoland-1` works: the batch only asks for fields in t
 | `LISTEN_ADDR` | `:8080` | |
 
 Endpoints: `GET /v1/{season}/{address}`, `/v1/{season}/share/{id}`, `/v1/{season}/personas`,
-`/v1/{season}`, `/healthz`. Logs one line per request (`docker compose logs -f api`).
+`/v1/{season}/season`, `/v1/{season}`, `/healthz`. Logs one line per request (`docker compose logs -f api`).
 
 **web**
 
