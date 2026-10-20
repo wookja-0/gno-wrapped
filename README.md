@@ -182,5 +182,5 @@ renders a full recap without any indexer data.
   [onbloc/gnoscan](https://github.com/onbloc/gnoscan), GnoSwap mark from
   [gnoswap-labs/gnoswap-interface](https://github.com/gnoswap-labs/gnoswap-interface) (all GPL-3.0).
 - Favicon and gno.land mark from [gnolang/gno](https://github.com/gnolang/gno) (GNO Network General Public License).
-- X and Discord icons from [Simple Icons](https://simpleicons.org) (CC0).
+- X, Discord and GitHub icons from [Simple Icons](https://simpleicons.org) (CC0).
 - Data from the [gno.land](https://gno.land) tx-indexer; explorer links to [Gnoscan](https://gnoscan.io).

@@ -216,6 +216,8 @@ body { color: #F4F6FF; font-family: 'Archivo', system-ui, sans-serif; }
 .gw-footer { position: relative; z-index: 1; margin-top: 24px; }
 .gw-footer-text { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 0 24px 18px; text-align: center; font-size: 13px; color: #D3DBF7; }
 .gw-footer-text p { margin: 0; }
+.gw-source { display: inline-flex; align-items: center; gap: 5px; color: inherit; font-weight: 600; text-decoration: none; vertical-align: bottom; }
+.gw-source:hover, .gw-source:focus-visible { color: #F4F6FF; text-decoration: underline; text-underline-offset: 3px; }
 .gw-eco { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 22px; }
 .gw-eco a { display: inline-flex; align-items: center; gap: 7px; color: #A3AED6; font-size: 13px; font-weight: 600; text-decoration: none; }
 .gw-eco a:hover, .gw-eco a:focus-visible { color: #F4F6FF; }

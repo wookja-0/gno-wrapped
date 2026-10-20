@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import Link from 'next/link';
 import { pageStars, planetRows } from '@/lib/art';
 import { easeOutCubic, TIMING, truncMid } from '@/lib/wrapped';
+import { CONFIG } from '@/lib/config';
+import { GitHubIcon } from './BrandIcons';
 import { EcosystemLinks } from './EcosystemLinks';
 import { Wordmark } from './pixel';
 import { useNarrow, useReducedMotion } from './useReducedMotion';
@@ -176,7 +178,10 @@ export function Footer({ dataAsOf, final, children }: { dataAsOf?: string | null
     <footer className="gw-footer">
       <div className="gw-footer-text">
         {children}
-        <p>{dataAsOf ? `Data as of ${dataAsOf} · ` : ''}Built from public on-chain data · {final ? 'Final results' : 'Updated live'}</p>
+        <p>
+          {dataAsOf ? `Data as of ${dataAsOf} · ` : ''}Built from public on-chain data · {final ? 'Final results' : 'Updated live'} ·{' '}
+          <a className="gw-source" href={CONFIG.REPO_URL} target="_blank" rel="noopener noreferrer"><GitHubIcon size={14} />Source</a>
+        </p>
         <EcosystemLinks />
       </div>
       <Planet />
