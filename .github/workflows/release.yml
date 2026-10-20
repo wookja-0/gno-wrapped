@@ -1,6 +1,6 @@
 name: Release
 
-# main: test, build arm64 images tagged with the commit, deploy them.
+# main (a push or a merged pull request): test, build arm64 images tagged with the commit, deploy them.
 # Run by hand with a commit SHA to redeploy images that already exist (a rollback).
 on:
   push:
