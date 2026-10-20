@@ -1,0 +1,6 @@
+# HTTPS for DOMAIN from Let's Encrypt (HTTP-01 on port 80: no DNS credentials needed);
+# plain HTTP redirects to it.
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy web:3000
+}

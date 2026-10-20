@@ -4,6 +4,9 @@
 # local settings (.env.example is the template)
 /.env
 
+# server: the commit deploy/deploy.sh last deployed
+/.deployed
+
 # go
 /batch/bin/
 
