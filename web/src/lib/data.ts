@@ -2,7 +2,7 @@ import 'server-only';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { cacheLife } from 'next/cache';
-import type { PersonasData, WrappedData } from './wrapped';
+import type { PersonasData, SeasonData, WrappedData } from './wrapped';
 
 // Backend (api/): GET /v1/{season}/{address} → WrappedData, /v1/{season}/share/{id} → redacted
 // WrappedData, /v1/{season}/personas → PersonasData, /v1/{season} → meta.
@@ -43,11 +43,19 @@ export async function getPersonas(season: string): Promise<PersonasData | null> 
   return getJson<PersonasData>(v1(season, 'personas'));
 }
 
-/** dataAsOf for screens that have no per-address JSON (EmptyState). */
-export async function getDataAsOf(season: string): Promise<string | null> {
+/** The whole chain's season for /season, or null before the batch has written it. */
+export async function getSeasonData(season: string): Promise<SeasonData | null> {
+  'use cache';
+  cacheLife('minutes');
+  return getJson<SeasonData>(v1(season, 'season'));
+}
+
+/** dataAsOf and the final flag for screens that have no per-address JSON (EmptyState). */
+export async function getSeasonStatus(season: string): Promise<{ dataAsOf: string | null; final: boolean }> {
   'use cache';
   cacheLife('seconds');
-  return (await getJson<{ dataAsOf: string }>(v1(season)))?.dataAsOf ?? null;
+  const m = await getJson<{ dataAsOf: string; final?: boolean }>(v1(season));
+  return { dataAsOf: m?.dataAsOf ?? null, final: !!m?.final };
 }
 
 export async function getFixture(name: string, shared = false): Promise<WrappedData | null> {
@@ -64,6 +72,11 @@ function redactFixture(d: WrappedData): WrappedData {
     ...d, address: '', shared: true,
     firstTx: d.firstTx && { date: d.firstTx.date, mainnetDay: d.firstTx.mainnetDay },
     arrival: d.arrival && { of: d.arrival.of, tier: d.arrival.tier },
+    achievements: d.achievements?.map(({ realms: _, ...a }) => a), // eslint-disable-line @typescript-eslint/no-unused-vars
+    calendar: d.calendar && {
+      weeks: Array.from({ length: Math.ceil((d.calendar.daily?.length ?? 0) / 7) }, (_, w) => (d.calendar!.daily ?? []).slice(w * 7, w * 7 + 7).filter((n) => n > 0).length),
+      activeDays: d.calendar.activeDays, longestStreak: d.calendar.longestStreak,
+    },
     topRealms: d.topRealms.map((r) => ({ ...r, path: mask(r.path) })),
     deployedRealms: d.deployedRealms.map(mask),
   };

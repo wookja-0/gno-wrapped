@@ -9,8 +9,10 @@ import {
   gnoscanAccount, gnoscanRealm, gnoscanTx, personaRankText, personaWhy, plural, RANK_METRIC, rankTopPct, shareLink, sharePost, shortAddress, slideIds, validate, weekRange, xIntentUrl, type WrappedData,
 } from '@/lib/wrapped';
 import Link from 'next/link';
+import { ActivityCalendar } from './ActivityCalendar';
 import { DiscordIcon, XIcon } from './BrandIcons';
 import { PersonaBadge, Pill, Pixel } from './pixel';
+import { SinceLastVisit } from './SinceLastVisit';
 import { SummaryExport } from './SummaryExport';
 import { useHydrated } from './useReducedMotion';
 import { CONFIG } from '@/lib/config';
@@ -80,7 +82,12 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
         {/* hero: persona + headline stats */}
         <section className="gw-hero">
           <div className="gw-hero-text">
-            <Reveal><Pill>{seasonPill(season)}</Pill></Reveal>
+            <Reveal>
+              <div className="gw-pills">
+                <Pill>{seasonPill(season)}</Pill>
+                {data.final && <Pill style={{ background: '#FF8A3D', color: '#0A0F2E' }}>FINAL</Pill>}
+              </div>
+            </Reveal>
             <Reveal delay={80}><p className="gw-kicker" style={{ marginTop: 22 }}>{shared ? 'Season persona' : 'Your season persona'}</p></Reveal>
             <Reveal delay={160}><h1 className="gw-persona-title">{persona.title}</h1></Reveal>
             <Reveal delay={240}><p className="gw-lede">{persona.line}</p></Reveal>
@@ -105,6 +112,8 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
           </Reveal>
         </section>
 
+        {!shared && <SinceLastVisit data={data} />}
+
         <section className="gw-stats" aria-label="Season at a glance" style={{ ['--cols' as string]: stats.length <= 4 ? stats.length : 3 }}>
           {stats.map((s, i) => (
             <Reveal key={s.label} className="gw-stat" delay={i * 70}>
@@ -128,7 +137,7 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
                     <Pixel art={achievementIcon(a.id, 4)} />
                     <div style={{ minWidth: 0 }}>
                       <div className="gw-ach-title">{ACHIEVEMENTS[a.id]?.title ?? a.id}</div>
-                      <div className="gw-ach-text">{ACHIEVEMENTS[a.id]?.text(a.value)}</div>
+                      <div className="gw-ach-text">{ACHIEVEMENTS[a.id]?.text(a.value, a.realms)}</div>
                     </div>
                   </Reveal>
                 ))}
@@ -177,6 +186,14 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
               <p className="gw-body-strong">{activityLead(pct)}More active than <span style={{ color: ORANGE }}>{pct}%</span> of addresses</p>
             </Card>
           )}
+
+          {(data.calendar?.daily?.length || data.calendar?.weeks?.length) ? (
+            <Card label="Calendar" className="gw-span-12">
+              <Pill>CALENDAR</Pill>
+              <p className="gw-kicker">{shared ? 'The season, week by week' : 'Your season, day by day'}</p>
+              <ActivityCalendar data={data} />
+            </Card>
+          ) : null}
 
           {show.has('RealmSlide') && top && (
             <Card label="Top realms" className="gw-span-12">
@@ -339,7 +356,7 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
         )}
       </main>
 
-      <Footer dataAsOf={data.dataAsOf}>
+      <Footer dataAsOf={data.dataAsOf} final={data.final}>
         <button type="button" className="gw-btn gw-btn-ghost" onClick={() => router.push('/')}>Unwrap another address</button>
       </Footer>
 

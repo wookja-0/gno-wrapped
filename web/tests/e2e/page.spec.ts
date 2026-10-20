@@ -53,6 +53,15 @@ test.describe('recap page', () => {
     await expect(page.getByText('You kept the validators well fed.')).toBeVisible();
   });
 
+  test('a final recap says so; a live one says it updates', async ({ page }) => {
+    await open(page, `/s1/${ADDR}?fixture=whale`); // final: true
+    await expect(page.locator('.gw-pills')).toContainText('FINAL');
+    await expect(page.locator('footer')).toContainText('Data as of 2026-12-31 · Built from public on-chain data · Final results');
+    await open(page, `/s1/${ADDR}?fixture=full`);
+    await expect(page.locator('.gw-pills')).not.toContainText('FINAL');
+    await expect(page.locator('footer')).toContainText('Updated live');
+  });
+
   test('long realm path expands on tap', async ({ page }) => {
     await open(page, `/s1/${ADDR}?fixture=whale`);
     await page.getByRole('region', { name: 'Top realms' }).getByRole('button', { expanded: false }).first().click();
@@ -113,6 +122,7 @@ test.describe('share view (/s1/s/<id>)', () => {
     expect(html, '#312').not.toMatch(/#312(?![0-9a-f])/i); // the order, not a badge color like #312470
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Realm Hopper');
     await expect(page.getByText('One of the first 500 on mainnet').first()).toBeVisible(); // the tier, not the order
+    await expect(page.getByText('One of the first 10 to call 2 popular realms.')).toBeVisible(); // which realms stays private
   });
 
   test('offers "unwrap your own" instead of the share tools', async ({ page }) => {
@@ -131,13 +141,101 @@ test.describe('share view (/s1/s/<id>)', () => {
   });
 });
 
+test.describe('activity calendar', () => {
+  test('owner: one cell per season day; hover and arrow keys read a day', async ({ page }) => {
+    await open(page, `/s1/${ADDR}?fixture=full`);
+    const cal = page.getByRole('region', { name: 'Calendar' });
+    await expect(cal).toContainText(/34\s*active days/);
+    await expect(cal).toContainText('Longest streak: 9 days in a row');
+    await expect(cal.locator('.gw-cal-cell')).toHaveCount(111);
+    await expect(cal.locator('.gw-cal-future')).toHaveCount(1); // Dec 31, after dataAsOf 2026-12-30
+    const readout = cal.locator('.gw-cal-readout');
+    await cal.locator('.gw-cal-cell').nth(21).hover(); // Oct 3, the first tx
+    await expect(readout).toHaveText(/ on Oct 3$/);
+    await page.mouse.move(0, 0); // leaving the grid clears the readout
+    await expect(readout).toHaveText(/^Hover a day/);
+    const grid = cal.getByRole('group', { name: 'Transactions per day', exact: true });
+    await grid.focus();
+    await expect(readout).toHaveText(/Dec 30$/); // the last day with data
+    await page.keyboard.press('ArrowLeft');
+    await expect(readout).toHaveText(/Dec 23$/); // a week back
+  });
+
+  test('hovering never resizes the chart box; Table takes its place at the same size', async ({ page }) => {
+    await open(page, `/s1/${ADDR}?fixture=full`);
+    const cal = page.getByRole('region', { name: 'Calendar' });
+    const box = cal.locator('.gw-chart');
+    await box.scrollIntoViewIfNeeded();
+    const before = await box.boundingBox();
+    await cal.locator('.gw-cal-cell').nth(60).hover(); // a future-free day with a short readout
+    expect(await box.boundingBox()).toEqual(before);
+    await cal.locator('.gw-cal-cell').nth(110).hover(); // "Dec 31 hasn't happened yet"
+    expect(await box.boundingBox()).toEqual(before);
+
+    await page.mouse.move(0, 0);
+    await cal.getByRole('button', { name: 'Table' }).click();
+    await expect(cal.getByRole('button', { name: 'Table' })).toHaveAttribute('aria-pressed', 'true');
+    const table = cal.getByRole('region', { name: 'Transactions per day as a table' });
+    await expect(table.locator('tbody tr')).toHaveCount(34);
+    await expect(table.locator('thead th')).toHaveText(['Day', 'Transactions']);
+    expect(await box.boundingBox()).toEqual(before);
+    await cal.getByRole('button', { name: 'Chart' }).click();
+    await expect(table).toHaveCount(0);
+    await expect(cal.getByRole('group', { name: 'Transactions per day', exact: true })).toBeVisible();
+  });
+
+  test('share view: active days per week only, no daily series', async ({ page }) => {
+    await open(page, '/s1/s/fxfull000000?fixture=full');
+    const cal = page.getByRole('region', { name: 'Calendar' });
+    await expect(cal).toContainText('The season, week by week');
+    await expect(cal.locator('.gw-cal-cell')).toHaveCount(16);
+    await cal.locator('.gw-cal-cell').nth(3).hover();
+    await expect(cal.locator('.gw-cal-readout')).toHaveText(/ of 7 days active, week of Oct 3–9$/);
+    expect(await page.content()).not.toContain('"daily"');
+  });
+});
+
+test.describe('since your last visit', () => {
+  test('first visit: nothing; a later visit lists the changes, through reloads, until dismissed', async ({ context }) => {
+    const first = await context.newPage();
+    await open(first, `/s1/${ADDR}?fixture=full`);
+    const banner = (p: typeof first) => p.getByRole('region', { name: 'Since your last visit' });
+    await expect(banner(first)).toHaveCount(0);
+    // pretend the stored visit was a week ago, with fewer transactions
+    await first.evaluate((addr) => {
+      const k = `gw:visit:s1:${addr}`;
+      const v = JSON.parse(localStorage.getItem(k)!);
+      v.at = '2026-12-23T12:00:00Z';
+      v.snap.txCount -= 12;
+      v.snap.achievements = v.snap.achievements.filter((a: string) => a !== 'streak');
+      localStorage.setItem(k, JSON.stringify(v));
+    }, ADDR);
+
+    const later = await context.newPage(); // a new tab = a new visit
+    await open(later, `/s1/${ADDR}?fixture=full`);
+    await expect(banner(later)).toContainText('Since your last visit on Dec 23');
+    await expect(banner(later)).toContainText('+12 transactions');
+    await expect(banner(later)).toContainText('New achievement: On a Roll');
+    await later.reload();
+    await later.locator('[data-hydrated]').waitFor();
+    await expect(banner(later)).toContainText('+12 transactions'); // same session, same comparison
+    await banner(later).getByRole('button', { name: 'Dismiss' }).click();
+    await expect(banner(later)).toHaveCount(0);
+
+    const shared = await context.newPage();
+    await open(shared, '/s1/s/fxfull000000?fixture=full');
+    await expect(banner(shared)).toHaveCount(0); // never on a share link
+  });
+});
+
 test.describe('achievements and timeline', () => {
   test('recap lists achievements, arrival order and the season timeline', async ({ page }) => {
     await open(page, `/s1/${ADDR}?fixture=full`);
     const ach = page.getByRole('region', { name: 'Achievements' });
-    await expect(ach.locator('.gw-ach')).toHaveCount(3);
-    await expect(ach.locator('.gw-ach-title')).toHaveText(['Early Arrival', 'On a Roll', 'Triple Threat']);
+    await expect(ach.locator('.gw-ach')).toHaveCount(4);
+    await expect(ach.locator('.gw-ach-title')).toHaveText(['Early Arrival', 'Realm Pioneer', 'On a Roll', 'Triple Threat']);
     await expect(ach).toContainText('9 days in a row on gno.land.');
+    await expect(ach).toContainText('One of the first 10 to call 2 popular realms, including gno.land/r/gnoswap/router.');
     await expect(page.getByText('#312 of 5,029 to arrive on mainnet')).toBeVisible();
     await expect(page.getByRole('list', { name: 'Season timeline' }).locator('li')).toHaveCount(4);
   });
@@ -149,7 +247,7 @@ test.describe('achievements and timeline', () => {
 
   test('/personas lists all achievements', async ({ page }) => {
     await page.goto('/personas#achievements');
-    await expect(page.locator('#achievements .gw-ach')).toHaveCount(6);
+    await expect(page.locator('#achievements .gw-ach')).toHaveCount(7);
   });
 
   test('intro shows the live ticker (needs the api with batch output)', async ({ page }) => {
@@ -198,6 +296,32 @@ test.describe('personas', () => {
     await expect(cards.last()).toContainText('First Steps');
     await expect(cards.nth(3)).toContainText('Ranked by GnoSwap and wugnot moves.');
     await expect(page.getByText('there is no public list')).toBeVisible();
+  });
+});
+
+test.describe('the whole season (/season)', () => {
+  test('totals, two daily charts and the most-used realms (needs the api with batch output)', async ({ page }) => {
+    await page.goto('/season');
+    await page.locator('[data-hydrated], main').first().waitFor();
+    if (await page.getByText("Season data isn't available").count()) test.skip(true, 'no season.json from the batch yet');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Mainnet Season 1, all of gno.land');
+    await expect(page.getByRole('region', { name: 'The season in numbers' }).locator('.gw-stat')).toHaveCount(5);
+    const txs = page.getByRole('group', { name: 'Transactions per day', exact: true });
+    await expect(txs.locator('.gw-daily-slot')).toHaveCount(111);
+    await txs.locator('.gw-daily-slot').nth(11).hover();
+    await expect(page.getByRole('region', { name: 'Transactions per day' })).toContainText(/ transactions? on Sep 23/);
+    await expect(page.getByRole('group', { name: 'New addresses per day', exact: true })).toBeVisible();
+    const realms = page.getByRole('region', { name: 'Most-used realms' }).locator('.gw-row');
+    await expect(realms).toHaveCount(5);
+    await expect(realms.first().getByRole('link')).toHaveAttribute('href', /^https:\/\/gnoscan\.io\/realms\/details\?path=gno\.land\/r\//);
+    expect(await page.content()).not.toMatch(/"g1[02-9ac-hj-np-z]{38}"/); // no address field anywhere
+  });
+
+  test('linked from the intro and /personas', async ({ page }) => {
+    await open(page, '/');
+    await expect(page.getByRole('link', { name: 'See the whole season →' })).toHaveAttribute('href', '/season');
+    await page.goto('/personas');
+    await expect(page.getByRole('link', { name: 'The whole season →' })).toHaveAttribute('href', '/season');
   });
 });
 

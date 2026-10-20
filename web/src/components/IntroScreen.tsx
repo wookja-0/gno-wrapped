@@ -23,6 +23,7 @@ export function IntroScreen() {
   const hydrated = useHydrated();
   const [addr, setAddr] = useState('');
   const [err, setErr] = useState('');
+  const [final, setFinal] = useState(false); // from the ticker: the season is over
   const season = CONFIG.CURRENT_SEASON;
   const seasonPill = `MAINNET ${season.id.toUpperCase()} / ${fmtShort(season.start).toUpperCase()} - ${fmtShort(season.end).toUpperCase()}`;
 
@@ -61,7 +62,7 @@ export function IntroScreen() {
         <div style={{ animation: RISE(0), display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
           <Pill>{seasonPill}</Pill>
         </div>
-        <LiveTicker />
+        <LiveTicker onFinal={setFinal} />
         <div className="gw-intro-mark" style={{ animation: RISE(80) }}>
           <div className="gw-wide-only"><Wordmark p={9} twoLines /></div>
           <div className="gw-narrow-only"><Wordmark p={6} twoLines /></div>
@@ -93,9 +94,10 @@ export function IntroScreen() {
         </div>
         <p className="gw-why" style={{ marginTop: 28 }}>
           <Link href="/personas" className="gw-ext">Meet the 8 season personas →</Link>
+          <Link href="/season" className="gw-ext">See the whole season →</Link>
         </p>
       </main>
-      <Footer />
+      <Footer final={final} />
     </div>
   );
 }

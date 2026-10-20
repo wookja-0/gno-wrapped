@@ -3,7 +3,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { achievementIconRows, PERSONA_IDS, personaBadge, personaBadgeRows, personaOrbit, personaSymbolRows } from '../src/lib/art';
 import {
-  ACHIEVEMENT_ORDER, arrivalText, builderCards, fmtGas, timeline, gnoscanAccount, gnoscanRealm, gnoscanTx, personaRankText, personaRuleText, personaWhy, rankTopPct, shareLink, sharePost, X_MAX, xLength, fuelLine, gasPerTx, isEmpty, ogRankCard, realmShortName,
+  ACHIEVEMENT_ORDER, arrivalText, CAL_COLORS, calendarDays, calendarMonths, calendarWeeks, dayLevel, dayText, daySeries, peakIndex, seasonDays, visitDiff, visitSnapshot, weekLevel, weekText, builderCards, fmtGas, timeline, gnoscanAccount, gnoscanRealm, gnoscanTx, personaRankText, personaRuleText, personaWhy, rankTopPct, shareLink, sharePost, X_MAX, xLength, fuelLine, gasPerTx, isEmpty, ogRankCard, realmShortName,
   slideIds, summaryRank, truncMid, validate, weekRange, type WrappedData,
 } from '../src/lib/wrapped';
 
@@ -181,6 +181,73 @@ describe('arrival, achievements, timeline', () => {
   });
 });
 
+describe('activity calendar', () => {
+  it('fixtures are consistent: one entry per season day, summing to txCount', () => {
+    for (const name of ['full', 'whale', 'newcomer', 'day-one', 'no-builder-no-defi']) {
+      const d = load(name);
+      const daily = d.calendar!.daily!;
+      expect(daily.length, name).toBe(seasonDays(d.season));
+      expect(daily.reduce((a, b) => a + b, 0), name).toBe(d.txCount);
+      expect(daily.filter((n) => n > 0).length, name).toBe(d.calendar!.activeDays);
+    }
+    expect(validate({ ...load('full'), calendar: { daily: [1, 2], activeDays: 2, longestStreak: 2 } })).toEqual(['calendar.daily has 2 entries; season needs 111']);
+  });
+  it('levels: log scale up to the busiest day; weeks by active days', () => {
+    expect([0, 1, 2, 9, 30, 100].map((n) => dayLevel(n, 100))).toEqual([0, 1, 1, 2, 3, 4]);
+    expect(dayLevel(1, 1)).toBe(4);
+    expect([0, 1, 2, 3, 4, 5, 6, 7].map(weekLevel)).toEqual([0, 1, 2, 2, 3, 3, 4, 4]);
+    expect(CAL_COLORS).toHaveLength(5);
+  });
+  it('days after dataAsOf are in the future; text for each kind of cell', () => {
+    const d = load('newcomer'); // dataAsOf 2026-12-30
+    const days = calendarDays(d);
+    expect(days[0]).toEqual({ date: '2026-09-12', count: 0, level: 0, future: false });
+    expect(days.at(-1)).toMatchObject({ date: '2026-12-31', future: true });
+    expect(dayText(days[0])).toBe('No activity on Sep 12');
+    expect(dayText(days.at(-1)!)).toBe("Dec 31 hasn't happened yet");
+    expect(dayText({ date: '2026-10-14', count: 12, level: 3, future: false })).toBe('12 transactions on Oct 14');
+  });
+  it('month labels sit on the week column of the 1st', () => {
+    expect(calendarMonths(load('full'))).toEqual([{ week: 0, label: 'Sep' }, { week: 2, label: 'Oct' }, { week: 7, label: 'Nov' }, { week: 11, label: 'Dec' }]);
+  });
+  it('share view: weeks only', () => {
+    const weeks = calendarWeeks({ ...load('full'), calendar: { weeks: [0, 3, 7], activeDays: 10, longestStreak: 7 } });
+    expect(weeks.map((w) => [w.date, w.level])).toEqual([['2026-09-12', 0], ['2026-09-19', 2], ['2026-09-26', 4]]);
+    expect(weekText(weeks[1], '2026-09-12', 1)).toBe('3 of 7 days active, week of Sep 19–25');
+  });
+});
+
+describe('the whole season', () => {
+  it('daily series: dated from season.start, future after dataAsOf; peak is the first max', () => {
+    const s = { id: 's1', start: '2026-09-12', end: '2026-12-31' };
+    expect(daySeries([4, 0, 9], s, '2026-09-13')).toEqual([
+      { date: '2026-09-12', value: 4, future: false }, { date: '2026-09-13', value: 0, future: false }, { date: '2026-09-14', value: 9, future: true },
+    ]);
+    expect(peakIndex([1, 7, 7, 2])).toBe(1);
+    expect(peakIndex([0, 0])).toBe(-1);
+  });
+});
+
+describe('since your last visit', () => {
+  it('nothing new, nothing to say', () => {
+    const d = load('full');
+    expect(visitDiff(visitSnapshot(d), d)).toEqual([]);
+  });
+  it('lists what changed, most important first', () => {
+    const d = load('full');
+    const prev = { ...visitSnapshot(d), txCount: d.txCount - 12, swaps: d.swaps.count - 3, gasFeeGnot: d.gasFeeGnot - 0.42,
+      activeDays: d.calendar!.activeDays - 2, achievements: ['early'], rank: 20 };
+    expect(visitDiff(prev, d)).toEqual([
+      '+12 transactions', 'New achievement: Realm Pioneer', 'New achievement: On a Roll', 'New achievement: Triple Threat',
+      'Up 8 in your persona rank: #20 → #12', '+3 swaps', '+2 active days', '+0.42 GNOT in gas',
+    ]);
+  });
+  it('a new persona replaces the rank line', () => {
+    const d = load('full');
+    expect(visitDiff({ ...visitSnapshot(d), persona: 'GNOT Courier', rank: 900 }, d)).toEqual(['New persona: GNOT Courier → Realm Hopper']);
+  });
+});
+
 describe('persona rank', () => {
   it('text and top share', () => {
     const d = load('full');
@@ -204,7 +271,7 @@ describe('personas and share links', () => {
     const d = load('full');
     expect(personaWhy({ ...d, persona: { id: 'defi-pilot', title: 'DeFi Pilot', line: '', share: 0.89 } })).toBe('89% of your moves went through GnoSwap and wugnot.');
     expect(personaWhy({ ...d, persona: { id: 'builder', title: 'Builder', line: '' } })).toBe('You deployed 2 realms to mainnet.');
-    expect(personaWhy({ ...d, txCount: 1, persona: { id: 'first-steps', title: 'First Steps', line: '' } })).toBe('1 transaction so far: the first steps.');
+    expect(personaWhy({ ...d, txCount: 1, persona: { id: 'first-steps', title: 'First Steps', line: '' } })).toBe('1 transaction: the first steps.');
   });
   it('describes each rule', () => {
     expect(personaRuleText({ kind: 'share', category: 'play', min: 0.5 })).toBe('At least 50% of your moves were on-chain games.');
@@ -238,7 +305,7 @@ describe('personas and share links', () => {
 const OUT = path.join(__dirname, '../../data/out/s1');
 describe.runIf(existsSync(OUT))('real batch output', () => {
   const all: WrappedData[] = readdirSync(OUT)
-    .filter((f) => f.endsWith('.json') && f !== 'meta.json' && f !== 'personas.json')
+    .filter((f) => f.endsWith('.json') && !['meta.json', 'personas.json', 'season.json'].includes(f))
     .flatMap((f) => Object.values(JSON.parse(readFileSync(path.join(OUT, f), 'utf8')) as Record<string, WrappedData>));
 
   it('has addresses', () => expect(all.length).toBeGreaterThan(0));

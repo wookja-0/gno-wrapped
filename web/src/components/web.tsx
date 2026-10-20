@@ -170,12 +170,13 @@ export function DataErrorBanner({ errors }: { errors: string[] }) {
   );
 }
 
-export function Footer({ dataAsOf, children }: { dataAsOf?: string | null; children?: ReactNode }) {
+/** `final`: the season is over, so the data no longer changes. */
+export function Footer({ dataAsOf, final, children }: { dataAsOf?: string | null; final?: boolean; children?: ReactNode }) {
   return (
     <footer className="gw-footer">
       <div className="gw-footer-text">
         {children}
-        <p>{dataAsOf ? `Data as of ${dataAsOf} · ` : ''}Built from public on-chain data · Updated live</p>
+        <p>{dataAsOf ? `Data as of ${dataAsOf} · ` : ''}Built from public on-chain data · {final ? 'Final results' : 'Updated live'}</p>
         <EcosystemLinks />
       </div>
       <Planet />

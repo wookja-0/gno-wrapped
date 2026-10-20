@@ -79,11 +79,12 @@ export function PersonasView({ data, loading }: { data: PersonasData | null; loa
             Your rank within your persona is shown only on your own recap; there is no public list.
           </p>
         )}
-        <div style={{ marginTop: 28 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 20, marginTop: 28 }}>
           <Link href="/" className="gw-btn gw-btn-primary gw-btn-lg">Find your persona</Link>
+          <Link href="/season" className="gw-ext" style={{ margin: 0 }}>The whole season →</Link>
         </div>
       </main>
-      <Footer />
+      <Footer final={data?.final} />
     </div>
   );
 }

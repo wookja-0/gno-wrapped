@@ -36,7 +36,8 @@ export interface WrappedData {
   address: string;                                  // 40-char bech32 "g1…"; "" behind a share link
   shareId?: string;                                 // public share link ID (/<season>/s/<shareId>)
   shared?: boolean;                                 // true = redacted share view: no address in any form
-  dataAsOf: string;                                 // required, "YYYY-MM-DD" (UTC) of the last rebuild
+  dataAsOf: string;                                 // required, "YYYY-MM-DD" (UTC): the chain tip's date, or season.end once final
+  final?: boolean;                                  // the season is over and every in-season tx is in
   season: Season;                                   // REQUIRED, never fall back silently
   firstTx?: { date: string; mainnetDay: number; hash?: string }; // mainnetDay 1 = launch day; hash is base64
   txCount: number;
@@ -48,15 +49,23 @@ export interface WrappedData {
   gasFeeGnot: number;
   persona?: Persona;
   personaRank?: PersonaRank;                        // rank within the persona; none for First Steps and bots
+  calendar?: Calendar;
   arrival?: Arrival;
   achievements?: Achievement[];
   milestones?: Milestone[];
 }
 
+/**
+ * Activity by day. Owner view: txs per UTC day (daily[0] = season.start). Share view: only active
+ * days per season week (a day-by-day pattern can be matched against the chain).
+ */
+export interface Calendar { daily?: number[]; weeks?: number[]; activeDays: number; longestStreak: number }
+
 /** Mainnet arrival order. `order` is omitted behind a share link (it's a direct lookup into chain data). */
 export interface Arrival { order?: number; of: number; tier?: number }
-export type AchievementId = 'early' | 'streak' | 'triple-threat' | 'gas-saver' | 'validators-friend' | 'century';
-export interface Achievement { id: AchievementId; value?: number }
+export type AchievementId = 'early' | 'pioneer' | 'streak' | 'triple-threat' | 'gas-saver' | 'validators-friend' | 'century';
+/** `realms`: pioneer only, owner view only — up to 3 realms, most-used first. */
+export interface Achievement { id: AchievementId; value?: number; realms?: string[] }
 export type MilestoneId = 'first-swap' | 'first-collect' | 'first-deploy' | 'tx-100';
 export interface Milestone { id: MilestoneId; date: string }
 
@@ -74,6 +83,8 @@ export type RankMetric = 'deployed' | 'firstTx' | 'realms' | 'defi' | 'collect' 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 export const ADDRESS_RE = /^g1[02-9ac-hj-np-z]{38}$/; // bech32 charset, used by the intro's paste field
 
+export const seasonDays = (s: Season) => (Date.parse(s.end) - Date.parse(s.start)) / 864e5 + 1; // 111 for S1
+
 export function seasonWeeks(s: Season): number {
   return Math.ceil(((Date.parse(s.end) - Date.parse(s.start)) / 864e5 + 1) / 7); // 16 for S1
 }
@@ -90,6 +101,9 @@ export function validate(d: Partial<WrappedData>): string[] {
     if (!errs.length && d.swaps && Array.isArray(d.swaps.weekly)) {
       const weeks = seasonWeeks(s);
       if (d.swaps.weekly.length !== weeks) errs.push(`swaps.weekly has ${d.swaps.weekly.length} entries; season needs ${weeks}`);
+    }
+    if (!errs.length && d.calendar?.daily && d.calendar.daily.length !== seasonDays(s)) {
+      errs.push(`calendar.daily has ${d.calendar.daily.length} entries; season needs ${seasonDays(s)}`);
     }
   }
   return errs;
@@ -326,7 +340,7 @@ export type PersonaRule =
 /** GET /v1/{season}/personas: the batch's rules (checked in order, first match wins) and counts. */
 export interface PersonaInfo extends Persona { rule: PersonaRule; rankBy?: RankMetric; count: number }
 export interface PersonasData {
-  season: Season; dataAsOf: string; addresses: number; personas: PersonaInfo[];
+  season: Season; dataAsOf: string; final?: boolean; addresses: number; personas: PersonaInfo[];
   achievements?: Partial<Record<AchievementId, number>>; // how many addresses have each
 }
 
@@ -341,7 +355,7 @@ export function personaRuleText(r: PersonaRule): string {
     case 'realms': return `Called ${r.min} or more different realms.`;
     case 'share': return `At least ${pctText(r.min)} of your moves were ${CATEGORY[r.category]}.`;
     case 'transfers': return `Mostly GNOT transfers, with ${r.min} or more transactions.`;
-    case 'fallback': return 'Everyone else: one or two transfers so far.';
+    case 'fallback': return 'Everyone else: one or two transfers.';
   }
 }
 
@@ -358,7 +372,7 @@ export function personaWhy(d: WrappedData): string {
     case 'collector': return `${share} of your moves were NFT mints and buys.`;
     case 'player-one': return `${share} of your moves were in on-chain games.`;
     case 'gnot-courier': return `${share} of your moves were GNOT transfers, across ${fmt(d.txCount)} transactions.`;
-    case 'first-steps': return `${fmt(d.txCount)} ${plural(d.txCount, 'transaction', 'transactions')} so far: the first steps.`;
+    case 'first-steps': return `${fmt(d.txCount)} ${plural(d.txCount, 'transaction', 'transactions')}: the first steps.`;
   }
   return '';
 }
@@ -385,6 +399,129 @@ export function personaRankText(d: WrappedData): string | null {
   return `#${fmt(r.rank)} of ${fmt(r.of)} ${PERSONA_PLURAL[id] ?? d.persona!.title}`;
 }
 
+// ---------- activity calendar ----------
+
+/** Sequential ramp on the dark card: 0 = no activity, 1–4 = more (lighter). OKLab L .29 → .81. */
+export const CAL_COLORS = ['#1E2750', '#1F3F99', '#2C63D6', '#3D8BFF', '#9CC2FF'];
+
+/** A day's level 1–4 on a log scale up to the address's busiest day, so one huge day doesn't wash out the rest. */
+export function dayLevel(n: number, max: number): number {
+  if (n <= 0) return 0;
+  if (max <= 1) return 4;
+  return 1 + Math.min(3, Math.floor((Math.log(n) / Math.log(max)) * 4));
+}
+/** Active days in a week (0–7) → level 0–4. */
+export const weekLevel = (days: number) => (days <= 0 ? 0 : Math.min(4, Math.ceil((days * 4) / 7)));
+
+export const addDays = (iso: string, n: number) => new Date(Date.parse(iso) + n * 864e5).toISOString().slice(0, 10);
+
+export interface CalendarCell { date: string; count: number; level: number; future: boolean }
+
+/** Owner view: one cell per season day, in season weeks (column i = week i, row = day of that week). */
+export function calendarDays(d: WrappedData): CalendarCell[] {
+  const daily = d.calendar?.daily ?? [];
+  const max = Math.max(0, ...daily);
+  return daily.map((count, i) => {
+    const date = addDays(d.season.start, i);
+    return { date, count, level: dayLevel(count, max), future: date > d.dataAsOf };
+  });
+}
+
+/** Share view: one cell per season week, by active days. `date` is the week's first day. */
+export function calendarWeeks(d: WrappedData): CalendarCell[] {
+  return (d.calendar?.weeks ?? []).map((days, i) => {
+    const date = addDays(d.season.start, i * 7);
+    return { date, count: days, level: weekLevel(days), future: date > d.dataAsOf };
+  });
+}
+
+/** Month labels for the owner grid: the week column where each month's 1st falls (and week 0). */
+export function calendarMonths(d: WrappedData): { week: number; label: string }[] {
+  const out: { week: number; label: string }[] = [];
+  const days = d.calendar?.daily?.length ?? 0;
+  for (let i = 0; i < days; i++) {
+    const date = addDays(d.season.start, i);
+    if (i === 0 || date.endsWith('-01')) {
+      const week = Math.floor(i / 7);
+      const label = MONTHS[Number(date.slice(5, 7)) - 1];
+      if (out.length && out[out.length - 1].week === week) out[out.length - 1].label = label; // the 1st wins
+      else out.push({ week, label });
+    }
+  }
+  return out;
+}
+
+/** "12 transactions on Oct 14" / "No activity on Oct 14" / "Oct 14 hasn't happened yet". */
+export function dayText(c: CalendarCell): string {
+  if (c.future) return `${fmtShort(c.date)} hasn't happened yet`;
+  return c.count ? `${fmt(c.count)} ${plural(c.count, 'transaction', 'transactions')} on ${fmtShort(c.date)}` : `No activity on ${fmtShort(c.date)}`;
+}
+/** "5 of 7 days active, week of Oct 10–16". */
+export function weekText(c: CalendarCell, seasonStart: string, i: number): string {
+  if (c.future) return `Week of ${weekRange(i, seasonStart)} hasn't happened yet`;
+  return `${c.count} of 7 days active, week of ${weekRange(i, seasonStart)}`;
+}
+
+// ---------- the whole season (/season) ----------
+
+/** GET /v1/{season}/season: the whole chain's season. Daily series: [0] = season.start (UTC). */
+export interface SeasonData {
+  season: Season; dataAsOf: string; final?: boolean;
+  addresses: number; transactions: number; swaps: number; gasGnot: number; realmsDeployed: number; realmsCalled: number;
+  dailyTxs: number[]; dailyArrivals: number[];
+  busiestDay?: { date: string; txs: number };
+  topRealms: { path: string; addresses: number; calls: number }[];
+}
+
+export interface DayValue { date: string; value: number; future: boolean }
+
+/** A daily series as dated cells; days after dataAsOf haven't happened (they keep their slot on the axis). */
+export const daySeries = (values: number[], s: Season, dataAsOf: string): DayValue[] =>
+  values.map((value, i) => {
+    const date = addDays(s.start, i);
+    return { date, value, future: date > dataAsOf };
+  });
+
+/** Index of the largest value (first one on ties), or -1 for an all-zero series. */
+export const peakIndex = (values: number[]) => {
+  const max = Math.max(0, ...values);
+  return max > 0 ? values.indexOf(max) : -1;
+};
+
+// ---------- since your last visit ----------
+
+/** What the recap remembers between visits (in the visitor's own browser only). */
+export interface VisitSnapshot {
+  txCount: number; swaps: number; gasFeeGnot: number; realms: number; deployed: number; activeDays: number;
+  achievements: string[]; persona: string; rank?: number;
+}
+export const visitSnapshot = (d: WrappedData): VisitSnapshot => ({
+  txCount: d.txCount, swaps: d.swaps?.count ?? 0, gasFeeGnot: d.gasFeeGnot ?? 0, realms: d.realmCount ?? d.topRealms.length,
+  deployed: d.deployedRealms?.length ?? 0, activeDays: d.calendar?.activeDays ?? 0,
+  achievements: (d.achievements ?? []).map((a) => a.id), persona: d.persona?.title ?? '', rank: d.personaRank?.rank,
+});
+
+/** What changed since the last visit, one short line each, most important first; [] = nothing new. */
+export function visitDiff(prev: VisitSnapshot, d: WrappedData): string[] {
+  const cur = visitSnapshot(d);
+  const more = (n: number, one: string, many: string) => (n > 0 ? `+${fmt(n)} ${plural(n, one, many)}` : '');
+  const gas = Number((cur.gasFeeGnot - prev.gasFeeGnot).toFixed(4));
+  const won = cur.achievements.filter((id) => !prev.achievements.includes(id))
+    .sort((a, b) => ACHIEVEMENT_ORDER.indexOf(a as AchievementId) - ACHIEVEMENT_ORDER.indexOf(b as AchievementId));
+  const out = [
+    more(cur.txCount - prev.txCount, 'transaction', 'transactions'),
+    ...won.map((id) => `New achievement: ${ACHIEVEMENTS[id as AchievementId]?.title ?? id}`),
+    prev.persona && cur.persona && prev.persona !== cur.persona ? `New persona: ${prev.persona} → ${cur.persona}` : '',
+    prev.persona === cur.persona && prev.rank && cur.rank && cur.rank < prev.rank ? `Up ${fmt(prev.rank - cur.rank)} in your persona rank: #${fmt(prev.rank)} → #${fmt(cur.rank)}` : '',
+    more(cur.swaps - prev.swaps, 'swap', 'swaps'),
+    more(cur.realms - prev.realms, 'new realm called', 'new realms called'),
+    more(cur.deployed - prev.deployed, 'realm deployed', 'realms deployed'),
+    more(cur.activeDays - prev.activeDays, 'active day', 'active days'),
+    gas > 0 ? `+${fmtGas(gas)} GNOT in gas` : '',
+  ];
+  return out.filter(Boolean);
+}
+
 // ---------- arrival, achievements, milestones ----------
 
 /** "One of the first 500 on mainnet". */
@@ -398,15 +535,26 @@ export function arrivalText(d: WrappedData): string | null {
   return a.tier ? arrivalTierText(a.tier) : null;
 }
 
-export const ACHIEVEMENTS: Record<AchievementId, { title: string; rule: string; text: (v?: number) => string }> = {
+/** Realm Pioneer's paths in a small card: middle-truncated like the realm rows. */
+const pioneerPath = (p: string) => truncMid(p, PATH_MAX.realmRow) ?? p;
+
+export const ACHIEVEMENTS: Record<AchievementId, { title: string; rule: string; text: (v?: number, realms?: string[]) => string }> = {
   early: { title: 'Early Arrival', rule: 'Among the first 1,000 addresses to arrive on mainnet.', text: (v) => `${arrivalTierText(v ?? 1000)}.` },
+  pioneer: {
+    title: 'Realm Pioneer',
+    rule: 'Among the first 10 addresses to call a realm that 50 or more addresses use (its deployer doesn\'t count).',
+    text: (v = 1, realms) => {
+      if (!realms?.length) return `One of the first 10 to call ${v === 1 ? 'a popular realm' : `${fmt(v)} popular realms`}.`;
+      return v === 1 ? `One of the first 10 to call ${pioneerPath(realms[0])}.` : `One of the first 10 to call ${fmt(v)} popular realms, including ${pioneerPath(realms[0])}.`;
+    },
+  },
   streak: { title: 'On a Roll', rule: 'Active 3 or more days in a row (UTC days).', text: (v) => `${fmt(v ?? 3)} days in a row on gno.land.` },
   'triple-threat': { title: 'Triple Threat', rule: 'Used DeFi, NFTs and on-chain games.', text: () => 'DeFi, NFTs and on-chain games: you did all three.' },
   'gas-saver': { title: 'Gas Saver', rule: 'Among the lowest 10% in gas per transaction, with 5+ transactions.', text: () => 'Among the lowest gas per transaction this season.' },
   'validators-friend': { title: "Validators' Friend", rule: 'Among the top 10% in total gas paid.', text: () => 'Among the top 10% in gas paid. The validators thank you.' },
   century: { title: 'Century', rule: '100 or more transactions this season.', text: (v) => `${fmt(v ?? 100)} transactions this season.` },
 };
-export const ACHIEVEMENT_ORDER: AchievementId[] = ['early', 'streak', 'triple-threat', 'century', 'validators-friend', 'gas-saver'];
+export const ACHIEVEMENT_ORDER: AchievementId[] = ['early', 'pioneer', 'streak', 'triple-threat', 'century', 'validators-friend', 'gas-saver'];
 
 export const MILESTONES: Record<MilestoneId, string> = {
   'first-swap': 'First swap on GnoSwap', 'first-collect': 'First NFT mint or buy', 'first-deploy': 'First realm deployed', 'tx-100': '100th transaction',

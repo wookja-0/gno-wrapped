@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { EmptyState } from '@/components/StatusScreens';
 import { WrappedPage } from '@/components/WrappedPage';
-import { FIXTURES_ENABLED, getDataAsOf, getFixture, getWrapped } from '@/lib/data';
+import { FIXTURES_ENABLED, getFixture, getSeasonStatus, getWrapped } from '@/lib/data';
 import { ADDRESS_RE, isEmpty } from '@/lib/wrapped';
 
 type Props = PageProps<'/[season]/[address]'>;
@@ -36,7 +36,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 export default async function Page(props: Props) {
   const { season, address, fixture, data } = await load(props);
   if (isEmpty(data)) {
-    return <EmptyState address={address} dataAsOf={await getDataAsOf(season)} seasonLabel={`Season ${season.replace(/^s/i, '')}`} />;
+    return <EmptyState address={address} {...await getSeasonStatus(season)} seasonLabel={`Season ${season.replace(/^s/i, '')}`} />;
   }
   // Preview the card a share link shows (its own OG route, no address), not this page's.
   const q = fixture ? `?fixture=${fixture}` : '';
