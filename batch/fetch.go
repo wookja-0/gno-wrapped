@@ -99,17 +99,58 @@ func fetch(ctx context.Context, c config) error {
 	return nil
 }
 
-// fetchChunk fetches [from, to), halving the range when the indexer truncates.
+// errIncomplete: a range came back with fewer (or more) txs than its blocks' num_txs add up to,
+// e.g. the indexer had stored the newest block but not yet all of its txs.
+var errIncomplete = errors.New("indexer returned an incomplete range")
+
+const incompleteRetries = 3
+
+var incompleteWait = 10 * time.Second // × attempt; shortened in tests
+
+// fetchChunk fetches [from, to) and checks it against the blocks' tx counts, retrying a range that
+// comes back incomplete; a chunk that never adds up is an error, never a silent gap.
 func fetchChunk(ctx context.Context, ix *indexer, from, to int) (chunk, error) {
+	for attempt := 1; ; attempt++ {
+		ch, err := fetchRange(ctx, ix, from, to)
+		if err != nil {
+			return chunk{}, err
+		}
+		got, want := len(ch.Txs), ch.wantTxs()
+		if got == want {
+			return ch, nil
+		}
+		if attempt == incompleteRetries {
+			return chunk{}, fmt.Errorf("heights %d-%d: %d txs, blocks say %d: %w", from, to, got, want, errIncomplete)
+		}
+		log.Printf("range %d-%d: %d txs, blocks say %d; retrying", from, to, got, want)
+		select {
+		case <-time.After(time.Duration(attempt) * incompleteWait):
+		case <-ctx.Done():
+			return chunk{}, ctx.Err()
+		}
+	}
+}
+
+// wantTxs is the tx count the chunk's blocks report.
+func (ch chunk) wantTxs() int {
+	n := 0
+	for _, b := range ch.Blocks {
+		n += b.NumTxs
+	}
+	return n
+}
+
+// fetchRange fetches [from, to), halving the range when the indexer truncates.
+func fetchRange(ctx context.Context, ix *indexer, from, to int) (chunk, error) {
 	txs, err := ix.txRange(ctx, from, to)
 	if errors.Is(err, errTooMany) && to-from > 1 {
 		mid := from + (to-from)/2
 		log.Printf("range %d-%d truncated, splitting at %d", from, to, mid)
-		a, err := fetchChunk(ctx, ix, from, mid)
+		a, err := fetchRange(ctx, ix, from, mid)
 		if err != nil {
 			return chunk{}, err
 		}
-		b, err := fetchChunk(ctx, ix, mid, to)
+		b, err := fetchRange(ctx, ix, mid, to)
 		if err != nil {
 			return chunk{}, err
 		}

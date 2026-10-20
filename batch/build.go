@@ -83,6 +83,7 @@ type acc struct {
 	firstHash string
 	firstPos  [2]int               // (height, index) of the first tx, for arrival order
 	days      map[int]bool         // UTC days (since season start) with activity, for streaks
+	daily     []int                // txs per UTC day of the season, for the calendar
 	moments   map[string]time.Time // first swap / collect / deploy, 100th tx (see milestones)
 	gasUgnot  int64
 	swaps     int
@@ -111,6 +112,7 @@ type wrapped struct {
 	ShareID        string        `json:"shareId"`
 	Shared         bool          `json:"shared,omitempty"`
 	DataAsOf       string        `json:"dataAsOf"`
+	Final          bool          `json:"final,omitempty"` // the season is over and every in-season tx is in
 	Season         Season        `json:"season"`
 	FirstTx        firstTx       `json:"firstTx"`
 	TxCount        int           `json:"txCount"`
@@ -122,9 +124,19 @@ type wrapped struct {
 	GasFeeGnot     float64       `json:"gasFeeGnot"`
 	Persona        persona       `json:"persona"`
 	PersonaRank    *personaRank  `json:"personaRank,omitempty"` // within the persona; none for First Steps and bots
+	Calendar       calendar      `json:"calendar"`
 	Arrival        arrival       `json:"arrival"`
 	Achievements   []achievement `json:"achievements"`
 	Milestones     []milestone   `json:"milestones"`
+}
+
+// calendar: activity by day. The owner gets txs per UTC day; a share link only gets active days per
+// week (see redact), since a day-by-day pattern can be matched against the chain.
+type calendar struct {
+	Daily         []int `json:"daily,omitempty"` // txs per UTC day, daily[0] = season.start
+	Weeks         []int `json:"weeks,omitempty"` // share view: active days (0–7) per season week
+	ActiveDays    int   `json:"activeDays"`
+	LongestStreak int   `json:"longestStreak"`
 }
 
 type firstTx struct {
@@ -148,12 +160,16 @@ type persona struct {
 // ---- aggregation ----
 
 type dataset struct {
-	accs     map[string]*acc
-	st       fetchState
-	start    time.Time
-	end      time.Time // exclusive
-	weeks    int
-	totalTxs int
+	accs      map[string]*acc
+	st        fetchState
+	start     time.Time
+	end       time.Time // exclusive
+	weeks     int
+	days      int                          // season length in days
+	firstCall map[string]map[string][2]int // realm → caller → (height, index) of their first call, for Realm Pioneer
+	deployer  map[string]string            // realm → the address that deployed it
+	totalTxs  int                          // successful in-season txs with an actor (what recaps count)
+	rawTxs    int                          // every cached tx, failed ones included: matches the chain's total_txs
 }
 
 func loadDataset(c config) (*dataset, error) {
@@ -173,8 +189,8 @@ func loadDataset(c config) (*dataset, error) {
 		return nil, fmt.Errorf("season.end: %w", err)
 	}
 	end = end.AddDate(0, 0, 1)
-	d := &dataset{accs: map[string]*acc{}, st: st, start: start, end: end,
-		weeks: int(math.Ceil(end.Sub(start).Hours() / 24 / 7))}
+	d := &dataset{accs: map[string]*acc{}, firstCall: map[string]map[string][2]int{}, deployer: map[string]string{}, st: st, start: start, end: end,
+		weeks: int(math.Ceil(end.Sub(start).Hours() / 24 / 7)), days: int(end.Sub(start).Hours() / 24)}
 
 	if err := readChunks(c, d.applyChunk); err != nil {
 		return nil, err
@@ -189,6 +205,7 @@ func (d *dataset) applyChunk(ch chunk) error {
 	for _, b := range ch.Blocks {
 		times[b.Height] = b.Time
 	}
+	d.rawTxs += len(ch.Txs)
 	for _, raw := range ch.Txs {
 		var t rawTx
 		if err := json.Unmarshal(raw, &t); err != nil {
@@ -213,7 +230,7 @@ func (d *dataset) add(t *rawTx, at time.Time) {
 	}
 	a := d.accs[who]
 	if a == nil {
-		a = &acc{firstAt: at, firstHash: t.Hash, firstPos: [2]int{t.BlockHeight, t.Index}, days: map[int]bool{}, moments: map[string]time.Time{}, weekly: make([]int, d.weeks), calls: map[string]map[string]int{}, actions: map[string]int{}, cats: map[string]int{}}
+		a = &acc{firstAt: at, firstHash: t.Hash, firstPos: [2]int{t.BlockHeight, t.Index}, days: map[int]bool{}, moments: map[string]time.Time{}, weekly: make([]int, d.weeks), daily: make([]int, d.days), calls: map[string]map[string]int{}, actions: map[string]int{}, cats: map[string]int{}}
 		d.accs[who] = a
 	}
 	d.totalTxs++
@@ -222,7 +239,9 @@ func (d *dataset) add(t *rawTx, at time.Time) {
 	if t.GasFee != nil && t.GasFee.Denom == "ugnot" {
 		a.gasUgnot += t.GasFee.Amount
 	}
-	a.days[int(at.Sub(d.start).Hours()/24)] = true
+	day := int(at.Sub(d.start).Hours() / 24)
+	a.days[day] = true
+	a.daily[day]++
 	if a.txs == 100 {
 		a.moment("tx-100", at)
 	}
@@ -250,10 +269,19 @@ func (d *dataset) add(t *rawTx, at time.Time) {
 				a.calls[v.PkgPath] = map[string]int{}
 			}
 			a.calls[v.PkgPath][v.Func]++
+			if d.firstCall[v.PkgPath] == nil {
+				d.firstCall[v.PkgPath] = map[string][2]int{}
+			}
+			if _, ok := d.firstCall[v.PkgPath][who]; !ok {
+				d.firstCall[v.PkgPath][who] = [2]int{t.BlockHeight, t.Index}
+			}
 		case "MsgAddPackage":
 			if v.Package != nil && strings.Contains(v.Package.Path, "/r/") && !slices.Contains(a.deployed, v.Package.Path) {
 				a.deployed = append(a.deployed, v.Package.Path)
 				a.moment("first-deploy", at)
+				if _, ok := d.deployer[v.Package.Path]; !ok {
+					d.deployer[v.Package.Path] = who
+				}
 			}
 		}
 	}
@@ -305,6 +333,15 @@ func (d *dataset) percentiles() map[string]int {
 		out[addr] = min(p, 99)
 	}
 	return out
+}
+
+// final reports whether the season is over: the cache holds a block from after its last day, so no
+// in-season tx can still arrive. Final recaps are dated the season's last day, not the chain tip.
+func (d *dataset) final() (bool, string) {
+	if !d.st.TipTime.Before(d.end) {
+		return true, season.End
+	}
+	return false, d.st.TipTime.UTC().Format("2006-01-02")
 }
 
 // mainnetDay counts 24h periods since genesis, starting at Day 1.
@@ -420,10 +457,11 @@ func topRealms(a *acc, n int) []realmStat {
 //	<season>/<xx>.json         address → recap (owner view)
 //	<season>/share/<yy>.json   share ID → redacted recap (share links)
 //	<season>/personas.json     persona rules + counts
+//	<season>/season.json       the whole chain's season (see seasonStats)
 //	<season>/meta.json
 func (d *dataset) render(ids *shareIDs, updatedAt time.Time) (map[string][]byte, error) {
 	d.markBots()
-	asOf := d.st.TipTime.UTC().Format("2006-01-02")
+	final, asOf := d.final()
 	pct := d.percentiles()
 	counts := map[string]int{}
 
@@ -445,6 +483,7 @@ func (d *dataset) render(ids *shareIDs, updatedAt time.Time) (map[string][]byte,
 			Address:        addr,
 			ShareID:        ids.get(addr),
 			DataAsOf:       asOf,
+			Final:          final,
 			Season:         season,
 			FirstTx:        firstTx{Date: a.firstAt.UTC().Format("2006-01-02"), MainnetDay: day, Hash: a.firstHash},
 			TxCount:        a.txs,
@@ -456,11 +495,12 @@ func (d *dataset) render(ids *shareIDs, updatedAt time.Time) (map[string][]byte,
 			GasFeeGnot:     roundGnot(a.gasUgnot),
 			Persona:        chosen[addr],
 			PersonaRank:    ranks[addr],
+			Calendar:       calendar{Daily: a.daily, ActiveDays: len(a.days), LongestStreak: longestStreak(a.days)},
 			Arrival:        ex.arrival[addr],
 			Achievements:   orEmpty(ex.achievements[addr]),
 			Milestones:     orEmpty(ex.milestones[addr]),
 		}
-		if err := validate(w, d.weeks); err != nil {
+		if err := validate(w, d.weeks, d.days); err != nil {
 			return nil, fmt.Errorf("%s: %w", addr, err)
 		}
 		counts[w.Persona.ID]++
@@ -490,10 +530,11 @@ func (d *dataset) render(ids *shareIDs, updatedAt time.Time) (map[string][]byte,
 		list = append(list, personaInfo{persona: personas[id], Rule: personaRuleFor(id), RankBy: rankBy, Count: counts[id]})
 	}
 	files[filepath.Join(season.ID, "personas.json")], _ = json.MarshalIndent(map[string]any{
-		"season": season, "dataAsOf": asOf, "addresses": len(d.accs), "personas": list, "achievements": achCounts,
+		"season": season, "dataAsOf": asOf, "final": final, "addresses": len(d.accs), "personas": list, "achievements": achCounts,
 	}, "", "  ")
+	files[filepath.Join(season.ID, "season.json")], _ = json.MarshalIndent(d.seasonStats(asOf, final), "", "  ")
 	files[filepath.Join(season.ID, "meta.json")], _ = json.MarshalIndent(map[string]any{
-		"dataAsOf": asOf, "updatedAt": updatedAt.UTC().Format(time.RFC3339), "season": season, "addresses": len(d.accs),
+		"dataAsOf": asOf, "final": final, "updatedAt": updatedAt.UTC().Format(time.RFC3339), "season": season, "addresses": len(d.accs),
 		"transactions": d.totalTxs, "fetchedToHeight": d.st.FetchedTo - 1, "shards": len(shards),
 	}, "", "  ")
 	return files, nil
@@ -590,12 +631,14 @@ func shardKey(addr string) string {
 
 // validate enforces the contract the web app relies on. A bad file must fail
 // the build, not reach users.
-func validate(w wrapped, weeks int) error {
+func validate(w wrapped, weeks, days int) error {
 	switch {
 	case w.Season.ID == "" || w.Season.Start == "" || w.Season.End == "":
 		return fmt.Errorf("season is incomplete")
 	case len(w.Swaps.Weekly) != weeks:
 		return fmt.Errorf("swaps.weekly has %d entries, season has %d weeks", len(w.Swaps.Weekly), weeks)
+	case len(w.Calendar.Daily) != days:
+		return fmt.Errorf("calendar.daily has %d entries, season has %d days", len(w.Calendar.Daily), days)
 	case w.TxCount < 1 || w.FirstTx.MainnetDay < 1:
 		return fmt.Errorf("txCount/firstTx out of range")
 	case w.Percentile < 0 || w.Percentile > 99:

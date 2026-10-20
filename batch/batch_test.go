@@ -69,9 +69,9 @@ func TestReadChunksPrefersTheLongerLiveChunk(t *testing.T) {
 	t0 := time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)
 	tx := func(h int) json.RawMessage { return json.RawMessage(`{"block_height":` + itoa(h) + `}`) }
 	for _, ch := range []chunk{
-		{From: 1, To: 11, Txs: []json.RawMessage{tx(5)}, Blocks: []blockTime{{5, t0}}},                   // stale live file
-		{From: 1, To: 21, Txs: []json.RawMessage{tx(5), tx(15)}, Blocks: []blockTime{{5, t0}, {15, t0}}}, // grown version
-		{From: 21, To: 31, Txs: []json.RawMessage{tx(25)}, Blocks: []blockTime{{25, t0}}},
+		{From: 1, To: 11, Txs: []json.RawMessage{tx(5)}, Blocks: []blockTime{{Height: 5, Time: t0}}},                                 // stale live file
+		{From: 1, To: 21, Txs: []json.RawMessage{tx(5), tx(15)}, Blocks: []blockTime{{Height: 5, Time: t0}, {Height: 15, Time: t0}}}, // grown version
+		{From: 21, To: 31, Txs: []json.RawMessage{tx(25)}, Blocks: []blockTime{{Height: 25, Time: t0}}},
 	} {
 		if err := writeChunk(c, ch); err != nil {
 			t.Fatal(err)
@@ -127,5 +127,102 @@ func TestStreakAndQuantile(t *testing.T) {
 	}
 	if q := quantile(vs, 90); q != 9 {
 		t.Errorf("p90 = %v, want 9", q)
+	}
+}
+
+func TestFinalOnceTheChainPassesTheSeasonEnd(t *testing.T) {
+	end := time.Date(2027, 1, 1, 0, 0, 0, 0, time.UTC) // exclusive: the day after season.End
+	d := &dataset{end: end}
+	d.st.TipTime = end.Add(-time.Second)
+	if final, asOf := d.final(); final || asOf != "2026-12-31" {
+		t.Fatalf("one second before the end: final=%v asOf=%s", final, asOf)
+	}
+	d.st.TipTime = end.Add(72 * time.Hour)
+	if final, asOf := d.final(); !final || asOf != season.End {
+		t.Fatalf("after the end: final=%v asOf=%s, want true %s", final, asOf, season.End)
+	}
+}
+
+func TestRedactKeepsOnlyActiveDaysPerWeek(t *testing.T) {
+	daily := make([]int, 111)
+	daily[0], daily[1], daily[6], daily[7], daily[110] = 3, 1, 9, 2, 1
+	w := wrapped{Address: testAddr, Calendar: calendar{Daily: daily, ActiveDays: 5, LongestStreak: 2}}
+	r := redact(w)
+	if r.Calendar.Daily != nil {
+		t.Fatal("share view must not carry the day-by-day series")
+	}
+	if len(r.Calendar.Weeks) != 16 || r.Calendar.Weeks[0] != 3 || r.Calendar.Weeks[1] != 1 || r.Calendar.Weeks[15] != 1 {
+		t.Fatalf("weeks = %v", r.Calendar.Weeks)
+	}
+	if r.Calendar.ActiveDays != 5 || r.Calendar.LongestStreak != 2 || len(w.Calendar.Daily) != 111 {
+		t.Fatalf("shared %+v / owner daily len %d", r.Calendar, len(w.Calendar.Daily))
+	}
+}
+
+func TestPioneersSkipTheDeployerAndBotsAndQuietRealms(t *testing.T) {
+	d := &dataset{accs: map[string]*acc{}, firstCall: map[string]map[string][2]int{}, deployer: map[string]string{}}
+	addr := func(i int) string { return fmt.Sprintf("g1%038d", i) }
+	busy, quiet := "gno.land/r/demo/busy", "gno.land/r/demo/quiet"
+	d.firstCall[busy], d.firstCall[quiet] = map[string][2]int{}, map[string][2]int{}
+	for i := 0; i < 62; i++ { // the deployer, a bot, then 60 others, in call order
+		d.accs[addr(i)] = &acc{isBot: i == 1}
+		d.firstCall[busy][addr(i)] = [2]int{100 + i, 0}
+		if i < pioneerMinCallers { // 49 eligible callers: too few
+			d.firstCall[quiet][addr(i)] = [2]int{100 + i, 1}
+		}
+	}
+	d.deployer[busy], d.deployer[quiet] = addr(0), addr(0)
+
+	p := d.pioneers()
+	if len(p) != pioneerSlots {
+		t.Fatalf("%d pioneers, want %d", len(p), pioneerSlots)
+	}
+	for i := 2; i < 2+pioneerSlots; i++ {
+		if got := p[addr(i)]; len(got) != 1 || got[0] != busy {
+			t.Errorf("caller %d: %v, want [%s]", i, got, busy)
+		}
+	}
+	for _, i := range []int{0, 1, 2 + pioneerSlots} { // deployer, bot, 11th eligible caller
+		if p[addr(i)] != nil {
+			t.Errorf("caller %d must not be a pioneer: %v", i, p[addr(i)])
+		}
+	}
+
+	r := redact(wrapped{Address: testAddr, Achievements: []achievement{{ID: "pioneer", Value: 1, Realms: []string{busy}}}})
+	if r.Achievements[0].Realms != nil || r.Achievements[0].Value != 1 {
+		t.Fatalf("share view pioneer: %+v", r.Achievements[0])
+	}
+}
+
+func TestSeasonStatsAddUpAndCarryNoAddress(t *testing.T) {
+	start := time.Date(2026, 9, 12, 0, 0, 0, 0, time.UTC)
+	daily := func(m map[int]int) []int {
+		s := make([]int, 111)
+		for i, n := range m {
+			s[i] = n
+		}
+		return s
+	}
+	d := &dataset{start: start, days: 111, totalTxs: 9, accs: map[string]*acc{
+		testAddr: {firstAt: start.Add(30 * time.Hour), daily: daily(map[int]int{1: 2, 5: 4}), swaps: 3, gasUgnot: 1_500_000,
+			calls: map[string]map[string]int{"gno.land/r/gnoswap/router": {"Swap": 3}, "gno.land/r/demo/boards": {"Post": 1}}, deployed: []string{"gno.land/r/" + testAddr + "/hi"}},
+		"g1wrappedotherqqqqqqqqqqqqqqqqqqqqqqqqqq": {firstAt: start.Add(5 * 24 * time.Hour), daily: daily(map[int]int{5: 3}),
+			calls: map[string]map[string]int{"gno.land/r/gnoswap/router": {"Swap": 2}}},
+	}}
+	s := d.seasonStats("2026-10-20", false)
+	if s.Addresses != 2 || s.Txs != 9 || s.Swaps != 3 || s.GasGnot != 1.5 || s.Deployed != 1 || s.Called != 2 {
+		t.Fatalf("totals: %+v", s)
+	}
+	if s.DailyTxs[1] != 2 || s.DailyTxs[5] != 7 || s.DailyArrivals[1] != 1 || s.DailyArrivals[5] != 1 {
+		t.Fatalf("days: txs %v arrivals %v", s.DailyTxs[:6], s.DailyArrivals[:6])
+	}
+	if s.BusiestDay == nil || *s.BusiestDay != (dayCount{"2026-09-17", 7}) {
+		t.Fatalf("busiest day %+v", s.BusiestDay)
+	}
+	if len(s.TopRealms) != 2 || s.TopRealms[0] != (realmReach{"gno.land/r/gnoswap/router", 2, 5}) {
+		t.Fatalf("top realms %+v", s.TopRealms)
+	}
+	if b, _ := json.Marshal(s); strings.Contains(string(b), "g1wrapped") {
+		t.Fatalf("season stats name an address: %s", b)
 	}
 }

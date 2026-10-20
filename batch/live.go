@@ -6,9 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"maps"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"time"
 )
 
@@ -18,6 +19,7 @@ import (
 // whose txs don't all show up) ends the session; the next one refills it with range queries.
 
 const (
+	checkEvery   = 10 * time.Minute // compare the cache with the chain's tx count this often
 	flushEvery   = 2 * time.Second
 	stallAfter   = 20 * time.Second // a block still incomplete this long → reconnect and refill
 	silenceAfter = 60 * time.Second // no events at all this long → the connection is dead
@@ -64,7 +66,7 @@ type follower struct {
 
 type pendingBlock struct {
 	block *blockEvent
-	txs   []json.RawMessage
+	txs   map[int]json.RawMessage // by index within the block, so a redelivered tx counts once
 	since time.Time
 }
 
@@ -100,7 +102,7 @@ func (f *follower) session(ctx context.Context) error {
 	pending := map[int]*pendingBlock{}
 	tick := time.NewTicker(flushEvery)
 	defer tick.Stop()
-	lastEvent, applied := time.Now(), 0
+	lastEvent, lastCheck, applied := time.Now(), time.Now(), 0
 
 	flush := func() error {
 		if lc.to == lc.written {
@@ -132,13 +134,13 @@ func (f *follower) session(ctx context.Context) error {
 			}
 			p := pending[ev.height]
 			if p == nil {
-				p = &pendingBlock{since: time.Now()}
+				p = &pendingBlock{txs: map[int]json.RawMessage{}, since: time.Now()}
 				pending[ev.height] = p
 			}
 			if ev.block != nil {
 				p.block = ev.block
 			} else {
-				p.txs = append(p.txs, ev.tx)
+				p.txs[txIndex(ev.tx)] = ev.tx
 			}
 			for p := pending[next]; p != nil && p.complete(); p = pending[next] {
 				n, err := f.apply(lc, p)
@@ -156,6 +158,15 @@ func (f *follower) session(ctx context.Context) error {
 			if time.Since(lastEvent) > silenceAfter {
 				return fmt.Errorf("no events for %s", silenceAfter)
 			}
+			if time.Since(lastCheck) > checkEvery {
+				lastCheck = time.Now()
+				if ok, err := f.d.cacheMatchesChain(ctx, f.c); err != nil {
+					log.Printf("live: check against the chain failed: %v", err)
+				} else if !ok {
+					f.d = nil // the next session verifies the cache and rebuilds from it
+					return errors.New("cache doesn't match the chain; verifying")
+				}
+			}
 			// A later block is in, but `next` is missing or incomplete: a gap the subscription won't fill.
 			for h, p := range pending {
 				if h > next && time.Since(p.since) > stallAfter {
@@ -169,8 +180,14 @@ func (f *follower) session(ctx context.Context) error {
 	}
 }
 
-// catchUp range-fetches everything since the last persisted height and applies it.
+// catchUp range-fetches everything since the last persisted height and applies it. Without a
+// dataset (first session, or the cache failed a check) it verifies the whole cache first.
 func (f *follower) catchUp(ctx context.Context) error {
+	if f.d == nil {
+		if _, err := verify(ctx, f.c); err != nil {
+			return fmt.Errorf("verify: %w", err)
+		}
+	}
 	before, err := loadState(f.c)
 	if err != nil {
 		return err
@@ -196,10 +213,16 @@ func (f *follower) catchUp(ctx context.Context) error {
 // apply adds one complete block to the dataset and the live chunk; returns its tx count.
 func (f *follower) apply(lc *liveChunk, p *pendingBlock) (int, error) {
 	b := p.block
+	if len(p.txs) != b.NumTxs {
+		return 0, fmt.Errorf("block %d: %d txs, block says %d", b.Height, len(p.txs), b.NumTxs)
+	}
 	if b.NumTxs > 0 {
-		txs := p.txs[:b.NumTxs]
-		sort.SliceStable(txs, func(i, j int) bool { return txIndex(txs[i]) < txIndex(txs[j]) })
-		bt := blockTime{Height: b.Height, Time: b.Time}
+		idx := slices.Sorted(maps.Keys(p.txs))
+		txs := make([]json.RawMessage, len(idx))
+		for i, k := range idx {
+			txs[i] = p.txs[k]
+		}
+		bt := blockTime{Height: b.Height, Time: b.Time, NumTxs: b.NumTxs}
 		if err := f.d.applyChunk(chunk{From: b.Height, To: b.Height + 1, Txs: txs, Blocks: []blockTime{bt}}); err != nil {
 			return 0, err
 		}

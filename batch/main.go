@@ -2,6 +2,7 @@
 //
 //	wrapped live    keep data/out current: catch up, then follow new blocks over WebSocket
 //	wrapped fetch   pull new block ranges from the tx-indexer into the raw cache
+//	wrapped verify  check the raw cache against the chain's tx counts, re-fetch what doesn't match
 //	wrapped build   aggregate the raw cache into per-address JSON (no network)
 //	wrapped stats   print distributions from the raw cache (no network)
 //	wrapped all     fetch, then build
@@ -40,6 +41,13 @@ func main() {
 		err = live(ctx, c)
 	case "fetch":
 		err = locked(func() error { return fetch(ctx, c) })
+	case "verify":
+		err = locked(func() error {
+			if _, err := verify(ctx, c); err != nil {
+				return err
+			}
+			return build(c)
+		})
 	case "build":
 		err = locked(func() error { return build(c) })
 	case "stats":
@@ -52,7 +60,7 @@ func main() {
 			return build(c)
 		})
 	default:
-		err = fmt.Errorf("unknown command %q (live | fetch | build | stats | all)", cmd)
+		err = fmt.Errorf("unknown command %q (live | fetch | verify | build | stats | all)", cmd)
 	}
 	if err != nil {
 		log.Fatal(err)

@@ -17,8 +17,9 @@ type arrival struct {
 }
 
 type achievement struct {
-	ID    string  `json:"id"`
-	Value float64 `json:"value,omitempty"` // early: tier; streak: days; century: txs
+	ID     string   `json:"id"`
+	Value  float64  `json:"value,omitempty"`  // early: tier; streak: days; century: txs; pioneer: realms
+	Realms []string `json:"realms,omitempty"` // pioneer: up to 3, most-used first (owner view only, see redact)
 }
 
 type milestone struct {
@@ -34,6 +35,13 @@ const (
 	gasMinTxs  = 5   // Gas Saver needs at least this many txs to mean anything
 	gasLowPct  = 10  // Gas Saver: average gas per tx in the lowest 10%
 	gasHighPct = 90  // Validators' Friend: total gas in the top 10%
+
+	// Realm Pioneer: among the first pioneerSlots addresses to call a realm that at least
+	// pioneerMinCallers addresses have called (its deployer and bots don't count or take a slot).
+	// On 2026-10-20 data, 20 realms qualify: at most 200 pioneers out of ~5,000 addresses.
+	pioneerSlots      = 10
+	pioneerMinCallers = 50
+	pioneerShown      = 3
 )
 
 type extras struct {
@@ -77,6 +85,7 @@ func (d *dataset) extras() extras {
 		}
 	}
 	lowPerTx, highTotal := quantile(perTx, gasLowPct), quantile(totals, gasHighPct)
+	pioneers := d.pioneers()
 
 	for addr, a := range d.accs {
 		var got []achievement
@@ -98,6 +107,9 @@ func (d *dataset) extras() extras {
 		if a.txs >= centuryMin {
 			got = append(got, achievement{ID: "century", Value: float64(a.txs)})
 		}
+		if realms := pioneers[addr]; len(realms) > 0 {
+			got = append(got, achievement{ID: "pioneer", Value: float64(len(realms)), Realms: realms[:min(pioneerShown, len(realms))]})
+		}
 		x.achievements[addr] = got
 
 		var ms []milestone
@@ -109,6 +121,46 @@ func (d *dataset) extras() extras {
 		x.milestones[addr] = ms
 	}
 	return x
+}
+
+// pioneers maps each Realm Pioneer to the realms they pioneered, the most-called (by distinct
+// addresses) first.
+func (d *dataset) pioneers() map[string][]string {
+	type realm struct {
+		path    string
+		callers int
+		first   []string
+	}
+	var realms []realm
+	for path, calls := range d.firstCall {
+		var who []string
+		for addr := range calls {
+			if a := d.accs[addr]; a != nil && !a.isBot && addr != d.deployer[path] {
+				who = append(who, addr)
+			}
+		}
+		if len(who) < pioneerMinCallers {
+			continue
+		}
+		sort.Slice(who, func(i, j int) bool {
+			a, b := calls[who[i]], calls[who[j]]
+			return a[0] < b[0] || (a[0] == b[0] && a[1] < b[1])
+		})
+		realms = append(realms, realm{path, len(who), who[:pioneerSlots]})
+	}
+	sort.Slice(realms, func(i, j int) bool {
+		if realms[i].callers != realms[j].callers {
+			return realms[i].callers > realms[j].callers
+		}
+		return realms[i].path < realms[j].path
+	})
+	out := map[string][]string{}
+	for _, r := range realms {
+		for _, addr := range r.first {
+			out[addr] = append(out[addr], r.path)
+		}
+	}
+	return out
 }
 
 // longestStreak: the longest run of consecutive day numbers.

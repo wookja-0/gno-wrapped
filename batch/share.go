@@ -85,6 +85,17 @@ func randomID() string {
 	return string(out)
 }
 
+// activeDaysPerWeek folds a daily series into active days (0–7) per 7-day week.
+func activeDaysPerWeek(daily []int) []int {
+	weeks := make([]int, (len(daily)+6)/7)
+	for i, n := range daily {
+		if n > 0 {
+			weeks[i/7]++
+		}
+	}
+	return weeks
+}
+
 // redact returns the recap as shown behind a share link: no address in any form (the short
 // g1xxxx…xxxx form alone identifies every address), no tx hash (it resolves to the address on an
 // explorer), no exact arrival order (same), and realm paths with the address in them masked.
@@ -95,6 +106,13 @@ func redact(w wrapped) wrapped {
 	w.Shared = true
 	w.FirstTx.Hash = ""
 	w.Arrival.Order = 0 // arrival order is a direct lookup into chain data; keep only the tier
+	achievements := make([]achievement, len(w.Achievements))
+	for i, a := range w.Achievements {
+		a.Realms = nil // which realms you were first into, plus a 1-in-10 slot, narrows you down
+		achievements[i] = a
+	}
+	w.Achievements = achievements
+	w.Calendar = calendar{Weeks: activeDaysPerWeek(w.Calendar.Daily), ActiveDays: w.Calendar.ActiveDays, LongestStreak: w.Calendar.LongestStreak}
 	realms := make([]realmStat, len(w.TopRealms))
 	for i, r := range w.TopRealms {
 		r.Path = mask(r.Path)

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 )
@@ -133,16 +134,50 @@ func (ix *indexer) txRange(ctx context.Context, from, to int) ([]json.RawMessage
 type blockTime struct {
 	Height int       `json:"height"`
 	Time   time.Time `json:"time"`
+	NumTxs int       `json:"num_txs,omitempty"` // 0 in chunks cached before it was recorded
 }
 
-// blockTimes returns the time of every block with at least one tx in [from, to).
+// blockTimes returns every block with at least one tx in [from, to): its time and tx count.
 func (ix *indexer) blockTimes(ctx context.Context, from, to int) ([]blockTime, error) {
-	q := fmt.Sprintf(`{ getBlocks(where:{height:{gt:%d,lt:%d}, num_txs:{gt:0}}, order:{height:ASC}) { height time } }`, from-1, to)
+	q := fmt.Sprintf(`{ getBlocks(where:{height:{gt:%d,lt:%d}, num_txs:{gt:0}}, order:{height:ASC}) { height time num_txs } }`, from-1, to)
 	var r struct {
 		Blocks []blockTime `json:"getBlocks"`
 	}
 	err := ix.query(ctx, q, &r)
 	return r.Blocks, err
+}
+
+// totalTxsAt returns the chain's running tx count (total_txs: every tx up to and including the
+// block) at each height, a few dozen heights per request.
+func (ix *indexer) totalTxsAt(ctx context.Context, heights []int) (map[int]int, error) {
+	out := map[int]int{0: 0}
+	heights = slices.DeleteFunc(slices.Clone(heights), func(h int) bool { return h <= 0 })
+	for i := 0; i < len(heights); i += 25 {
+		var q strings.Builder
+		q.WriteString("{")
+		for j, h := range heights[i:min(i+25, len(heights))] {
+			fmt.Fprintf(&q, " b%d: getBlocks(where:{height:{gt:%d,lt:%d}}) { height total_txs }", j, h-1, h+1)
+		}
+		q.WriteString(" }")
+		var r map[string][]struct {
+			Height   int `json:"height"`
+			TotalTxs int `json:"total_txs"`
+		}
+		if err := ix.query(ctx, q.String(), &r); err != nil {
+			return nil, err
+		}
+		for _, bs := range r {
+			for _, b := range bs {
+				out[b.Height] = b.TotalTxs
+			}
+		}
+	}
+	for _, h := range heights {
+		if _, ok := out[h]; !ok {
+			return nil, fmt.Errorf("block %d not found", h)
+		}
+	}
+	return out, nil
 }
 
 func (ix *indexer) genesisTime(ctx context.Context) (time.Time, error) {
