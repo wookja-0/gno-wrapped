@@ -29,6 +29,10 @@ func setup(t *testing.T) (string, http.Handler) {
 		t.Fatal(err)
 	}
 	write(t, dir, "s1/share/do.json", `{"do439qv75pmz":{"address":"","shared":true}}`)
+	if err := os.MkdirAll(filepath.Join(dir, "s1/days"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	write(t, dir, "s1/days/wr.json", `{"`+addr+`":{"2026-10-14":[{"hash":"h1","time":"09:05","kind":"send"}]}}`)
 	return dir, newHandler(newStore(dir))
 }
 
@@ -66,6 +70,10 @@ func TestRecap(t *testing.T) {
 		{"/v1/s1/share/do439qv75pmx", 404, "no recap"},
 		{"/v1/s1/share/../../meta", anyRedirect, ""}, // ServeMux cleans the path and redirects (301 or 307 by Go version); nothing reaches the file system
 		{"/v1/s1/share/DO439QV75PMZ", 400, "invalid"},
+		{"/v1/s1/" + addr + "/days/2026-10-14", 200, `"hash":"h1"`},
+		{"/v1/s1/" + addr + "/days/2026-10-15", 404, "no transactions"},
+		{"/v1/s1/g1wrappedemptyqqqqqqqqqqqqqqqqqqqqqqqqqq/days/2026-10-14", 404, "no transactions"},
+		{"/v1/s1/" + addr + "/days/oct-14", 400, "invalid"},
 		{"/v1/s9", 404, "no data"},
 		{"/healthz", 200, "ok"},
 	}
