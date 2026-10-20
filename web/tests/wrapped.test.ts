@@ -3,7 +3,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { achievementIconRows, PERSONA_IDS, personaBadge, personaBadgeRows, personaOrbit, personaSymbolRows } from '../src/lib/art';
 import {
-  ACHIEVEMENT_ORDER, arrivalText, CAL_COLORS, calendarDays, calendarMonths, calendarWeeks, dayLevel, dayText, daySeries, peakIndex, seasonDays, visitDiff, visitSnapshot, weekLevel, weekText, builderCards, fmtGas, timeline, gnoscanAccount, gnoscanRealm, gnoscanTx, personaRankText, personaRuleText, personaWhy, rankTopPct, shareLink, sharePost, X_MAX, xLength, fuelLine, gasPerTx, isEmpty, ogRankCard, realmShortName,
+  ACHIEVEMENT_ORDER, arrivalText, CAL_COLORS, calendarDays, calendarMonths, calendarWeeks, dayLevel, dayText, dayTxAction, daySeries, peakIndex, seasonDays, visitDiff, visitSnapshot, weekLevel, weekText, builderCards, fmtGas, timeline, gnoscanAccount, gnoscanRealm, gnoscanTx, personaRankText, personaRuleText, personaWhy, rankTopPct, shareLink, sharePost, X_MAX, xLength, fuelLine, gasPerTx, isEmpty, ogRankCard, realmShortName,
   slideIds, summaryRank, truncMid, validate, weekRange, type WrappedData,
 } from '../src/lib/wrapped';
 
@@ -209,6 +209,14 @@ describe('activity calendar', () => {
   });
   it('month labels sit on the week column of the 1st', () => {
     expect(calendarMonths(load('full'))).toEqual([{ week: 0, label: 'Sep' }, { week: 2, label: 'Oct' }, { week: 7, label: 'Nov' }, { week: 11, label: 'Dec' }]);
+  });
+  it('day list lines say what the first message did', () => {
+    const base = { hash: 'h', time: '09:05' };
+    expect(dayTxAction({ ...base, kind: 'call', path: 'gno.land/r/gnoswap/router', func: 'ExactInSwapRoute' })).toEqual({ action: 'ExactInSwapRoute', path: 'gno.land/r/gnoswap/router' });
+    expect(dayTxAction({ ...base, kind: 'send' })).toEqual({ action: 'Sent GNOT' });
+    expect(dayTxAction({ ...base, kind: 'deploy', path: 'gno.land/r/demo/hello' })).toEqual({ action: 'Deployed', path: 'gno.land/r/demo/hello' });
+    expect(dayTxAction({ ...base, kind: 'run' })).toEqual({ action: 'Ran a script' });
+    expect(dayTxAction({ ...base, kind: 'other' })).toEqual({ action: 'Transaction' });
   });
   it('share view: weeks only', () => {
     const weeks = calendarWeeks({ ...load('full'), calendar: { weeks: [0, 3, 7], activeDays: 10, longestStreak: 7 } });

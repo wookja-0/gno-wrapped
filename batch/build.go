@@ -84,6 +84,7 @@ type acc struct {
 	firstPos  [2]int               // (height, index) of the first tx, for arrival order
 	days      map[int]bool         // UTC days (since season start) with activity, for streaks
 	daily     []int                // txs per UTC day of the season, for the calendar
+	dayTxs    map[int][]dayTx      // the first dayTxCap txs of each active day, for the calendar's day list
 	moments   map[string]time.Time // first swap / collect / deploy, 100th tx (see milestones)
 	gasUgnot  int64
 	swaps     int
@@ -230,7 +231,7 @@ func (d *dataset) add(t *rawTx, at time.Time) {
 	}
 	a := d.accs[who]
 	if a == nil {
-		a = &acc{firstAt: at, firstHash: t.Hash, firstPos: [2]int{t.BlockHeight, t.Index}, days: map[int]bool{}, moments: map[string]time.Time{}, weekly: make([]int, d.weeks), daily: make([]int, d.days), calls: map[string]map[string]int{}, actions: map[string]int{}, cats: map[string]int{}}
+		a = &acc{firstAt: at, firstHash: t.Hash, firstPos: [2]int{t.BlockHeight, t.Index}, days: map[int]bool{}, moments: map[string]time.Time{}, weekly: make([]int, d.weeks), daily: make([]int, d.days), dayTxs: map[int][]dayTx{}, calls: map[string]map[string]int{}, actions: map[string]int{}, cats: map[string]int{}}
 		d.accs[who] = a
 	}
 	d.totalTxs++
@@ -242,6 +243,9 @@ func (d *dataset) add(t *rawTx, at time.Time) {
 	day := int(at.Sub(d.start).Hours() / 24)
 	a.days[day] = true
 	a.daily[day]++
+	if len(a.dayTxs[day]) < dayTxCap {
+		a.dayTxs[day] = append(a.dayTxs[day], summarize(t, at))
+	}
 	if a.txs == 100 {
 		a.moment("tx-100", at)
 	}
@@ -285,6 +289,44 @@ func (d *dataset) add(t *rawTx, at time.Time) {
 			}
 		}
 	}
+}
+
+// dayTx: one line of the calendar's day list (owner view only: the hash leads to the address).
+type dayTx struct {
+	Hash string `json:"hash"`
+	Time string `json:"time"`           // HH:MM, UTC
+	Kind string `json:"kind"`           // call | send | deploy | run | other: the first message
+	Path string `json:"path,omitempty"` // realm or package (call, deploy, run)
+	Func string `json:"func,omitempty"` // call
+	Msgs int    `json:"msgs,omitempty"` // messages in the tx when more than one
+}
+
+// Per day. On 2026-10-20 data 99.7% of address-days have at most 100 txs; the rest are mostly bots
+// with thousands a day, which the web links to on Gnoscan instead.
+const dayTxCap = 100
+
+func summarize(t *rawTx, at time.Time) dayTx {
+	s := dayTx{Hash: t.Hash, Time: at.UTC().Format("15:04"), Kind: "other"}
+	if len(t.Messages) > 1 {
+		s.Msgs = len(t.Messages)
+	}
+	if len(t.Messages) > 0 {
+		v := t.Messages[0].Value
+		switch v.Typename {
+		case "MsgCall":
+			s.Kind, s.Path, s.Func = "call", v.PkgPath, v.Func
+		case "BankMsgSend":
+			s.Kind = "send"
+		case "MsgAddPackage":
+			s.Kind = "deploy"
+			if v.Package != nil {
+				s.Path = v.Package.Path
+			}
+		case "MsgRun":
+			s.Kind = "run"
+		}
+	}
+	return s
 }
 
 // moment records the first time something happened (txs arrive in chain order).
@@ -456,6 +498,7 @@ func topRealms(a *acc, n int) []realmStat {
 //
 //	<season>/<xx>.json         address → recap (owner view)
 //	<season>/share/<yy>.json   share ID → redacted recap (share links)
+//	<season>/days/<xx>.json    address → date → that day's first txs (calendar day list, owner only)
 //	<season>/personas.json     persona rules + counts
 //	<season>/season.json       the whole chain's season (see seasonStats)
 //	<season>/meta.json
@@ -476,6 +519,7 @@ func (d *dataset) render(ids *shareIDs, updatedAt time.Time) (map[string][]byte,
 	achCounts := map[string]int{}
 
 	shards := map[string]map[string]wrapped{}
+	days := map[string]map[string]map[string][]dayTx{}
 	shared := map[string]map[string]wrapped{}
 	for addr, a := range d.accs {
 		day := d.mainnetDay(a.firstAt)
@@ -508,6 +552,14 @@ func (d *dataset) render(ids *shareIDs, updatedAt time.Time) (map[string][]byte,
 			achCounts[a.ID]++
 		}
 		put(shards, shardKey(addr), addr, w)
+		byDate := make(map[string][]dayTx, len(a.dayTxs))
+		for i, txs := range a.dayTxs {
+			byDate[d.start.AddDate(0, 0, i).Format("2006-01-02")] = txs
+		}
+		if days[shardKey(addr)] == nil {
+			days[shardKey(addr)] = map[string]map[string][]dayTx{}
+		}
+		days[shardKey(addr)][addr] = byDate
 		put(shared, w.ShareID[:2], w.ShareID, redact(w))
 	}
 
@@ -532,6 +584,9 @@ func (d *dataset) render(ids *shareIDs, updatedAt time.Time) (map[string][]byte,
 	files[filepath.Join(season.ID, "personas.json")], _ = json.MarshalIndent(map[string]any{
 		"season": season, "dataAsOf": asOf, "final": final, "addresses": len(d.accs), "personas": list, "achievements": achCounts,
 	}, "", "  ")
+	for key, m := range days {
+		files[filepath.Join(season.ID, "days", key+".json")], _ = json.Marshal(m)
+	}
 	files[filepath.Join(season.ID, "season.json")], _ = json.MarshalIndent(d.seasonStats(asOf, final), "", "  ")
 	files[filepath.Join(season.ID, "meta.json")], _ = json.MarshalIndent(map[string]any{
 		"dataAsOf": asOf, "final": final, "updatedAt": updatedAt.UTC().Format(time.RFC3339), "season": season, "addresses": len(d.accs),
@@ -582,7 +637,7 @@ func (o *outWriter) write(files map[string][]byte) (int, error) {
 		o.last[rel] = sum
 		changed++
 	}
-	for _, pattern := range []string{filepath.Join(season.ID, "*.json"), filepath.Join(season.ID, "share", "*.json")} {
+	for _, pattern := range []string{filepath.Join(season.ID, "*.json"), filepath.Join(season.ID, "share", "*.json"), filepath.Join(season.ID, "days", "*.json")} {
 		stale, _ := filepath.Glob(filepath.Join(o.dir, pattern))
 		for _, p := range stale {
 			rel, _ := filepath.Rel(o.dir, p)

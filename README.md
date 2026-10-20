@@ -19,7 +19,8 @@ and a share card for X and Discord. It follows the chain live, so new activity s
   addresses use), On a Roll, Triple Threat, Century, Validators' Friend, Gas Saver.
 - **Arrival**: your mainnet day, your place in arrival order, and a season timeline
   (first transaction, first swap, first NFT, first realm deployed, 100th transaction).
-- **Activity**: transactions and percentile, a day-by-day calendar with your longest streak, top realms,
+- **Activity**: transactions and percentile, a day-by-day calendar with your longest streak (click a day
+  to page through its first 100 transactions, each linked to Gnoscan), top realms,
   GnoSwap swaps by week, realms deployed, gas.
 - **Since your last visit**: what changed since you last opened your recap (new transactions,
   achievements, rank). The comparison is kept in your browser only.
@@ -48,7 +49,8 @@ All data is public on-chain data. Share links still never carry the address:
 - Behind a share link the batch serves a redacted recap: no address in any form (the short
   `g1xxxx…xxxx` form alone identifies an address), no transaction hash, no exact arrival order,
   and realm paths that contain the address are masked. The calendar shows only active days per week
-  (a day-by-day pattern can be matched against the chain), and Realm Pioneer doesn't say which realms.
+  (a day-by-day pattern can be matched against the chain) and has no day list (transaction hashes lead
+  to the address), and Realm Pioneer doesn't say which realms.
   The share card and image never show the address either.
 - Persona ranks are shown only on the owner's own recap. There is no public leaderboard.
 
@@ -134,7 +136,7 @@ Any public tx-indexer for `gnoland-1` works: the batch only asks for fields in t
 | `LISTEN_ADDR` | `:8080` | |
 
 Endpoints: `GET /v1/{season}/{address}`, `/v1/{season}/share/{id}`, `/v1/{season}/personas`,
-`/v1/{season}/season`, `/v1/{season}`, `/healthz`. Logs one line per request (`docker compose logs -f api`).
+`/v1/{season}/season`, `/v1/{season}/{address}/days/{date}`, `/v1/{season}`, `/healthz`. Logs one line per request (`docker compose logs -f api`).
 
 **web**
 

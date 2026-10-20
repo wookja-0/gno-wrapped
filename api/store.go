@@ -44,6 +44,19 @@ func (s *store) shared(season, id string) (json.RawMessage, error) {
 	return sh[id], nil
 }
 
+// day returns the address's txs on one day (YYYY-MM-DD), or nil when there are none.
+func (s *store) day(season, address, date string) (json.RawMessage, error) {
+	sh, err := s.load(filepath.Join(season, "days", address[2:4]+".json"))
+	if err != nil || sh == nil || sh[address] == nil {
+		return nil, err
+	}
+	var byDate map[string]json.RawMessage
+	if err := json.Unmarshal(sh[address], &byDate); err != nil {
+		return nil, err
+	}
+	return byDate[date], nil
+}
+
 // file returns one of the season's single files (meta.json, personas.json), or nil if missing.
 func (s *store) file(season, name string) (json.RawMessage, error) {
 	b, err := os.ReadFile(filepath.Join(s.dir, season, name))

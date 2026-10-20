@@ -451,6 +451,22 @@ export function calendarMonths(d: WrappedData): { week: number; label: string }[
   return out;
 }
 
+/** One line of the calendar's day list (GET /v1/{season}/{address}/days/{date}; owner view only). */
+export interface DayTx { hash: string; time: string; kind: 'call' | 'send' | 'deploy' | 'run' | 'other'; path?: string; func?: string; msgs?: number }
+/** The batch keeps a day's first DAY_TX_CAP txs; the rest are on Gnoscan. */
+export const DAY_TX_CAP = 100;
+
+/** What a day-list line says the tx did, from its first message. */
+export function dayTxAction(t: DayTx): { action: string; path?: string } {
+  switch (t.kind) {
+    case 'call': return { action: t.func || 'Call', path: t.path };
+    case 'send': return { action: 'Sent GNOT' };
+    case 'deploy': return { action: 'Deployed', path: t.path };
+    case 'run': return { action: 'Ran a script' };
+  }
+  return { action: 'Transaction' };
+}
+
 /** "12 transactions on Oct 14" / "No activity on Oct 14" / "Oct 14 hasn't happened yet". */
 export function dayText(c: CalendarCell): string {
   if (c.future) return `${fmtShort(c.date)} hasn't happened yet`;

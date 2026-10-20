@@ -12,6 +12,7 @@ var (
 	seasonRE  = regexp.MustCompile(`^s\d+$`)
 	addressRE = regexp.MustCompile(`^g1[02-9ac-hj-np-z]{38}$`) // bech32 charset, same as the web app
 	shareRE   = regexp.MustCompile(`^[0-9a-z]{12}$`)           // batch share IDs (share.go)
+	dateRE    = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
 )
 
 func newHandler(st *store) http.Handler {
@@ -48,6 +49,17 @@ func newHandler(st *store) http.Handler {
 		}
 		b, err := st.shared(season, id)
 		respond(w, b, err, "no recap for this share link")
+	})
+	// The calendar's day list: that day's first txs, by address only (hashes lead to the address, so
+	// there is no share-link version).
+	mux.HandleFunc("GET /v1/{season}/{address}/days/{date}", func(w http.ResponseWriter, r *http.Request) {
+		season, address, date := r.PathValue("season"), strings.ToLower(r.PathValue("address")), r.PathValue("date")
+		if !seasonRE.MatchString(season) || !addressRE.MatchString(address) || !dateRE.MatchString(date) {
+			fail(w, http.StatusBadRequest, "invalid season, address or date")
+			return
+		}
+		b, err := st.day(season, address, date)
+		respond(w, b, err, "no transactions that day")
 	})
 	mux.HandleFunc("GET /v1/{season}/{address}", func(w http.ResponseWriter, r *http.Request) {
 		season, address := r.PathValue("season"), strings.ToLower(r.PathValue("address"))
