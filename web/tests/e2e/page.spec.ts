@@ -381,6 +381,9 @@ test.describe('scroll reveal', () => {
 test.describe('intro and empty', () => {
   test('footer links to the gno.land ecosystem in new tabs', async ({ page }) => {
     await open(page, '/');
+    const source = page.locator('footer').getByRole('link', { name: 'Source' });
+    await expect(source).toHaveAttribute('href', 'https://github.com/wookja-0/gno-wrapped');
+    await expect(source).toHaveAttribute('target', '_blank');
     const eco = page.getByRole('navigation', { name: 'gno.land ecosystem' });
     for (const [name, href] of [['gno.land', 'https://gno.land'], ['Gnoscan', 'https://gnoscan.io'], ['GnoSwap', 'https://gnoswap.io'], ['Adena', 'https://adena.app']]) {
       const link = eco.getByRole('link', { name });

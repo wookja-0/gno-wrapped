@@ -16,6 +16,8 @@ export const CONFIG = {
   GNOSCAN_URL: 'https://gnoscan.io',
   // GnoSwap's portfolio shows the connected wallet only; there's no per-address page to link to.
   GNOSWAP_PORTFOLIO_URL: 'https://gnoswap.io/portfolio',
+  // This app's source, linked from the footer.
+  REPO_URL: 'https://github.com/wookja-0/gno-wrapped',
   // Footer ecosystem links.
   GNOLAND_URL: 'https://gno.land',
   GNOSWAP_URL: 'https://gnoswap.io',

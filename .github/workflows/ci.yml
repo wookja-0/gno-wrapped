@@ -1,11 +1,16 @@
 name: CI
 
-# Pull requests and pushes to other branches; on main, release.yml runs this before building.
+# Pull requests. On main (a push or a merged pull request), release.yml runs this before it builds
+# and deploys.
 on:
   pull_request:
-  push:
-    branches-ignore: [main]
   workflow_call:
+
+# A new push to a pull request cancels its older run; release.yml's call (no PR number) never shares
+# a group, so it's never cancelled.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
