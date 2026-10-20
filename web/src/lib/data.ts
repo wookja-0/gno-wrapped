@@ -2,7 +2,7 @@ import 'server-only';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { cacheLife } from 'next/cache';
-import type { PersonasData, SeasonData, WrappedData } from './wrapped';
+import { DAY_TX_CAP, type DayTx, type PersonasData, type SeasonData, type WrappedData } from './wrapped';
 
 // Backend (api/): GET /v1/{season}/{address} → WrappedData, /v1/{season}/share/{id} → redacted
 // WrappedData, /v1/{season}/personas → PersonasData, /v1/{season} → meta.
@@ -41,6 +41,28 @@ export async function getPersonas(season: string): Promise<PersonasData> {
   'use cache';
   cacheLife('minutes');
   return orThrow(await getJson<PersonasData>(v1(season, 'personas')), 'personas.json');
+}
+
+/** The address's first txs on a day for the calendar's day list ([] when none). */
+export async function getDay(season: string, address: string, date: string): Promise<DayTx[]> {
+  'use cache';
+  cacheLife('seconds');
+  return (await getJson<DayTx[]>(`${v1(season, address)}/days/${encodeURIComponent(date)}`)) ?? [];
+}
+
+/** Dev/test only: a fixture's day list, made up from its daily count and top realms. */
+export async function getFixtureDay(name: string, date: string): Promise<DayTx[]> {
+  const d = await getFixture(name);
+  const i = d?.calendar?.daily ? (Date.parse(date) - Date.parse(d.season.start)) / 864e5 : -1;
+  const n = Math.min(DAY_TX_CAP, d?.calendar?.daily?.[i] ?? 0);
+  return Array.from({ length: n }, (_, k) => {
+    const r = d!.topRealms[k % Math.max(1, d!.topRealms.length)];
+    const m = 8 * 60 + k * 17; // from 08:00, every 17 minutes
+    const time = `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+    const hash = `fx${date.replaceAll('-', '')}${k}/hash+${k}=`;
+    if (k % 4 === 3 || !r) return { hash, time, kind: 'send' };
+    return { hash, time, kind: 'call', path: r.path, func: r.topFunc, ...(k === 0 ? { msgs: 2 } : {}) };
+  });
 }
 
 /** The whole chain's season for /season; throws (callers show "not available") before the batch has written it. */

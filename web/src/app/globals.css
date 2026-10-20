@@ -113,6 +113,30 @@ body { color: #F4F6FF; font-family: 'Archivo', system-ui, sans-serif; }
 .gw-cal-weeks .gw-cal-cells { grid-template-rows: 40px; grid-auto-columns: 1fr; }
 .gw-cal-future { box-shadow: inset 0 0 0 1px #26305A; }
 .gw-cal-active { outline: 2px solid #F4F6FF; outline-offset: 1px; }
+.gw-cal-has { cursor: pointer; }
+.gw-cal-open, .gw-cal-open.gw-cal-active { outline: 2px solid #FF8A3D; outline-offset: 1px; }
+.gw-day { margin-top: 20px; padding: 18px 20px; border-radius: 18px; background: #0B1131; border: 1px solid #222C58; }
+.gw-day-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.gw-day-title { margin: 0; font-size: 18px; font-weight: 800; }
+.gw-day-title span { color: #A3AED6; font-weight: 600; }
+.gw-day-list { margin: 12px 0 0; padding: 0; list-style: none; }
+.gw-pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #1A2350; }
+.gw-pager-range { font-size: 13px; color: #A3AED6; font-variant-numeric: tabular-nums; }
+.gw-pager-buttons { display: flex; gap: 4px; }
+.gw-pager-buttons button { min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #2A3566; border-radius: 8px; background: #10173A; color: #C9D3F5; font: 600 13px 'Archivo', system-ui, sans-serif; font-variant-numeric: tabular-nums; cursor: pointer; }
+.gw-pager-buttons button:hover:not(:disabled) { color: #F4F6FF; border-color: #3D8BFF; }
+.gw-pager-buttons button[aria-current="page"] { background: #1F6BFF; border-color: #1F6BFF; color: #FFFFFF; }
+.gw-pager-buttons button:disabled { opacity: 0.35; cursor: default; }
+.gw-pager-buttons button:focus-visible { outline: 2px solid #7DB3FF; outline-offset: 1px; }
+.gw-day-list li { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 9px 0; border-top: 1px solid #1A2350; }
+.gw-day-time { font-size: 13px; color: #A3AED6; }
+.gw-day-what { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; min-width: 0; }
+.gw-day-action { font-size: 15px; font-weight: 700; }
+.gw-day-path { display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
+.gw-day-more { font-size: 12px; color: #A3AED6; }
+.gw-day .gw-ext { margin: 0; font-size: 13px; }
+.gw-day-rest { margin-top: 12px !important; }
+.gw-link-btn { padding: 0; border: 0; background: none; color: #9CC2FF; font: inherit; font-weight: 600; cursor: pointer; text-decoration: underline; }
 /* chart box: the readout and foot take the chart's width but never set it, so hovering can't resize the box */
 .gw-cal-readout { width: 0; min-width: 100%; margin: 12px 0 0; min-height: 1.4em; font-size: 13px; color: #C9D3F5; }
 .gw-chart-foot { width: 0; min-width: 100%; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-top: 10px; }
@@ -249,6 +273,9 @@ body { color: #F4F6FF; font-family: 'Archivo', system-ui, sans-serif; }
 @media (max-width: 480px) {
   .gw-daily { gap: 1px; height: 110px; }
   .gw-cal { --cell: 14px; --gap: 3px; }
+  .gw-cal-readout { min-height: 2.8em; } /* two lines: hover text and hint differ in length on narrow grids */
+  .gw-day-list li { grid-template-columns: 44px minmax(0, 1fr); }
+  .gw-day-tx { grid-column: 2; }
   .gw-eco { display: grid; grid-template-columns: repeat(2, auto); gap: 10px 28px; }
   .gw-nav .gw-chip { display: none; }
   .gw-nav-ext-text { display: none; }

@@ -153,7 +153,7 @@ test.describe('activity calendar', () => {
     await cal.locator('.gw-cal-cell').nth(21).hover(); // Oct 3, the first tx
     await expect(readout).toHaveText(/ on Oct 3$/);
     await page.mouse.move(0, 0); // leaving the grid clears the readout
-    await expect(readout).toHaveText(/^Hover a day/);
+    await expect(readout).toHaveText(/^Hover, or use the arrow keys/);
     const grid = cal.getByRole('group', { name: 'Transactions per day', exact: true });
     await grid.focus();
     await expect(readout).toHaveText(/Dec 30$/); // the last day with data
@@ -184,6 +184,46 @@ test.describe('activity calendar', () => {
     await expect(cal.getByRole('group', { name: 'Transactions per day', exact: true })).toBeVisible();
   });
 
+  test('clicking a day lists its transactions, linked to Gnoscan; Escape closes it', async ({ page }) => {
+    await open(page, `/s1/${ADDR}?fixture=full`);
+    const cal = page.getByRole('region', { name: 'Calendar' });
+    await cal.locator('.gw-cal-cell').nth(19).click(); // Oct 1: no activity, nothing opens
+    await expect(page.getByRole('region', { name: /^Transactions on / })).toHaveCount(0);
+
+    await cal.locator('.gw-cal-cell').nth(21).click(); // Oct 3: 73 transactions, all of them kept
+    const day = page.getByRole('region', { name: 'Transactions on Oct 3' });
+    await expect(day).toContainText('Oct 3 · 73 transactions');
+    await expect(day.locator('.gw-day-list li')).toHaveCount(20); // 20 a page
+    await expect(day.locator('.gw-day-list li').first()).toContainText('+1 more message');
+    const tx = day.getByRole('link', { name: /^Transaction at 08:00 on Gnoscan/ });
+    await expect(tx).toHaveAttribute('href', /^https:\/\/gnoscan\.io\/transactions\/details\?txhash=fx20261003/);
+    const pages = day.getByRole('navigation', { name: 'Pages' });
+    await expect(pages).toContainText('1–20 of 73');
+    await expect(pages.getByRole('button', { name: 'Previous page' })).toBeDisabled();
+    await pages.getByRole('button', { name: 'Next page' }).click();
+    await expect(pages).toContainText('21–40 of 73');
+    await expect(day.locator('.gw-day-list li').first()).toContainText('13:40'); // the 21st tx (08:00 + 20 × 17 min)
+    await pages.getByRole('button', { name: 'Page 4' }).click();
+    await expect(pages).toContainText('61–73 of 73');
+    await expect(day.locator('.gw-day-list li')).toHaveCount(13);
+    await expect(pages.getByRole('button', { name: 'Page 4' })).toHaveAttribute('aria-current', 'page');
+    await expect(pages.getByRole('button', { name: 'Next page' })).toBeDisabled();
+    await expect(day.getByRole('link', { name: /more that day on Gnoscan/ })).toHaveCount(0); // nothing left out
+
+    await cal.locator('.gw-cal-cell').nth(78).click(); // Nov 29: 130 transactions, 100 kept
+    const busy = page.getByRole('region', { name: 'Transactions on Nov 29' });
+    await expect(busy.getByRole('navigation', { name: 'Pages' })).toContainText('1–20 of 100');
+    await expect(busy.getByRole('link', { name: /\+30 more that day on Gnoscan/ })).toHaveAttribute('href', `https://gnoscan.io/account/${ADDR}`);
+    await expect(day).toHaveCount(0); // one day at a time
+
+    await page.mouse.move(0, 0); // keyboard from here: the focused grid starts at the last day with data
+    await cal.getByRole('group', { name: 'Transactions per day', exact: true }).focus();
+    await page.keyboard.press('Escape');
+    await expect(busy).toHaveCount(0);
+    await page.keyboard.press('Enter'); // the focused day (the last with data) opens from the keyboard too
+    await expect(page.getByRole('region', { name: 'Transactions on Dec 30' })).toBeVisible();
+  });
+
   test('share view: active days per week only, no daily series', async ({ page }) => {
     await open(page, '/s1/s/fxfull000000?fixture=full');
     const cal = page.getByRole('region', { name: 'Calendar' });
@@ -192,6 +232,8 @@ test.describe('activity calendar', () => {
     await cal.locator('.gw-cal-cell').nth(3).hover();
     await expect(cal.locator('.gw-cal-readout')).toHaveText(/ of 7 days active, week of Oct 3–9$/);
     expect(await page.content()).not.toContain('"daily"');
+    await cal.locator('.gw-cal-cell').nth(3).click();
+    await expect(page.getByRole('region', { name: /^Transactions on / })).toHaveCount(0); // no day list behind a share link
   });
 });
 
