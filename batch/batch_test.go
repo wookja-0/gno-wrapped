@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -224,5 +225,50 @@ func TestSeasonStatsAddUpAndCarryNoAddress(t *testing.T) {
 	}
 	if b, _ := json.Marshal(s); strings.Contains(string(b), "g1wrapped") {
 		t.Fatalf("season stats name an address: %s", b)
+	}
+}
+
+func TestDayListKeepsTheFirstTxsOfEachDayForTheOwnerOnly(t *testing.T) {
+	start := time.Date(2026, 9, 12, 0, 0, 0, 0, time.UTC)
+	d := &dataset{accs: map[string]*acc{}, firstCall: map[string]map[string][2]int{}, deployer: map[string]string{},
+		start: start, end: start.AddDate(0, 0, 111), weeks: 16, days: 111}
+	d.st.GenesisTime = start.Add(15 * time.Hour)
+	d.st.TipTime = start.AddDate(0, 0, 40)
+	var txs []json.RawMessage
+	var blocks []blockTime
+	for i := 0; i < dayTxCap+2; i++ { // two more calls than the cap on Oct 1, one per block
+		h := 1000 + i
+		txs = append(txs, json.RawMessage(fmt.Sprintf(`{"block_height":%d,"index":0,"hash":"hash%02d","success":true,
+			"messages":[{"value":{"__typename":"MsgCall","caller":%q,"pkg_path":"gno.land/r/demo/boards","func":"Post"}},
+			            {"value":{"__typename":"MsgCall","caller":%q,"pkg_path":"gno.land/r/demo/boards","func":"Vote"}}]}`, h, i, testAddr, testAddr)))
+		blocks = append(blocks, blockTime{Height: h, Time: start.AddDate(0, 0, 19).Add(time.Duration(i) * time.Minute), NumTxs: 1})
+	}
+	txs = append(txs, json.RawMessage(fmt.Sprintf(`{"block_height":5000,"index":0,"hash":"send1","success":true,
+		"messages":[{"value":{"__typename":"BankMsgSend","from_address":%q}}]}`, testAddr)))
+	blocks = append(blocks, blockTime{Height: 5000, Time: start.AddDate(0, 0, 20).Add(9*time.Hour + 5*time.Minute), NumTxs: 1})
+	if err := d.applyChunk(chunk{From: 1, To: 5001, Txs: txs, Blocks: blocks}); err != nil {
+		t.Fatal(err)
+	}
+
+	ids, _ := loadShareIDs(config{DataDir: t.TempDir()})
+	files, err := d.render(ids, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var days map[string]map[string][]dayTx
+	if err := json.Unmarshal(files[filepath.Join("s1", "days", shardKey(testAddr)+".json")], &days); err != nil {
+		t.Fatal(err)
+	}
+	oct1, oct2 := days[testAddr]["2026-10-01"], days[testAddr]["2026-10-02"]
+	if len(oct1) != dayTxCap || oct1[0] != (dayTx{Hash: "hash00", Time: "00:00", Kind: "call", Path: "gno.land/r/demo/boards", Func: "Post", Msgs: 2}) || oct1[dayTxCap-1].Hash != fmt.Sprintf("hash%02d", dayTxCap-1) {
+		t.Fatalf("Oct 1: %d txs, first %+v, last %+v", len(oct1), oct1[0], oct1[len(oct1)-1])
+	}
+	if len(oct2) != 1 || oct2[0] != (dayTx{Hash: "send1", Time: "09:05", Kind: "send"}) {
+		t.Fatalf("Oct 2: %+v", oct2)
+	}
+	for name, b := range files {
+		if strings.Contains(name, "share") && strings.Contains(string(b), "hash00") {
+			t.Fatalf("%s carries a tx hash", name)
+		}
 	}
 }
