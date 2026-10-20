@@ -206,7 +206,7 @@ body { color: #F4F6FF; font-family: 'Archivo', system-ui, sans-serif; }
 /* ---------- intro / empty / loading ---------- */
 .gw-intro { max-width: 640px; padding-top: 56px; }
 .gw-intro-mark { margin-top: 32px; }
-.gw-intro-form { display: flex; flex-direction: column; gap: 18px; margin-top: 34px; max-width: 520px; }
+.gw-intro-form { display: flex; flex-direction: column; gap: 18px; margin-top: 34px; }
 .gw-intro-form > .gw-btn-lg { width: 100%; }
 .gw-empty { max-width: 720px; padding-top: 72px; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
 .gw-empty .gw-h1 { margin-top: 0; }
