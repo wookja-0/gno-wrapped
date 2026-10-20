@@ -37,17 +37,24 @@ export async function getShared(season: string, id: string): Promise<WrappedData
   return getJson<WrappedData>(v1(season, 'share', id));
 }
 
-export async function getPersonas(season: string): Promise<PersonasData | null> {
+export async function getPersonas(season: string): Promise<PersonasData> {
   'use cache';
   cacheLife('minutes');
-  return getJson<PersonasData>(v1(season, 'personas'));
+  return orThrow(await getJson<PersonasData>(v1(season, 'personas')), 'personas.json');
 }
 
-/** The whole chain's season for /season, or null before the batch has written it. */
-export async function getSeasonData(season: string): Promise<SeasonData | null> {
+/** The whole chain's season for /season; throws (callers show "not available") before the batch has written it. */
+export async function getSeasonData(season: string): Promise<SeasonData> {
   'use cache';
   cacheLife('minutes');
-  return getJson<SeasonData>(v1(season, 'season'));
+  return orThrow(await getJson<SeasonData>(v1(season, 'season')), 'season.json');
+}
+
+// A missing season file throws instead of returning null, so it isn't cached: right after a deploy
+// (or a data reset) the page recovers as soon as the batch writes the file, not minutes later.
+function orThrow<T>(v: T | null, file: string): T {
+  if (v === null) throw new Error(`no ${file} from the batch yet`);
+  return v;
 }
 
 /** dataAsOf and the final flag for screens that have no per-address JSON (EmptyState). */
