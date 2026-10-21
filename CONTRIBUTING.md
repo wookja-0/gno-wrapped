@@ -4,9 +4,9 @@ Thanks for helping. Bug fixes and small improvements can go straight to a pull r
 that changes how recaps are decided (persona rules, achievement thresholds, the bot heuristic), what a
 recap or share link contains, or the JSON contract, please open an issue first so we can agree on it.
 
-## Run it
+## Getting started
 
-See [Run it](README.md#run-it) and [Development](README.md#development) in the README. With
+See [Getting Started](README.md#getting-started) and [Development](README.md#development) in the README. With
 `WRAPPED_FIXTURES=1` the web app renders the fixtures in `web/fixtures`, so most UI work doesn't need
 the batch or the indexer at all.
 
@@ -39,6 +39,8 @@ Tests that need real batch output (`data/out`) skip themselves when it isn't the
   index, so a filter on an address scans every transaction. Don't add per-user indexer queries.
 - **One contract, two copies.** The recap JSON is defined in `batch/build.go` and mirrored in
   `web/src/lib/wrapped.ts`; change both, and `validate` on both sides if the shape changes.
+- **Copy lives in two languages.** UI text is in `web/src/lib/i18n.ts`; change `en` and `ko` together.
+  Share cards stay in English.
 
 ## Commits and pull requests
 
