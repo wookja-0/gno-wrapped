@@ -44,7 +44,7 @@ const en = {
   // status screens
   loading: 'Counting your blocks…', loadingShort: 'Loading…',
   emptyTitle: 'Your story starts next season.', emptyTx: (label: string) => `${label} transactions`,
-  emptyLive: 'No on-chain moves from this address yet. Make your first one on gno.land and there’ll be something to unwrap.',
+  emptyLive: "No on-chain moves from this address yet. Make your first one on gno.land and there'll be something to unwrap.",
   emptyFinal: (label: string) => `This address made no on-chain moves in Mainnet ${label}, which is now over.`,
   emptyLiveNote: 'New activity shows up within a minute.', tryAnother: 'Try another address', ready: 'READY',
   notYet: 'NOT YET', noActivity: 'NO ACTIVITY', seasonLabel: (s: string) => `Season ${s.replace(/^s/i, '')}`,
@@ -89,7 +89,7 @@ const en = {
   noActivityYet: 'No activity yet.', chart: 'Chart', table: 'Table', viewOf: (label: string) => `${label}: view`, asTable: (label: string) => `${label} as a table`,
   dayTitle: (date: string, count: number) => [fmtShort(date), `· ${fmt(count)} ${plural(count, 'transaction', 'transactions')}`] as const,
   dayRegion: (date: string) => `Transactions on ${fmtShort(date)}`, closeDay: 'Close the day',
-  dayLoadFailed: 'Couldn’t load this day.', tryAgain: 'Try again', dayTxAction,
+  dayLoadFailed: "Couldn't load this day.", tryAgain: 'Try again', dayTxAction,
   moreMessages: (x: number) => `+${x} more ${plural(x, 'message', 'messages')}`, gnoscan: 'Gnoscan',
   txAt: (time: string) => `Transaction at ${time} on Gnoscan`, moreThatDay: (x: number) => `+${fmt(x)} more that day on Gnoscan`,
   timesUtc: 'Times are UTC.', pages: 'Pages', range: (a: number, b: number, of: number) => `${fmt(a)}–${fmt(b)} of ${fmt(of)}`,
@@ -103,17 +103,17 @@ const en = {
   weeklySwapsLabel: (weeks: number, range: string, x: number) => `Weekly swaps across ${weeks} weeks. Busiest week ${range} with ${x} swaps.`,
   favoritePair: 'Favorite pair: ', topPairText, defiLines, moreOnGnoSwap: 'More on GnoSwap',
   portfolio: 'Open your GnoSwap portfolio', portfolioHint: 'Connect this wallet on GnoSwap to see its positions.',
-  burned: 'You burned', gasSpent: 'GNOT spent on gas', perTx: (x: string) => [`That’s about `, `${x} GNOT`, ' per transaction. '] as const,
+  burned: 'You burned', gasSpent: 'GNOT spent on gas', perTx: (x: string) => ["That's about ", `${x} GNOT`, ' per transaction. '] as const,
   fuelLine, successText,
   deployed: 'You deployed', realmPlural: (x: number) => plural(x, 'realm', 'realms'), builderHeadline, realmUseText,
   moreRealms: (x: number) => `+${fmt(x)} more`,
-  govKicker: 'On gno.land’s GovDAO and GnoSwap governance you made', governanceLines,
+  govKicker: "On gno.land's GovDAO and GnoSwap governance you made", governanceLines,
 
   // share
   shareTitle: 'Share your Wrapped', shareToX: 'Share to X', copyDiscord: 'Copy for Discord', copyLink: 'Copy link',
   downloadImage: 'Download image', shareHint: 'The link and images never show your address.',
-  copied: 'Copied — paste it in Discord', linkCopied: 'Link copied', copyFailed: 'Couldn’t copy', saved: (f: string) => `Saved ${f}`,
-  saveFailed: 'Couldn’t save the image', sharePost,
+  copied: 'Copied — paste it in Discord', linkCopied: 'Link copied', copyFailed: "Couldn't copy", saved: (f: string) => `Saved ${f}`,
+  saveFailed: "Couldn't save the image", sharePost,
   getYourOwn: 'Get your own Gno Wrapped', unwrapOwn: 'Unwrap your own',
   sharedLede: (s: Season) => `Someone shared their Mainnet Season ${n(s)} on gno.land with you. Paste your address or connect Adena to unwrap yours.`,
   shareCardAlt: (title: string, x: number) => `Share card: ${title}, ${fmt(x)} transactions`,
@@ -136,8 +136,8 @@ const en = {
 
   // personas page
   personasPill: 'SEASON PERSONAS', personasTitle: 'Eight personas, one per address',
-  personasLede: 'Your persona isn’t a score or a rank. It’s one label picked from your on-chain activity this season: the rules below are checked in order, and the first one that fits is yours.',
-  personasUnavailable: 'Persona data isn’t available right now.',
+  personasLede: "Your persona isn't a score or a rank. It's one label picked from your on-chain activity this season: the rules below are checked in order, and the first one that fits is yours.",
+  personasUnavailable: "Persona data isn't available right now.",
   ofAddresses: (pct: number) => `${pct.toFixed(1)}% of addresses`,
   shareOfAddresses: (pct: number, x: number) => `${pct < 1 ? pct.toFixed(1) : Math.round(pct)}% · ${fmt(x)} addresses`,
   achievementsLede: 'On top of your persona, collect any of these. They show on your recap when you have them.',
@@ -147,8 +147,8 @@ const en = {
 
   // season page
   seasonTitle: (s: Season) => `Mainnet Season ${n(s)}, all of gno.land`,
-  seasonLede: (final: boolean) => `Every address, every realm and every block of the season${final ? '' : ' so far'}: the chain’s own recap, built from the same public data as yours.`,
-  seasonUnavailable: 'Season data isn’t available right now.', inNumbers: 'The season in numbers',
+  seasonLede: (final: boolean) => `Every address, every realm and every block of the season${final ? '' : ' so far'}: the chain's own recap, built from the same public data as yours.`,
+  seasonUnavailable: "Season data isn't available right now.", inNumbers: 'The season in numbers',
   seasonStats: { addresses: 'Addresses', transactions: 'Transactions', swaps: 'Swaps on GnoSwap', deployed: 'Realms deployed', gas: 'GNOT spent on gas' },
   busiestDay: 'Busiest day: ', newAddresses: 'New addresses per day',
   arrivalsLine: (total: number, final: boolean) => `${fmt(total)} ${plural(total, 'address', 'addresses')} ${final ? 'this season' : 'so far'}`,
@@ -158,12 +158,12 @@ const en = {
   peak: (text: string) => `Peak: ${text}`, nothingYet: 'Nothing yet.', inAll: (x: number, unit: string) => `${fmt(x)} ${unit} in all`,
   unitTx: ['transaction', 'transactions'] as const, unitNewAddress: ['new address', 'new addresses'] as const,
   dayValue: (x: number, unit: readonly [string, string], date: string) => `${fmt(x)} ${plural(x, unit[0], unit[1])} on ${fmtShort(date)}`,
-  dayFuture: (date: string) => `${fmtShort(date)} hasn’t happened yet`,
+  dayFuture: (date: string) => `${fmtShort(date)} hasn't happened yet`,
 
   // story
   story: {
     label: 'Season story', close: 'Close the story', paused: ' · PAUSED', hint: 'Tap or → for next · hold to pause',
-    introTitle: (shared: boolean, s: Season) => `${shared ? 'A' : 'Your'} Mainnet Season ${n(s)} on gno.land`, introLine: 'Let’s unwrap it.',
+    introTitle: (shared: boolean, s: Season) => `${shared ? 'A' : 'Your'} Mainnet Season ${n(s)} on gno.land`, introLine: "Let's unwrap it.",
     arrived: (shared: boolean, date: string) => `${shared ? 'They' : 'You'} arrived on ${fmtDate(date)}`,
     dayOne: 'Here from the start.', ofMainnet: 'of mainnet',
     sent: (shared: boolean) => `This season ${shared ? 'they' : 'you'} sent`,
@@ -177,7 +177,7 @@ const en = {
     builderLine: (d: WrappedData) => { const h = builderHeadline(d); return h && d.shared ? h.replace('Your', 'Their') : h; },
     hadSay: (shared: boolean) => `${shared ? 'They' : 'You'} had a say`, unlocked: (shared: boolean) => `${shared ? 'They' : 'You'} unlocked`,
     persona: (shared: boolean) => `${shared ? 'Their' : 'Your'} season persona`,
-    outro: (shared: boolean, s: Season, final: boolean) => `That’s ${shared ? 'their' : 'your'} Mainnet Season ${n(s)}${final ? '' : ' so far'}.`,
+    outro: (shared: boolean, s: Season, final: boolean) => `That's ${shared ? 'their' : 'your'} Mainnet Season ${n(s)}${final ? '' : ' so far'}.`,
   },
 
   // image download
