@@ -6,6 +6,8 @@ import { achievementIconRows, PERSONA_IDS, personaBadge, personaBadgeRows, perso
 import {
   ACHIEVEMENT_ORDER, arrivalText, CAL_COLORS, calendarDays, calendarMonths, builderHeadline, calendarWeeks, storyIds, compareRows, defiLines, governanceLines, realmUseText, successRate, successText, topPairText, countdownText, parseShareId, dayLevel, daysLeft, dayText, dayTxAction, daySeries, peakIndex, seasonDays, visitDiff, visitSnapshot, weekLevel, weekText, builderCards, fmtGas, timeline, gnoscanAccount, gnoscanRealm, gnoscanTx, personaRankText, personaRuleText, personaWhy, rankTopPct, shareLink, sharePost, X_MAX, xLength, fuelLine, gasPerTx, isEmpty, ogRankCard, realmShortName,
   slideIds, summaryRank, truncMid, validate, weekRange, type WrappedData,
+  combine, pagerSlots, parseAddresses, realmOrderLine, realmOrderText, walletsHref,
+  chronotype, chronotypeLine, hasClock, hourText, localHours, nextUp, progressText, tzLabel, tzShift,
 } from '../src/lib/wrapped';
 
 const load = (name: string) =>
@@ -302,7 +304,7 @@ describe('success rate, GnoSwap detail, governance, builder report', () => {
 
 describe('story mode', () => {
   it('slides follow the data: none for what a recap lacks', () => {
-    expect(storyIds(load('full'))).toEqual(['intro', 'arrival', 'activity', 'calendar', 'realm', 'defi', 'builder', 'achievements', 'persona', 'outro']);
+    expect(storyIds(load('full'))).toEqual(['intro', 'arrival', 'activity', 'calendar', 'clock', 'realm', 'defi', 'builder', 'achievements', 'persona', 'outro']);
     expect(storyIds(load('whale'))).toContain('governance');
     expect(storyIds(load('newcomer'))).not.toContain('builder');
   });
@@ -423,5 +425,120 @@ describe.runIf(existsSync(OUT))('real batch output', () => {
   });
   it('every story ends with the summary', () => {
     expect(all.every((d) => slideIds(d).at(-1) === 'SummaryCard')).toBe(true);
+  });
+});
+
+describe('next up', () => {
+  it('shows the closest first, ties in achievement order, at most three', () => {
+    expect(nextUp(load('newcomer')).map((p) => p.id)).toEqual(['century', 'citizen', 'streak']);
+    expect(nextUp(load('no-builder-no-defi')).map((p) => p.id)).toEqual(['triple-threat', 'citizen']);
+    expect(nextUp(load('whale'))).toEqual([]); // final: the batch sends none
+  });
+  it('drops anything already reached or without a target', () => {
+    const d = { ...load('newcomer'), progress: [{ id: 'century' as const, have: 100, need: 100 }, { id: 'citizen' as const, have: 0, need: 0 }] };
+    expect(nextUp(d)).toEqual([]);
+  });
+  it('says what is left in the address\'s own numbers', () => {
+    expect(progressText({ id: 'century', have: 77, need: 100 })).toBe('77 of 100 transactions. 23 to go.');
+    expect(progressText({ id: 'streak', have: 2, need: 3 })).toBe('2 of 3 days in a row so far. Keep the run going.');
+    expect(progressText({ id: 'streak', have: 0, need: 3 })).toBe('Be active 3 days in a row (UTC days).');
+    expect(progressText({ id: 'triple-threat', have: 1, need: 3, missing: ['collect', 'play'] })).toBe('1 of 3 done. Still to try: NFTs and on-chain games.');
+    expect(progressText({ id: 'triple-threat', have: 0, need: 3, missing: ['defi', 'collect', 'play'] })).toBe('0 of 3 done. Still to try: DeFi, NFTs and on-chain games.');
+    expect(progressText({ id: 'citizen', have: 0, need: 1 })).toBe('Vote on a GovDAO or GnoSwap governance proposal.');
+  });
+});
+
+describe('time of day', () => {
+  it('moves UTC hours into the viewer\'s zone', () => {
+    const utc = Array.from({ length: 24 }, (_, h) => (h === 14 ? 5 : h === 23 ? 1 : 0));
+    const kst = localHours(utc, tzShift(540));
+    expect(kst[23]).toBe(5); // 14:00 UTC = 23:00 KST
+    expect(kst[8]).toBe(1);  // 23:00 UTC = 08:00 KST the next day
+    expect(localHours(utc, tzShift(-300))[9]).toBe(5); // UTC−5
+    expect(tzShift(330)).toBe(6); // UTC+5:30 moves by the nearest hour
+    expect(localHours(utc, 0)).toEqual(utc);
+  });
+  it('labels the zone', () => {
+    expect([0, -0, 540, -300, 330, -570].map(tzLabel)).toEqual(['UTC', 'UTC', 'UTC+9', 'UTC−5', 'UTC+5:30', 'UTC−9:30']);
+  });
+  it('picks the busiest quarter of the day, the earlier on a tie', () => {
+    const at = (m: Record<number, number>) => Array.from({ length: 24 }, (_, h) => m[h] ?? 0);
+    expect(chronotype(at({ 1: 3, 22: 2 }))).toEqual({ id: 'night-owl', from: 0, share: 0.6 });
+    expect(chronotype(at({ 7: 3, 13: 3 }))?.id).toBe('early-bird');
+    expect(chronotype(at({ 19: 5, 23: 1 }))?.id).toBe('evening');
+    expect(chronotype(at({ 12: 4 }))).toBeNull(); // too few to mean anything
+    expect(chronotypeLine({ from: 18, share: 0.414 })).toBe('41% of your transactions landed between 18:00 and 24:00.');
+    expect(hourText(9, 1)).toBe('1 transaction at 09:00–09:59');
+  });
+  it('is the owner\'s alone, with enough transactions', () => {
+    expect(hasClock(load('full'))).toBe(true);
+    expect(hasClock(load('newcomer'))).toBe(false);
+    expect(hasClock({ ...load('full'), hours: undefined })).toBe(false);
+    expect(storyIds(load('newcomer'))).not.toContain('clock');
+  });
+  it('rejects an hours array that is not a day', () => {
+    expect(validate({ ...load('full'), hours: [1, 2] })).toEqual(['hours has 2 entries; a day needs 24']);
+  });
+});
+
+describe('caller order on Top Realms', () => {
+  it('owner: place and count; share view: the count only', () => {
+    const [boards, router] = load('full').topRealms;
+    expect(realmOrderText(boards)).toBe('#37 of 1,204 callers');
+    expect(realmOrderLine(boards)).toBe('You were #37 of 1,204 addresses to call it.');
+    expect(realmOrderLine(router)).toBe('You were the first address to call it.');
+    expect(realmOrderText({ ...boards, order: undefined })).toBe('1,204 callers');
+    expect(realmOrderLine({ ...boards, order: undefined })).toBeNull();
+    expect(realmOrderText({ ...boards, order: undefined, callers: undefined })).toBeNull();
+  });
+});
+
+describe('several wallets', () => {
+  const A = 'g1wrappedsampleqqqqqqqqqqqqqqqqqqqqqqqqq', B = 'g1wrappedextraqqqqqqqqqqqqqqqqqqqqqqqqqq';
+  it('reads a list of addresses', () => {
+    expect(parseAddresses(`${A}, ${B.toUpperCase()}\n${A}`)).toEqual([A, B]);
+    expect(parseAddresses(`${A},nope`)).toBeNull();
+    expect(parseAddresses(' ')).toBeNull();
+    expect(walletsHref('s1', [A, B])).toBe(`/s1/wallets/${A},${B}`);
+  });
+  it('adds up what adds up and merges realms by path', () => {
+    const full = load('full'), day = load('day-one'), newcomer = load('newcomer');
+    const { total, achievements } = combine([{ address: A, recap: full }, { address: B, recap: day }, { address: 'g1x', recap: null }])!;
+    expect(total.txCount).toBe(full.txCount + day.txCount);
+    expect(total.gasFeeGnot).toBe(24.8);
+    expect(total.swaps.weekly[6]).toBe(full.swaps.weekly[6] + day.swaps.weekly[6]);
+    expect(total.firstTx).toEqual({ date: day.firstTx!.date, mainnetDay: 1 }); // the earliest, no hash
+    expect(total.topRealms[0]).toEqual({ path: 'gno.land/r/demo/boards', topFunc: 'CreateThread', calls: 624, order: 37, callers: 1204 });
+    const daily = full.calendar!.daily!.map((n, i) => n + day.calendar!.daily![i]);
+    expect(total.calendar).toEqual({ daily, activeDays: daily.filter((n) => n > 0).length, longestStreak: expect.any(Number) });
+    expect(total.hours?.reduce((a, b) => a + b, 0)).toBe(full.txCount + day.txCount);
+    expect(total.address).toBe('');
+    expect(total.persona).toBeUndefined();
+    expect(achievements).toEqual([{ id: 'early', wallets: 1 }, { id: 'pioneer', wallets: 1 }, { id: 'streak', wallets: 1 }, { id: 'triple-threat', wallets: 1 }]);
+    expect(validate(total)).toEqual([]);
+    expect(combine([{ address: A, recap: full }, { address: B, recap: newcomer }])!.total.deployedRealms).toEqual(full.deployedRealms);
+  });
+  it('a longest streak can span two wallets', () => {
+    const a = load('newcomer'), b = load('newcomer');
+    const days = a.calendar!.daily!.length;
+    a.calendar = { daily: Array.from({ length: days }, (_, i) => (i === 10 || i === 11 ? 1 : 0)), activeDays: 2, longestStreak: 2 };
+    b.calendar = { daily: Array.from({ length: days }, (_, i) => (i === 12 ? 1 : 0)), activeDays: 1, longestStreak: 1 };
+    expect(combine([{ address: A, recap: a }, { address: B, recap: b }])!.total.calendar!.longestStreak).toBe(3);
+  });
+  it('none with activity: nothing to show', () => {
+    expect(combine([{ address: A, recap: null }, { address: B, recap: { ...load('full'), txCount: 0 } }])).toBeNull();
+  });
+});
+
+describe('day list pager', () => {
+  it('shows every page up to 7, else 7 slots around the current one', () => {
+    expect(pagerSlots(1, 0)).toEqual([0]);
+    expect(pagerSlots(7, 6)).toEqual([0, 1, 2, 3, 4, 5, 6]);
+    expect(pagerSlots(10, 0)).toEqual([0, 1, 2, 3, 4, null, 9]);
+    expect(pagerSlots(10, 3)).toEqual([0, 1, 2, 3, 4, null, 9]);
+    expect(pagerSlots(10, 4)).toEqual([0, null, 3, 4, 5, null, 9]);
+    expect(pagerSlots(10, 6)).toEqual([0, null, 5, 6, 7, 8, 9]);
+    expect(pagerSlots(10, 9)).toEqual([0, null, 5, 6, 7, 8, 9]);
+    for (let p = 0; p < 10; p++) expect(pagerSlots(10, p)).toHaveLength(7);
   });
 });

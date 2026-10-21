@@ -174,7 +174,7 @@ func TestPioneersSkipTheDeployerAndBotsAndQuietRealms(t *testing.T) {
 	}
 	d.deployer[busy], d.deployer[quiet] = addr(0), addr(0)
 
-	p := d.pioneers()
+	p := pioneers(d.callers())
 	if len(p) != pioneerSlots {
 		t.Fatalf("%d pioneers, want %d", len(p), pioneerSlots)
 	}
@@ -270,5 +270,117 @@ func TestDayListKeepsTheFirstTxsOfEachDayForTheOwnerOnly(t *testing.T) {
 		if strings.Contains(name, "share") && strings.Contains(string(b), "hash00") {
 			t.Fatalf("%s carries a tx hash", name)
 		}
+	}
+}
+
+func TestHoursAndProgressAreForTheOwnerWhileTheSeasonIsLive(t *testing.T) {
+	start := time.Date(2026, 9, 12, 0, 0, 0, 0, time.UTC)
+	d := &dataset{accs: map[string]*acc{}, firstCall: map[string]map[string][2]int{}, deployer: map[string]string{},
+		start: start, end: start.AddDate(0, 0, 111), weeks: 16, days: 111}
+	d.st.GenesisTime = start.Add(15 * time.Hour)
+	d.st.TipTime = start.AddDate(0, 0, 40).Add(3 * time.Hour) // day 40, nothing yet today
+	var txs []json.RawMessage
+	var blocks []blockTime
+	add := func(h int, at time.Time, pkg string) {
+		txs = append(txs, json.RawMessage(fmt.Sprintf(`{"block_height":%d,"index":0,"hash":"h%d","success":true,
+			"messages":[{"value":{"__typename":"MsgCall","caller":%q,"pkg_path":%q,"func":"Do"}}]}`, h, h, testAddr, pkg)))
+		blocks = append(blocks, blockTime{Height: h, Time: at, NumTxs: 1})
+	}
+	add(10, start.AddDate(0, 0, 30).Add(23*time.Hour), "gno.land/r/gnoswap/router") // a lone day, long ago
+	add(11, start.AddDate(0, 0, 38).Add(23*time.Hour+30*time.Minute), "gno.land/r/demo/boards")
+	add(12, start.AddDate(0, 0, 39).Add(2*time.Hour), "gno.land/r/demo/boards") // days 38–39: a run of 2 up to yesterday
+	if err := d.applyChunk(chunk{From: 1, To: 13, Txs: txs, Blocks: blocks}); err != nil {
+		t.Fatal(err)
+	}
+	owner := func() wrapped {
+		ids, _ := loadShareIDs(config{DataDir: t.TempDir()})
+		files, err := d.render(ids, time.Now())
+		if err != nil {
+			t.Fatal(err)
+		}
+		var shard map[string]wrapped
+		json.Unmarshal(files["s1/"+shardKey(testAddr)+".json"], &shard)
+		return shard[testAddr]
+	}
+	w := owner()
+	if len(w.Hours) != 24 || w.Hours[23] != 2 || w.Hours[2] != 1 {
+		t.Errorf("hours = %v", w.Hours)
+	}
+	want := []string{"century 3/100 []", "streak 2/3 []", "triple-threat 1/3 [collect play]", "citizen 0/1 []"}
+	var got []string
+	for _, p := range w.Progress {
+		got = append(got, fmt.Sprintf("%s %d/%d %v", p.ID, p.Have, p.Need, p.Missing))
+	}
+	if strings.Join(got, ", ") != strings.Join(want, ", ") {
+		t.Errorf("progress = %v, want %v", got, want)
+	}
+	if r := redact(w); r.Hours != nil || r.Progress != nil {
+		t.Errorf("share view: hours %v, progress %v", r.Hours, r.Progress)
+	}
+
+	d.st.TipTime = start.AddDate(0, 0, 42) // two quiet days: the run is over
+	if p := owner().Progress; p[1].ID != "streak" || p[1].Have != 0 {
+		t.Errorf("after a gap: %+v", p[1])
+	}
+	d.st.TipTime = d.end.Add(time.Hour)
+	if w := owner(); w.Progress != nil || len(w.Hours) != 24 {
+		t.Errorf("final season: progress %v, hours %v", w.Progress, w.Hours)
+	}
+}
+
+func TestCurrentStreak(t *testing.T) {
+	days := map[int]bool{3: true, 4: true, 5: true, 8: true}
+	for today, want := range map[int]int{5: 3, 6: 3, 7: 0, 8: 1, 9: 1, 10: 0} {
+		if got := currentStreak(days, today); got != want {
+			t.Errorf("today %d: %d, want %d", today, got, want)
+		}
+	}
+}
+
+func TestTopRealmsCarryTheCallerOrderForTheOwnerOnly(t *testing.T) {
+	start := time.Date(2026, 9, 12, 0, 0, 0, 0, time.UTC)
+	d := &dataset{accs: map[string]*acc{}, firstCall: map[string]map[string][2]int{}, deployer: map[string]string{},
+		start: start, end: start.AddDate(0, 0, 111), weeks: 16, days: 111}
+	d.st.GenesisTime, d.st.TipTime = start.Add(15*time.Hour), start.AddDate(0, 0, 40)
+	addr := func(i int) string { return fmt.Sprintf("g1wrapped%031d", i) }
+	realm := "gno.land/r/demo/boards"
+	tx := func(h int, msg string) json.RawMessage {
+		return json.RawMessage(fmt.Sprintf(`{"block_height":%d,"index":0,"hash":"h%d","success":true,"messages":[{"value":%s}]}`, h, h, msg))
+	}
+	call := func(h int, who string) json.RawMessage {
+		return tx(h, fmt.Sprintf(`{"__typename":"MsgCall","caller":%q,"pkg_path":%q,"func":"Post"}`, who, realm))
+	}
+	txs := []json.RawMessage{
+		tx(10, fmt.Sprintf(`{"__typename":"MsgAddPackage","creator":%q,"package":{"path":%q}}`, addr(0), realm)),
+		call(11, addr(0)), // the deployer: no place in the order
+		call(12, addr(2)),
+		call(13, addr(1)),
+		call(14, addr(2)), // a second call doesn't move anyone
+		call(15, addr(3)),
+	}
+	var blocks []blockTime
+	for h := 10; h <= 15; h++ {
+		blocks = append(blocks, blockTime{Height: h, Time: start.AddDate(0, 0, 20), NumTxs: 1})
+	}
+	if err := d.applyChunk(chunk{From: 1, To: 16, Txs: txs, Blocks: blocks}); err != nil {
+		t.Fatal(err)
+	}
+	ids, _ := loadShareIDs(config{DataDir: t.TempDir()})
+	files, err := d.render(ids, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	recap := func(i int) wrapped {
+		var shard map[string]wrapped
+		json.Unmarshal(files["s1/"+shardKey(addr(i))+".json"], &shard)
+		return shard[addr(i)]
+	}
+	for i, want := range map[int]int{0: 0, 1: 2, 2: 1, 3: 3} {
+		if r := recap(i).TopRealms[0]; r.Order != want || r.Callers != 3 {
+			t.Errorf("caller %d: order %d of %d, want %d of 3", i, r.Order, r.Callers, want)
+		}
+	}
+	if r := redact(recap(2)).TopRealms[0]; r.Order != 0 || r.Callers != 3 {
+		t.Errorf("share view: %+v", r)
 	}
 }

@@ -194,26 +194,29 @@ test.describe('activity calendar', () => {
     await cal.locator('.gw-cal-cell').nth(21).click(); // Oct 3: 73 transactions, all of them kept
     const day = page.getByRole('region', { name: 'Transactions on Oct 3' });
     await expect(day).toContainText('Oct 3 · 73 transactions');
-    await expect(day.locator('.gw-day-list li')).toHaveCount(20); // 20 a page
+    await expect(day.locator('.gw-day-list li')).toHaveCount(10); // 10 a page
     await expect(day.locator('.gw-day-list li').first()).toContainText('+1 more message');
     const tx = day.getByRole('link', { name: /^Transaction at 08:00 on Gnoscan/ });
     await expect(tx).toHaveAttribute('href', /^https:\/\/gnoscan\.io\/transactions\/details\?txhash=fx20261003/);
     const pages = day.getByRole('navigation', { name: 'Pages' });
-    await expect(pages).toContainText('1–20 of 73');
+    await expect(pages).toContainText('1–10 of 73');
     await expect(pages.getByRole('button', { name: 'Previous page' })).toBeDisabled();
+    await expect(pages.getByRole('button', { name: /^Page / })).toHaveText(['1', '2', '3', '4', '5', '8']); // 8 pages: a gap before the last
     await pages.getByRole('button', { name: 'Next page' }).click();
-    await expect(pages).toContainText('21–40 of 73');
-    await expect(day.locator('.gw-day-list li').first()).toContainText('13:40'); // the 21st tx (08:00 + 20 × 17 min)
-    await pages.getByRole('button', { name: 'Page 4' }).click();
-    await expect(pages).toContainText('61–73 of 73');
-    await expect(day.locator('.gw-day-list li')).toHaveCount(13);
-    await expect(pages.getByRole('button', { name: 'Page 4' })).toHaveAttribute('aria-current', 'page');
+    await expect(pages).toContainText('11–20 of 73');
+    await expect(day.locator('.gw-day-list li').first()).toContainText('10:50'); // the 11th tx (08:00 + 10 × 17 min)
+    await pages.getByRole('button', { name: 'Page 5' }).click();
+    await expect(pages.getByRole('button', { name: /^Page / })).toHaveText(['1', '4', '5', '6', '7', '8']); // around the current page
+    await pages.getByRole('button', { name: 'Page 8' }).click();
+    await expect(pages).toContainText('71–73 of 73');
+    await expect(day.locator('.gw-day-list li')).toHaveCount(3);
+    await expect(pages.getByRole('button', { name: 'Page 8' })).toHaveAttribute('aria-current', 'page');
     await expect(pages.getByRole('button', { name: 'Next page' })).toBeDisabled();
     await expect(day.getByRole('link', { name: /more that day on Gnoscan/ })).toHaveCount(0); // nothing left out
 
     await cal.locator('.gw-cal-cell').nth(78).click(); // Nov 29: 130 transactions, 100 kept
     const busy = page.getByRole('region', { name: 'Transactions on Nov 29' });
-    await expect(busy.getByRole('navigation', { name: 'Pages' })).toContainText('1–20 of 100');
+    await expect(busy.getByRole('navigation', { name: 'Pages' })).toContainText('1–10 of 100');
     await expect(busy.getByRole('link', { name: /\+30 more that day on Gnoscan/ })).toHaveAttribute('href', `https://gnoscan.io/account/${ADDR}`);
     await expect(day).toHaveCount(0); // one day at a time
 
@@ -299,17 +302,17 @@ test.describe('story mode', () => {
     const play = page.getByRole('button', { name: '▶ Play your story' });
     await play.click();
     const story = page.getByRole('dialog', { name: 'Season story' });
-    await expect(story).toContainText('1 / 10');
+    await expect(story).toContainText('1 / 11');
     await expect(story).toContainText('Your Mainnet Season 1 on gno.land');
     await page.keyboard.press('ArrowRight');
-    await expect(story).toContainText('2 / 10');
+    await expect(story).toContainText('2 / 11');
     await expect(story).toContainText('Day 22');
     await page.keyboard.press('ArrowLeft');
-    await expect(story).toContainText('1 / 10');
+    await expect(story).toContainText('1 / 11');
     const card = story.locator('.gw-story-card');
     const box = (await card.boundingBox())!;
     await page.mouse.click(box.x + box.width * 0.8, box.y + box.height / 2); // tap the right side
-    await expect(story).toContainText('2 / 10');
+    await expect(story).toContainText('2 / 11');
     await page.keyboard.press('Escape');
     await expect(story).toHaveCount(0);
     await expect(play).toBeFocused();
@@ -318,8 +321,8 @@ test.describe('story mode', () => {
   test('the persona card shows the badge (its pixels have height)', async ({ page }) => {
     await open(page, `/s1/${ADDR}?fixture=full&story`);
     const story = page.getByRole('dialog', { name: 'Season story' });
-    for (let n = 0; n < 8; n++) await page.keyboard.press('ArrowRight');
-    await expect(story).toContainText('9 / 10');
+    for (let n = 0; n < 9; n++) await page.keyboard.press('ArrowRight');
+    await expect(story).toContainText('10 / 11');
     const badge = story.getByRole('img', { name: 'Realm Hopper badge' });
     await expect(badge).toBeVisible();
     const tallest = await badge.evaluate((el) => Math.max(...[...el.children].map((c) => c.getBoundingClientRect().height)));
@@ -330,9 +333,9 @@ test.describe('story mode', () => {
     await page.clock.install();
     await open(page, `/s1/${ADDR}?fixture=full&story`); // ?story opens it straight away
     const story = page.getByRole('dialog', { name: 'Season story' });
-    await expect(story).toContainText('1 / 10');
+    await expect(story).toContainText('1 / 11');
     await page.clock.runFor(6500);
-    await expect(story).toContainText('2 / 10');
+    await expect(story).toContainText('2 / 11');
   });
 
   test('a shared recap plays "the story" and ends with "unwrap your own"', async ({ page }) => {
@@ -417,6 +420,136 @@ test.describe('achievements and timeline', () => {
     const block = live.getByRole('link', { name: /^Block [\d,]+ on Gnoscan$/ });
     await expect(block).toHaveAttribute('href', /^https:\/\/gnoscan\.io\/block\/\d+$/);
     await expect(block).toHaveAttribute('target', '_blank');
+  });
+});
+
+test.describe('next up', () => {
+  test('owner of a live season: the closest achievements, with how far along', async ({ page }) => {
+    await open(page, `/s1/${ADDR}?fixture=newcomer`);
+    const next = page.getByRole('region', { name: 'Next up' });
+    await expect(next.locator('.gw-ach-title')).toHaveText(['Century', 'Citizen', 'On a Roll']);
+    await expect(next).toContainText('2 of 100 transactions. 98 to go.');
+    await expect(next.getByRole('progressbar', { name: 'Century' })).toHaveAttribute('aria-valuenow', '2');
+  });
+
+  test('none once the season is final, and never behind a share link', async ({ page }) => {
+    await open(page, `/s1/${ADDR}?fixture=whale`);
+    await expect(page.getByRole('region', { name: 'Next up' })).toHaveCount(0);
+    await open(page, `/s1/s/fxnewcomer00?fixture=newcomer`);
+    await expect(page.getByRole('region', { name: 'Next up' })).toHaveCount(0);
+    expect(await page.content()).not.toContain('"progress"');
+  });
+});
+
+test.describe('clock', () => {
+  test.describe('in Seoul', () => {
+    test.use({ timezoneId: 'Asia/Seoul' });
+    test('hours move into the viewer\'s time zone; arrow keys read an hour', async ({ page }) => {
+      await open(page, `/s1/${ADDR}?fixture=full`);
+      const clock = page.getByRole('region', { name: 'Clock' });
+      await expect(clock.getByRole('heading', { level: 3 })).toHaveText('Evening Regular');
+      await expect(clock).toContainText('Busiest hour: 23:00');
+      await expect(clock).toContainText('Hours in your time zone (UTC+9).');
+      await clock.getByRole('group', { name: 'Transactions by hour of day', exact: true }).focus();
+      await expect(clock.locator('.gw-cal-readout')).toHaveText('129 transactions at 23:00–23:59');
+      await page.keyboard.press('Home');
+      await expect(clock.locator('.gw-cal-readout')).toHaveText('113 transactions at 00:00–00:59');
+      await clock.getByRole('button', { name: 'Table' }).click();
+      await expect(clock.getByRole('table')).toContainText('23:00');
+    });
+  });
+
+  test.describe('in UTC', () => {
+    test.use({ timezoneId: 'UTC' });
+    test('the same hours read differently', async ({ page }) => {
+      await open(page, `/s1/${ADDR}?fixture=full`);
+      const clock = page.getByRole('region', { name: 'Clock' });
+      await expect(clock.getByRole('heading', { level: 3 })).toHaveText('Afternoon Regular');
+      await expect(clock).toContainText('Busiest hour: 14:00');
+      await expect(clock).toContainText('Hours in your time zone (UTC).');
+    });
+  });
+
+  test('too few transactions, or a share link: no clock', async ({ page }) => {
+    await open(page, `/s1/${ADDR}?fixture=newcomer`);
+    await expect(page.getByRole('region', { name: 'Clock' })).toHaveCount(0);
+    await open(page, `/s1/s/fxfull000000?fixture=full`);
+    await expect(page.getByRole('region', { name: 'Clock' })).toHaveCount(0);
+    expect(await page.content()).not.toContain('"hours"');
+  });
+});
+
+test.describe('caller order on Top Realms', () => {
+  test('owner sees their place among each realm\'s callers; a share link only the count', async ({ page }) => {
+    await open(page, `/s1/${ADDR}?fixture=full`);
+    const realms = page.getByRole('region', { name: 'Top realms' });
+    await expect(realms).toContainText('You were #37 of 1,204 addresses to call it.');
+    await expect(realms).toContainText('#1 of 2,870 callers');
+    await open(page, `/s1/s/fxfull000000?fixture=full`);
+    const shared = page.getByRole('region', { name: 'Top realms' });
+    await expect(shared).toContainText('1,204 callers');
+    await expect(shared).not.toContainText('#37');
+    expect(await page.content()).not.toContain('"order":37');
+  });
+});
+
+test.describe('several wallets', () => {
+  const OTHER = 'g1wrappedextraqqqqqqqqqqqqqqqqqqqqqqxtra'; // short form g1wrap…xtra, unlike ADDR's
+  test('added up, each wallet listed with its persona; remove one goes back to a single recap', async ({ page }) => {
+    await open(page, `/s1/wallets/${ADDR},${OTHER}?fixture=full,newcomer`);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Your wallets, together');
+    const glance = page.getByRole('region', { name: 'Season at a glance' });
+    await expect(glance).toContainText('1,286'); // 1,284 + 2
+    const wallets = page.getByRole('region', { name: 'Wallets' });
+    await expect(wallets.locator('.gw-row')).toHaveCount(2);
+    await expect(wallets).toContainText('Realm Hopper · 1,284 transactions');
+    await expect(wallets).toContainText('First Steps · 2 transactions');
+    await expect(page.getByRole('region', { name: 'Achievements' })).toContainText('1 of 2 wallets');
+    await expect(page.getByRole('region', { name: 'Calendar' })).toBeVisible();
+    await expect(wallets.getByRole('link', { name: /^Remove g1wrap/ }).last()).toHaveAttribute('href', `/s1/${ADDR}`);
+  });
+
+  test('a calendar day lists every wallet\'s transactions, merged by time and tagged by wallet', async ({ page }) => {
+    await open(page, `/s1/wallets/${ADDR},${OTHER}?fixture=full,newcomer`);
+    const cal = page.getByRole('region', { name: 'Calendar' });
+    await cal.locator('.gw-cal-cell').nth(97).click(); // Dec 18: 5 from the first wallet, 1 from the second
+    const day = page.getByRole('region', { name: 'Transactions on Dec 18' });
+    await expect(day).toContainText('Dec 18 · 6 transactions');
+    const rows = day.locator('.gw-day-list li');
+    await expect(rows).toHaveCount(6);
+    await expect(rows.locator('.gw-day-time')).toHaveText(['08:00', '08:00', '08:17', '08:34', '08:51', '09:08']);
+    await expect(rows.locator('.gw-day-wallet')).toHaveText(['g1wrap…qqqq', 'g1wrap…xtra', 'g1wrap…qqqq', 'g1wrap…qqqq', 'g1wrap…qqqq', 'g1wrap…qqqq']);
+
+    await cal.locator('.gw-cal-cell').nth(78).click(); // Nov 29: 130 from the first wallet, 100 kept
+    const busy = page.getByRole('region', { name: 'Transactions on Nov 29' });
+    await expect(busy.getByRole('navigation', { name: 'Pages' })).toContainText('1–10 of 100');
+    await expect(busy.getByRole('link', { name: /\+30 more from g1wrap…qqqq that day on Gnoscan/ })).toHaveAttribute('href', `https://gnoscan.io/account/${ADDR}`);
+  });
+
+  test('from a recap: add another address', async ({ page }) => {
+    await open(page, `/s1/${ADDR}?fixture=full`);
+    const more = page.getByRole('region', { name: 'More than one wallet?' });
+    await more.getByRole('textbox').fill(ADDR);
+    await more.getByRole('button', { name: 'Add' }).click();
+    await expect(more.getByRole('alert')).toHaveText('That wallet is already here.');
+    await more.getByRole('textbox').fill(OTHER);
+    await more.getByRole('button', { name: 'Add' }).click();
+    await expect(page).toHaveURL(`/s1/wallets/${ADDR},${OTHER}`);
+  });
+
+  test('from the intro: paste several addresses', async ({ page }) => {
+    await open(page, '/');
+    await page.getByLabel('Wallet address').fill(`${ADDR}, ${OTHER}`);
+    await page.getByRole('button', { name: 'Unwrap' }).click();
+    await expect(page).toHaveURL(`/s1/wallets/${ADDR},${OTHER}`);
+  });
+
+  test('a list with something that isn\'t an address, or too many, shows not found', async ({ page }) => {
+    await page.goto(`/s1/wallets/${ADDR},nope`);
+    await expect(page.getByText('This page could not be found.')).toBeVisible();
+    const six = Array.from({ length: 6 }, (_, i) => `g1wrapped${'acdefg'[i]}${'q'.repeat(30)}`);
+    await page.goto(`/s1/wallets/${six.join(',')}`);
+    await expect(page.getByText('This page could not be found.')).toBeVisible();
   });
 });
 

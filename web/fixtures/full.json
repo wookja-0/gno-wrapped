@@ -17,17 +17,23 @@
     {
       "path": "gno.land/r/demo/boards",
       "topFunc": "CreateThread",
-      "calls": 312
+      "calls": 312,
+      "order": 37,
+      "callers": 1204
     },
     {
       "path": "gno.land/r/gnoswap/v1/router",
       "topFunc": "ExactInSwapRoute",
-      "calls": 198
+      "calls": 198,
+      "order": 1,
+      "callers": 2870
     },
     {
       "path": "gno.land/r/gnoland/blog",
       "topFunc": "AddComment",
-      "calls": 41
+      "calls": 41,
+      "order": 412,
+      "callers": 655
     }
   ],
   "deployedRealms": [
@@ -139,5 +145,9 @@
       "callers": 0,
       "calls": 0
     }
+  ],
+  "hours": [13, 11, 9, 11, 13, 17, 23, 31, 43, 57, 73, 89, 103, 113, 129, 113, 103, 89, 73, 57, 43, 31, 23, 17],
+  "progress": [
+    {"id": "citizen", "have": 0, "need": 1}
   ]
 }

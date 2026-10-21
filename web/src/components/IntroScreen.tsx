@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { CONFIG } from '@/lib/config';
-import { ADDRESS_RE, fmtShort } from '@/lib/wrapped';
+import { ADDRESS_RE, fmtShort, parseAddresses, WALLETS_MAX, walletsHref } from '@/lib/wrapped';
 import Link from 'next/link';
 import { AdenaIcon } from './AdenaIcon';
 import { LiveTicker } from './LiveTicker';
@@ -39,6 +39,11 @@ export function IntroScreen() {
     e.preventDefault();
     const a = addr.trim().toLowerCase();
     if (!a) return setErr(c.errEmpty);
+    const several = parseAddresses(a);
+    if (several && several.length > 1) {
+      if (several.length > WALLETS_MAX) return setErr(c.errWalletsMax(WALLETS_MAX));
+      return router.push(walletsHref(season.id, several));
+    }
     if (!ADDRESS_RE.test(a)) return setErr(c.errInvalid);
     open(a);
   };
@@ -85,7 +90,8 @@ export function IntroScreen() {
               <input id="gw-addr" className="gw-input" value={addr} onChange={(e) => { setAddr(e.target.value); setErr(''); }} placeholder="g1…" autoComplete="off" spellCheck={false} aria-invalid={!!err} style={{ borderColor: err ? '#FFB27A' : undefined }} />
               <button type="submit" className="gw-btn gw-btn-light gw-btn-lg">{c.unwrap}</button>
             </div>
-            {err && <p role="alert" style={{ margin: 0, fontSize: 13, lineHeight: 1.4, color: '#FFB27A' }}>{err}</p>}
+            {err ? <p role="alert" style={{ margin: 0, fontSize: 13, lineHeight: 1.4, color: '#FFB27A' }}>{err}</p>
+              : <p style={{ margin: 0, fontSize: 13, color: '#A3AED6' }}>{c.introSeveral}</p>}
           </form>
           {CONFIG.SHOW_SAMPLE_BUTTONS && (
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, fontSize: 13, color: '#A3AED6' }}>

@@ -23,6 +23,8 @@ export interface TopRealm {
   path: string;     // "gno.land/r/demo/boards"
   topFunc: string;  // most-called function in that realm
   calls: number;
+  order?: number;   // the address's place among the realm's callers by first call, 1 = first (owner view only)
+  callers?: number; // addresses that have called the realm, its deployer and bots not counted
 }
 
 export interface Persona {
@@ -57,6 +59,8 @@ export interface WrappedData {
   governance?: GovStats;                            // votes, proposals, GNS delegations
   builder?: RealmReport[];                          // deployedRealms with their use by others, most-called first
   failedTxs?: number;                               // failed txs this season (txCount counts successful ones)
+  progress?: Progress[];                            // achievements still in reach; owner view of a live season only
+  hours?: number[];                                 // txs per UTC hour, [0] = 00:00–00:59; owner view only
 }
 
 export interface DefiStats {
@@ -78,6 +82,9 @@ export interface Arrival { order?: number; of: number; tier?: number }
 export type AchievementId = 'early' | 'pioneer' | 'citizen' | 'streak' | 'triple-threat' | 'gas-saver' | 'validators-friend' | 'century';
 /** `realms`: pioneer only, owner view only — up to 3 realms, most-used first. */
 export interface Achievement { id: AchievementId; value?: number; realms?: string[] }
+/** An achievement the address can still earn this season, and how far along it is. */
+export type ProgressId = 'century' | 'streak' | 'triple-threat' | 'citizen';
+export interface Progress { id: ProgressId; have: number; need: number; missing?: ('defi' | 'collect' | 'play')[] }
 export type MilestoneId = 'first-swap' | 'first-collect' | 'first-deploy' | 'tx-100';
 export interface Milestone { id: MilestoneId; date: string }
 
@@ -117,6 +124,7 @@ export function validate(d: Partial<WrappedData>): string[] {
     if (!errs.length && d.calendar?.daily && d.calendar.daily.length !== seasonDays(s)) {
       errs.push(`calendar.daily has ${d.calendar.daily.length} entries; season needs ${seasonDays(s)}`);
     }
+    if (d.hours && d.hours.length !== 24) errs.push(`hours has ${d.hours.length} entries; a day needs 24`);
   }
   return errs;
 }
@@ -204,6 +212,17 @@ export const gasPerTx = (gas: number, txCount: number) =>
   txCount ? '≈' + String(Number((gas / txCount).toPrecision(2))) : '0';
 
 // ---------- realm paths ----------
+
+/** Top Realms row: "#37 of 1,204 callers"; the share view keeps only "1,204 callers". */
+export function realmOrderText(r: TopRealm): string | null {
+  if (!r.callers) return null;
+  return r.order ? `#${fmt(r.order)} of ${fmt(r.callers)} ${plural(r.callers, 'caller', 'callers')}` : `${fmt(r.callers)} ${plural(r.callers, 'caller', 'callers')}`;
+}
+/** Most-called realm: "You were #37 of 1,204 addresses to call it." (owner view only). */
+export function realmOrderLine(r: TopRealm): string | null {
+  if (!r.order || !r.callers) return null;
+  return r.order === 1 ? 'You were the first address to call it.' : `You were #${fmt(r.order)} of ${fmt(r.callers)} addresses to call it.`;
+}
 
 /** Middle truncation: "gno.land/r/gnoswap/v1/…long…/router" → "gno.land/r/…/router". null = fits. */
 export function truncMid(path: string, max: number): string | null {
@@ -413,7 +432,7 @@ export function personaRankText(d: WrappedData): string | null {
 
 // ---------- story mode ----------
 
-export type StoryId = 'intro' | 'arrival' | 'activity' | 'calendar' | 'realm' | 'defi' | 'builder' | 'governance' | 'achievements' | 'persona' | 'outro';
+export type StoryId = 'intro' | 'arrival' | 'activity' | 'calendar' | 'clock' | 'realm' | 'defi' | 'builder' | 'governance' | 'achievements' | 'persona' | 'outro';
 
 /** The story's slides for this recap, in order; one without data is left out. */
 export function storyIds(d: WrappedData): StoryId[] {
@@ -421,6 +440,7 @@ export function storyIds(d: WrappedData): StoryId[] {
   if (d.firstTx?.date) ids.push('arrival');
   if (d.txCount > 0) ids.push('activity');
   if (d.calendar?.activeDays) ids.push('calendar');
+  if (hasClock(d)) ids.push('clock');
   if (d.topRealms?.length) ids.push('realm');
   if (d.swaps?.count > 0 || d.defi) ids.push('defi');
   if (d.deployedRealms?.length) ids.push('builder');
@@ -547,8 +567,26 @@ export function calendarMonths(d: WrappedData, name = (m: number) => MONTHS[m]):
 
 /** One line of the calendar's day list (GET /v1/{season}/{address}/days/{date}; owner view only). */
 export interface DayTx { hash: string; time: string; kind: 'call' | 'send' | 'deploy' | 'run' | 'other'; path?: string; func?: string; msgs?: number }
+/** A wallet whose calendar days can be opened: its address and txs per season day. */
+export interface DayWallet { address: string; daily: number[] }
+
 /** The batch keeps a day's first DAY_TX_CAP txs; the rest are on Gnoscan. */
 export const DAY_TX_CAP = 100;
+
+/** Day-list rows per page. */
+export const DAY_PAGE = 10;
+
+/**
+ * The day list's page buttons (0-based), null for a gap: every page up to 7, else always 7 slots —
+ * first, last and the current page's neighbours — so the pager keeps its width: 0 1 2 3 4 … 9,
+ * 0 … 4 5 6 … 9, 0 … 5 6 7 8 9.
+ */
+export function pagerSlots(pages: number, current: number): (number | null)[] {
+  if (pages <= 7) return Array.from({ length: pages }, (_, i) => i);
+  if (current <= 3) return [0, 1, 2, 3, 4, null, pages - 1];
+  if (current >= pages - 4) return [0, null, ...Array.from({ length: 5 }, (_, i) => pages - 5 + i)];
+  return [0, null, current - 1, current, current + 1, null, pages - 1];
+}
 
 /** What a day-list line says the tx did, from its first message. */
 export function dayTxAction(t: DayTx): { action: string; path?: string } {
@@ -711,4 +749,161 @@ export function timeline(d: WrappedData, label = (id: MilestoneId) => MILESTONES
   const items = (d.milestones ?? []).map((m) => ({ label: label(m.id) ?? m.id, date: m.date }));
   if (d.firstTx) items.unshift({ label: first, date: d.firstTx.date });
   return items.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+// ---------- next up: achievements still in reach ----------
+
+/** How many "next up" cards the recap shows. */
+export const NEXT_MAX = 3;
+
+/** The closest first (share of the way there), ties in ACHIEVEMENT_ORDER. */
+export function nextUp(d: WrappedData): Progress[] {
+  const order = (p: Progress) => ACHIEVEMENT_ORDER.indexOf(p.id);
+  return (d.progress ?? [])
+    .filter((p) => p.need > 0 && p.have < p.need)
+    .sort((a, b) => b.have / b.need - a.have / a.need || order(a) - order(b))
+    .slice(0, NEXT_MAX);
+}
+
+const TRY: Record<NonNullable<Progress['missing']>[number], string> = { defi: 'DeFi', collect: 'NFTs', play: 'on-chain games' };
+/** "DeFi", "DeFi and NFTs", "DeFi, NFTs and on-chain games". */
+const andList = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+
+/** What's left for one achievement, in the address's own numbers. */
+export function progressText(p: Progress): string {
+  switch (p.id) {
+    case 'century': return `${fmt(p.have)} of ${fmt(p.need)} transactions. ${fmt(p.need - p.have)} to go.`;
+    case 'streak': return p.have ? `${fmt(p.have)} of ${fmt(p.need)} days in a row so far. Keep the run going.` : `Be active ${fmt(p.need)} days in a row (UTC days).`;
+    case 'triple-threat': return `${p.have} of ${p.need} done. Still to try: ${andList((p.missing ?? []).map((m) => TRY[m]))}.`;
+    case 'citizen': return 'Vote on a GovDAO or GnoSwap governance proposal.';
+  }
+}
+
+// ---------- time of day ----------
+
+/** The clock card needs a few transactions before a time of day means anything. */
+export const CLOCK_MIN_TXS = 5;
+export const hasClock = (d: WrappedData) => (d.hours ?? []).reduce((a, b) => a + b, 0) >= CLOCK_MIN_TXS;
+
+/**
+ * The batch counts by UTC hour, so a zone off UTC by a fraction of an hour (UTC+5:30) is moved by
+ * the nearest whole hour. `offsetMin` is minutes ahead of UTC (UTC+9 → 540).
+ */
+export const tzShift = (offsetMin: number) => Math.round(offsetMin / 60);
+/** "UTC", "UTC+9", "UTC−5", "UTC+5:30". */
+export function tzLabel(offsetMin: number): string {
+  if (!offsetMin) return 'UTC';
+  const a = Math.abs(offsetMin), m = a % 60;
+  return `UTC${offsetMin > 0 ? '+' : '−'}${Math.floor(a / 60)}${m ? `:${String(m).padStart(2, '0')}` : ''}`;
+}
+
+/** UTC hour counts as the hours of a zone `shift` hours ahead of UTC: local[h] = utc[h − shift]. */
+export const localHours = (hours: number[], shift: number) =>
+  Array.from({ length: 24 }, (_, h) => hours[(((h - shift) % 24) + 24) % 24] ?? 0);
+
+/** "09:00" */
+export const hourLabel = (h: number) => `${String(h).padStart(2, '0')}:00`;
+
+export type Chronotype = 'night-owl' | 'early-bird' | 'afternoon' | 'evening';
+/** The day in four quarters, each [first hour, chronotype]. */
+const QUARTERS: [number, Chronotype][] = [[0, 'night-owl'], [6, 'early-bird'], [12, 'afternoon'], [18, 'evening']];
+
+/** The quarter of the (local) day with the most transactions (the earlier on a tie), and its share. */
+export function chronotype(local: number[]): { id: Chronotype; from: number; share: number } | null {
+  const total = local.reduce((a, b) => a + b, 0);
+  if (total < CLOCK_MIN_TXS) return null;
+  let best = QUARTERS[0], most = -1;
+  for (const q of QUARTERS) {
+    const n = local.slice(q[0], q[0] + 6).reduce((a, b) => a + b, 0);
+    if (n > most) [best, most] = [q, n];
+  }
+  return { id: best[1], from: best[0], share: most / total };
+}
+
+export const CHRONOTYPES: Record<Chronotype, string> = { 'night-owl': 'Night Owl', 'early-bird': 'Early Bird', afternoon: 'Afternoon Regular', evening: 'Evening Regular' };
+/** "41% of your transactions landed between 18:00 and 24:00." */
+export const chronotypeLine = (t: { from: number; share: number }) =>
+  `${Math.round(t.share * 100)}% of your transactions landed between ${hourLabel(t.from)} and ${hourLabel(t.from + 6)}.`;
+/** "12 transactions at 22:00–22:59". */
+export const hourText = (h: number, n: number) => `${fmt(n)} ${plural(n, 'transaction', 'transactions')} at ${hourLabel(h)}–${String(h).padStart(2, '0')}:59`;
+
+// ---------- several wallets together ----------
+
+/** At most this many wallets on one combined page. */
+export const WALLETS_MAX = 5;
+
+/** /<season>/wallets/<a>,<b>,…: the address list as it goes in the link. */
+export const walletsHref = (season: string, addresses: string[]) => `/${season}/wallets/${addresses.join(',')}`;
+
+/** Addresses from a link segment or a pasted list (commas, spaces or new lines): lowercase, no repeats; null if any isn't one. */
+export function parseAddresses(input: string): string[] | null {
+  const all = input.toLowerCase().split(/[\s,]+/).filter(Boolean);
+  return all.length && all.every((a) => ADDRESS_RE.test(a)) ? [...new Set(all)] : null;
+}
+
+export interface Wallet { address: string; recap: WrappedData | null } // null: no activity this season
+
+/**
+ * Several wallets as one recap: everything that adds up (transactions, days, hours, swaps, gas,
+ * GnoSwap and governance counts), the earliest arrival, and realms merged by path. Each wallet
+ * reports only its top three realms, so the merged list is of those. Personas, ranks, percentiles
+ * and achievements are decided per address, so they aren't combined: `total` has none, and
+ * `achievements` counts the wallets that have each one. null when no wallet has activity.
+ */
+export function combine(wallets: Wallet[]): { total: WrappedData; achievements: { id: AchievementId; wallets: number }[] } | null {
+  const rs = wallets.flatMap((w) => (w.recap && !isEmpty(w.recap) ? [w.recap] : []));
+  if (!rs.length) return null;
+  const season = rs[0].season;
+  const add = (xs: (number[] | undefined)[], n: number) => Array.from({ length: n }, (_, i) => xs.reduce((s, x) => s + (x?.[i] ?? 0), 0));
+  const sum = (f: (d: WrappedData) => number | undefined) => rs.reduce((s, d) => s + (f(d) ?? 0), 0);
+  const some = <T,>(f: (d: WrappedData) => T | undefined) => rs.some((d) => f(d) !== undefined);
+
+  const daily = add(rs.map((d) => d.calendar?.daily), seasonDays(season));
+  let streak = 0;
+  for (let i = 0, run = 0; i < daily.length; i++) streak = Math.max(streak, (run = daily[i] > 0 ? run + 1 : 0));
+
+  const realms = new Map<string, TopRealm & { best: number }>();
+  for (const r of rs.flatMap((d) => d.topRealms ?? [])) {
+    const m = realms.get(r.path);
+    if (!m) { realms.set(r.path, { ...r, best: r.calls }); continue; }
+    m.calls += r.calls;
+    if (r.calls > m.best) [m.best, m.topFunc] = [r.calls, r.topFunc];
+    if (r.order && (!m.order || r.order < m.order)) m.order = r.order; // the first of your wallets to get there
+    m.callers = Math.max(m.callers ?? 0, r.callers ?? 0) || undefined;
+  }
+  const pairs = new Map<string, { tokens: [string, string]; swaps: number }>();
+  for (const p of rs.flatMap((d) => (d.defi?.topPair ? [d.defi.topPair] : []))) {
+    const k = [...p.tokens].sort().join('/');
+    pairs.set(k, { tokens: p.tokens, swaps: (pairs.get(k)?.swaps ?? 0) + p.swaps });
+  }
+  const first = rs.flatMap((d) => (d.firstTx ? [d.firstTx] : [])).sort((a, b) => a.date.localeCompare(b.date))[0];
+  const deployed = [...new Set(rs.flatMap((d) => d.deployedRealms ?? []))];
+  const nonzero = <T extends object>(o: T) => (Object.values(o).some(Boolean) ? o : undefined);
+
+  const total: WrappedData = {
+    address: '', season, dataAsOf: rs.map((d) => d.dataAsOf).sort().at(-1)!, final: rs.every((d) => d.final) || undefined,
+    firstTx: first && { date: first.date, mainnetDay: first.mainnetDay },
+    txCount: sum((d) => d.txCount), percentile: 0,
+    topRealms: [...realms.values()].sort((a, b) => b.calls - a.calls || a.path.localeCompare(b.path)).slice(0, 3)
+      .map(({ best: _, ...r }) => r), // eslint-disable-line @typescript-eslint/no-unused-vars
+    deployedRealms: deployed,
+    builder: some((d) => d.builder) ? deployed.flatMap((p) => rs.flatMap((d) => d.builder ?? []).filter((r) => r.path === p).slice(0, 1)) : undefined,
+    swaps: { count: sum((d) => d.swaps?.count), weekly: add(rs.map((d) => d.swaps?.weekly), seasonWeeks(season)) },
+    gasFeeGnot: Number(sum((d) => d.gasFeeGnot).toFixed(4)),
+    failedTxs: sum((d) => d.failedTxs) || undefined,
+    calendar: { daily, activeDays: daily.filter((n) => n > 0).length, longestStreak: streak },
+    hours: some((d) => d.hours) ? add(rs.map((d) => d.hours), 24) : undefined,
+    defi: some((d) => d.defi) ? {
+      ...nonzero({ positions: sum((d) => d.defi?.positions), liquidityMoves: sum((d) => d.defi?.liquidityMoves), feesCollected: sum((d) => d.defi?.feesCollected),
+        staked: sum((d) => d.defi?.staked), rewardsClaimed: sum((d) => d.defi?.rewardsClaimed) }),
+      topPair: [...pairs.values()].sort((a, b) => b.swaps - a.swaps)[0],
+    } : undefined,
+    governance: some((d) => d.governance)
+      ? nonzero({ votes: sum((d) => d.governance?.votes), proposals: sum((d) => d.governance?.proposals), delegations: sum((d) => d.governance?.delegations) })
+      : undefined,
+  };
+  const achievements = ACHIEVEMENT_ORDER
+    .map((id) => ({ id, wallets: rs.filter((d) => d.achievements?.some((a) => a.id === id)).length }))
+    .filter((a) => a.wallets > 0);
+  return { total, achievements };
 }

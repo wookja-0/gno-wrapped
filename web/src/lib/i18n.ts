@@ -8,8 +8,8 @@ import {
   ACHIEVEMENTS, activityLead, arrivalSub, arrivalText, builderHeadline, countdownText, dayText, dayTxAction, defiLines, fmt, fmtDate,
   fmtGas, fmtShort, fuelLine, governanceLines, MILESTONES, personaRankText, personaRuleText, personaWhy, plural, RANK_METRIC,
   realmUseText, rankTopPct, SHARE, shareLink, sharePost, successText, summaryRank, topPairText, visitDiff, visitSnapshot, weekRange, weekText,
-  xLength, X_MAX, ACHIEVEMENT_ORDER, MONTHS,
-  type AchievementId, type CalendarCell, type DayTx, type MilestoneId, type PersonaRule, type RankMetric, type RealmReport,
+  xLength, X_MAX, ACHIEVEMENT_ORDER, MONTHS, progressText, realmOrderLine, realmOrderText, CHRONOTYPES, chronotypeLine, hourLabel, hourText,
+  type AchievementId, type CalendarCell, type Chronotype, type Progress, type DayTx, type MilestoneId, type PersonaRule, type RankMetric, type RealmReport,
   type Season, type VisitSnapshot, type WrappedData,
 } from './wrapped';
 
@@ -41,6 +41,19 @@ const en = {
   errNoAdena: 'Adena wallet not found. Install it from adena.app, or paste your address below.',
   errAdenaRead: "Couldn't read an address from Adena. Paste it below instead.", errAdenaCancel: 'Adena connection was cancelled. Try again, or paste your address below.',
 
+  // several wallets
+  walletsTitle: 'Your wallets, together', walletsLabel: 'Wallets',
+  walletsLede: (x: number, s: Season) => `${fmt(x)} wallets in Mainnet Season ${n(s)}, added up. Personas, ranks and achievements are decided for each wallet, so they stay per wallet.`,
+  walletNoActivity: 'No activity this season', removeWallet: (short: string) => `Remove ${short}`,
+  addWallet: 'Add a wallet', add: 'Add',
+  addWalletHint: (max: number) => `Up to ${max} wallets. This page's link lists their addresses, so share it only if you mean to.`,
+  moreWallets: 'More than one wallet?', moreWalletsHint: 'Add another address to see your wallets added up.',
+  errWalletDup: 'That wallet is already here.', errWalletsMax: (max: number) => `Up to ${max} wallets at a time.`,
+  introSeveral: 'Several wallets? Paste their addresses separated by commas.',
+  statActiveDays: 'Active days', statStreak: 'Longest streak', statDays: (x: number) => `${fmt(x)} ${plural(x, 'day', 'days')}`,
+  combinedRealms: 'Most-called realms across your wallets', combinedAchievements: 'Achievements, by wallet',
+  achievementWallets: (x: number, of: number) => `${fmt(x)} of ${fmt(of)} wallets`,
+
   // status screens
   loading: 'Counting your blocks…', loadingShort: 'Loading…',
   emptyTitle: 'Your story starts next season.', emptyTx: (label: string) => `${label} transactions`,
@@ -68,6 +81,7 @@ const en = {
   achievementsTitle: 'Achievements', allAchievements: 'All achievements ↗',
   achievement: (id: AchievementId) => ACHIEVEMENTS[id],
   milestone: (id: MilestoneId) => MILESTONES[id], firstTransaction: 'First transaction', timelineLabel: 'Season timeline',
+  nextUpTitle: 'Next up', nextUpLede: 'Still in reach before the season ends.', progressText: (p: Progress) => progressText(p),
   arrivedOn: (date: string, shared: boolean) => `${shared ? 'They' : 'You'} arrived on ${fmtDate(date)}`,
   day: 'DAY', arrivalSub, arrivalText, viewFirstTx: 'View your first transaction',
 
@@ -92,10 +106,19 @@ const en = {
   dayLoadFailed: "Couldn't load this day.", tryAgain: 'Try again', dayTxAction,
   moreMessages: (x: number) => `+${x} more ${plural(x, 'message', 'messages')}`, gnoscan: 'Gnoscan',
   txAt: (time: string) => `Transaction at ${time} on Gnoscan`, moreThatDay: (x: number) => `+${fmt(x)} more that day on Gnoscan`,
+  moreThatDayFrom: (x: number, short: string) => `+${fmt(x)} more from ${short} that day on Gnoscan`, fromWallet: (short: string) => `From ${short}`,
   timesUtc: 'Times are UTC.', pages: 'Pages', range: (a: number, b: number, of: number) => `${fmt(a)}–${fmt(b)} of ${fmt(of)}`,
   prevPage: 'Previous page', nextPage: 'Next page', page: (x: number) => `Page ${x}`,
 
+  // time of day
+  clockKicker: 'Your day on gno.land', chronotype: (id: Chronotype) => CHRONOTYPES[id],
+  chronotypeLine: (t: { from: number; share: number }) => chronotypeLine(t),
+  perHour: 'Transactions by hour of day', colHour: 'Hour', hourText, hourLabel, hintHour: 'Hover, or use the arrow keys',
+  busiestHour: (h: number) => ['Busiest hour: ', hourLabel(h)] as const,
+  clockTz: (tz: string, rounded: boolean) => `Hours in your time zone (${tz})${rounded ? ', to the nearest hour' : ''}.`,
+
   // realms, DeFi, fuel, builder, governance
+  realmOrderText, realmOrderLine, callersNote: 'Callers in order of their first call; the realm\'s deployer and bots aren\'t counted.',
   mostCalledRealm: 'Your most-called realm', callPlural: (x: number) => plural(x, 'call', 'calls'),
   callsCount: (x: number) => `${fmt(x)} ${plural(x, 'call', 'calls')}`,
   madeThisSeason: 'This season you made', swapPlural: (x: number) => plural(x, 'swap on GnoSwap', 'swaps on GnoSwap'),
@@ -170,6 +193,7 @@ const en = {
     moreActive: (pct: number) => ['More active than ', `${pct}%`, ' of addresses.'] as const,
     showedUp: (shared: boolean) => `${shared ? 'They' : 'You'} showed up on`, dayPlural: (x: number) => plural(x, 'day', 'days'),
     streak: (x: number) => ['Longest streak: ', `${fmt(x)} ${plural(x, 'day', 'days')}`, ' in a row.'] as const,
+    byTheClock: "By the clock, you're", clockSub: (h: number, tz: string) => `Busiest hour: ${hourLabel(h)} (${tz})`,
     topRealm: (shared: boolean) => `${shared ? 'Their' : 'Your'} most-called realm`,
     callsMostly: (x: number, fn: string) => `${plural(x, 'call', 'calls')}, mostly ${fn}`,
     onGnoSwap: (shared: boolean) => `On GnoSwap ${shared ? 'they' : 'you'} made`, swapPlural: (x: number) => plural(x, 'swap', 'swaps'),
@@ -236,6 +260,8 @@ const KO_ACH: Record<AchievementId, { title: string; rule: string; text: (v?: nu
   'validators-friend': { title: '밸리데이터의 친구', rule: '낸 가스 총액이 상위 10%예요.', text: () => '가스 총액 상위 10%. 밸리데이터가 고마워해요.' },
   century: { title: '센추리', rule: '이번 시즌 트랜잭션 100회 이상.', text: (v) => `이번 시즌 트랜잭션 ${fmt(v ?? 100)}회.` },
 };
+const KO_TRY: Record<NonNullable<Progress['missing']>[number], string> = { defi: '디파이', collect: 'NFT', play: '온체인 게임' };
+const KO_CHRONO: Record<Chronotype, string> = { 'night-owl': '올빼미형', 'early-bird': '아침형', afternoon: '오후형', evening: '저녁형' };
 const KO_MILESTONE: Record<MilestoneId, string> = { 'first-swap': 'GnoSwap 첫 스왑', 'first-collect': '첫 NFT 민팅·구매', 'first-deploy': '첫 렐름 배포', 'tx-100': '100번째 트랜잭션' };
 
 function koSharePost(d: WrappedData): string {
@@ -276,6 +302,18 @@ const ko: Copy = {
   errEmpty: '먼저 g1… 주소를 붙여넣어 주세요.', errInvalid: 'gno.land 주소가 아닌 것 같아요. g1으로 시작하는 40자 주소예요.',
   errNoAdena: 'Adena 지갑을 찾지 못했어요. adena.app에서 설치하거나 아래에 주소를 붙여넣어 주세요.',
   errAdenaRead: 'Adena에서 주소를 읽지 못했어요. 아래에 직접 붙여넣어 주세요.', errAdenaCancel: 'Adena 연결이 취소됐어요. 다시 시도하거나 아래에 주소를 붙여넣어 주세요.',
+
+  walletsTitle: '내 지갑 모아보기', walletsLabel: '지갑',
+  walletsLede: (x, s) => `메인넷 시즌 ${n(s)}의 지갑 ${fmt(x)}개를 합쳤어요. 페르소나·순위·업적은 지갑마다 따로 정해져서 지갑별로 보여줘요.`,
+  walletNoActivity: '이번 시즌 활동 없음', removeWallet: (short) => `${short} 빼기`,
+  addWallet: '지갑 추가', add: '추가',
+  addWalletHint: (max) => `최대 ${max}개까지. 이 페이지 링크에는 주소들이 들어 있으니 공유할 때 주의하세요.`,
+  moreWallets: '지갑이 여러 개인가요?', moreWalletsHint: '다른 주소를 추가하면 지갑들을 합쳐서 볼 수 있어요.',
+  errWalletDup: '이미 추가한 지갑이에요.', errWalletsMax: (max) => `한 번에 최대 ${max}개까지예요.`,
+  introSeveral: '지갑이 여러 개라면 주소를 쉼표로 구분해 붙여넣으세요.',
+  statActiveDays: '활동일', statStreak: '최장 연속', statDays: (x) => `${fmt(x)}일`,
+  combinedRealms: '지갑 전체에서 가장 많이 호출한 렐름', combinedAchievements: '지갑별 업적',
+  achievementWallets: (x, of) => `지갑 ${fmt(of)}개 중 ${fmt(x)}개`,
 
   loading: '블록을 세고 있어요…', loadingShort: '불러오는 중…',
   emptyTitle: '이야기는 다음 시즌에 시작돼요.', emptyTx: (label) => `${label} 트랜잭션`,
@@ -322,6 +360,15 @@ const ko: Copy = {
 
   achievementsTitle: '업적', allAchievements: '전체 업적 ↗', achievement: (id) => KO_ACH[id],
   milestone: (id) => KO_MILESTONE[id], firstTransaction: '첫 트랜잭션', timelineLabel: '시즌 타임라인',
+  nextUpTitle: '다음 업적', nextUpLede: '시즌이 끝나기 전에 아직 얻을 수 있어요.',
+  progressText: (p) => {
+    switch (p.id) {
+      case 'century': return `트랜잭션 ${fmt(p.have)}/${fmt(p.need)}회. ${fmt(p.need - p.have)}회 남았어요.`;
+      case 'streak': return p.have ? `지금까지 ${fmt(p.have)}일 연속. ${fmt(p.need)}일까지 이어가 보세요.` : `${fmt(p.need)}일 연속으로 활동해 보세요(UTC 기준).`;
+      case 'triple-threat': return `${p.have}/${p.need} 완료. 남은 것: ${(p.missing ?? []).map((m) => KO_TRY[m]).join(', ')}.`;
+      case 'citizen': return 'GovDAO나 GnoSwap 거버넌스 제안에 투표해 보세요.';
+    }
+  },
   arrivedOn: (date) => `${koDate(date)}에 도착`, day: 'DAY',
   arrivalSub: (day) => (day === 1 ? '처음부터 함께였어요.' : '메인넷 일차'),
   arrivalText: (d) => (d.arrival?.order ? `메인넷 도착 순서 ${fmt(d.arrival.of)}명 중 ${fmt(d.arrival.order)}번째` : d.arrival?.tier ? `메인넷 첫 ${fmt(d.arrival.tier)}명 안` : null),
@@ -343,9 +390,20 @@ const ko: Copy = {
   closeDay: '닫기', dayLoadFailed: '이 날을 불러오지 못했어요.', tryAgain: '다시 시도',
   dayTxAction: (t: DayTx) => (t.kind === 'send' ? { action: 'GNOT 전송' } : t.kind === 'deploy' ? { action: '배포', path: t.path } : t.kind === 'run' ? { action: '스크립트 실행' } : t.kind === 'other' ? { action: '트랜잭션' } : dayTxAction(t)),
   moreMessages: (x) => `메시지 ${x}개 더`, txAt: (time) => `${time} 트랜잭션을 Gnoscan에서 보기`,
-  moreThatDay: (x) => `이날 ${fmt(x)}건 더, Gnoscan에서 보기`, timesUtc: '시각은 UTC 기준이에요.', pages: '페이지',
+  moreThatDay: (x) => `이날 ${fmt(x)}건 더, Gnoscan에서 보기`,
+  moreThatDayFrom: (x, short) => `${short}의 이날 ${fmt(x)}건 더, Gnoscan에서 보기`, fromWallet: (short) => `${short}에서 보냄`, timesUtc: '시각은 UTC 기준이에요.', pages: '페이지',
   range: (a, b, of) => `${fmt(of)}건 중 ${fmt(a)}–${fmt(b)}`, prevPage: '이전 페이지', nextPage: '다음 페이지', page: (x) => `${x}페이지`,
 
+  clockKicker: '하루 중 나의 gno.land 시간', chronotype: (id) => KO_CHRONO[id],
+  chronotypeLine: (t) => `트랜잭션의 ${Math.round(t.share * 100)}%가 ${hourLabel(t.from)}–${hourLabel(t.from + 6)} 사이에 있었어요.`,
+  perHour: '시간대별 트랜잭션', colHour: '시각', hintHour: '마우스를 올리거나 방향키로 보세요',
+  hourText: (h, x) => `${hourLabel(h)}–${String(h).padStart(2, '0')}:59 트랜잭션 ${fmt(x)}건`,
+  busiestHour: (h) => ['가장 바빴던 시간: ', hourLabel(h)] as const,
+  clockTz: (tz, rounded) => `내 시간대(${tz}) 기준${rounded ? ', 시 단위로 맞췄어요' : '이에요'}.`,
+
+  realmOrderText: (r) => (r.callers ? (r.order ? `호출자 ${fmt(r.callers)}명 중 ${fmt(r.order)}번째` : `호출자 ${fmt(r.callers)}명`) : null),
+  realmOrderLine: (r) => (r.order && r.callers ? (r.order === 1 ? '이 렐름을 가장 먼저 호출한 주소예요.' : `이 렐름을 호출한 주소 ${fmt(r.callers)}개 중 ${fmt(r.order)}번째였어요.`) : null),
+  callersNote: '첫 호출 순서 기준이고, 렐름 배포자와 봇은 세지 않아요.',
   mostCalledRealm: '가장 많이 호출한 렐름', callPlural: () => '회 호출', callsCount: (x) => `${fmt(x)}회 호출`,
   madeThisSeason: '이번 시즌 GnoSwap 스왑', swapPlural: () => '회', weeklySwaps: '주별 스왑', busiestWeek: '가장 바빴던 주: ',
   swapsShort: (x) => `스왑 ${x}회`, weeklySwapsLabel: (w, r, x) => `${w}주 동안의 주별 스왑. 가장 바빴던 주는 ${r}, 스왑 ${x}회.`,
@@ -446,6 +504,7 @@ const ko: Copy = {
     sent: () => '이번 시즌 보낸 트랜잭션', moreActive: (p) => ['주소의 ', `${p}%`, '보다 활발해요.'] as const,
     showedUp: () => '활동한 날', dayPlural: () => '일',
     streak: (x) => ['최장 연속 ', `${fmt(x)}일`, '.'] as const,
+    byTheClock: '시계로 보면 나는', clockSub: (h, tz) => `가장 바빴던 시간: ${hourLabel(h)} (${tz})`,
     topRealm: () => '가장 많이 호출한 렐름', callsMostly: (_, fn) => `회 호출, 주로 ${fn}`,
     onGnoSwap: () => 'GnoSwap에서 한 스왑', swapPlural: () => '회',
     deployed: () => '배포한 렐름', builderLine: (d) => ko.builderHeadline(d),

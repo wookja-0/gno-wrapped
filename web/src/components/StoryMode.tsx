@@ -6,6 +6,7 @@ import { achievementIcon } from '@/lib/art';
 import { personaIn } from '@/lib/i18n';
 import { ACHIEVEMENT_ORDER, CAL_COLORS, fmt, storyIds, TIMING, weekLevel, xIntentUrl, type StoryId, type WrappedData } from '@/lib/wrapped';
 import { XIcon } from './BrandIcons';
+import { useClock } from './HourlyChart';
 import { PersonaBadge, Pill, Pixel, Wordmark } from './pixel';
 import { useCopy } from './useLocale';
 import { PathText } from './web';
@@ -122,6 +123,7 @@ function Slide({ id, data: d }: { id: StoryId; data: WrappedData }) {
   const c = useCopy();
   const s = c.story, sh = !!d.shared;
   const persona = personaIn(c, d.persona)!;
+  const clock = useClock(d);
   const slides: Record<StoryId, () => ReactNode> = {
     intro: () => (
       <>
@@ -155,6 +157,15 @@ function Slide({ id, data: d }: { id: StoryId; data: WrappedData }) {
         <WeekBars d={d} />
       </>
     ),
+    clock: () => (
+      <>
+        <Pill>CLOCK</Pill>
+        <p className="gw-story-kicker">{s.byTheClock}</p>
+        <h2 className="gw-story-persona">{clock.type && c.chronotype(clock.type.id)}</h2>
+        {clock.type && <p className="gw-story-line">{c.chronotypeLine(clock.type)}</p>}
+        <p className="gw-story-sub">{s.clockSub(clock.peak, clock.tz)}</p>
+      </>
+    ),
     realm: () => {
       const top = d.topRealms[0];
       return (
@@ -163,6 +174,7 @@ function Slide({ id, data: d }: { id: StoryId; data: WrappedData }) {
           <p className="gw-story-kicker">{s.topRealm(sh)}</p>
           <PathText path={top.path} max={30} narrowMax={24} className="gw-story-path" />
           <Big value={fmt(top.calls)} label={s.callsMostly(top.calls, top.topFunc)} />
+          {c.realmOrderLine(top) && <p className="gw-story-line">{c.realmOrderLine(top)}</p>}
         </>
       );
     },

@@ -22,6 +22,16 @@ type achievement struct {
 	Realms []string `json:"realms,omitempty"` // pioneer: up to 3, most-used first (owner view only, see redact)
 }
 
+// progress: an achievement the address doesn't have yet but can still earn this season, with how
+// far along it is. Only the ones that depend on the address alone: Early Arrival and Realm Pioneer
+// are decided by when others came, Gas Saver and Validators' Friend by everyone's gas.
+type progress struct {
+	ID      string   `json:"id"` // century | streak | triple-threat | citizen
+	Have    int      `json:"have"`
+	Need    int      `json:"need"`
+	Missing []string `json:"missing,omitempty"` // triple-threat: which of defi | collect | play are still to try
+}
+
 type milestone struct {
 	ID   string `json:"id"` // first-swap | first-collect | first-deploy | tx-100
 	Date string `json:"date"`
@@ -50,7 +60,7 @@ type extras struct {
 	milestones   map[string][]milestone
 }
 
-func (d *dataset) extras() extras {
+func (d *dataset) extras(callers map[string][]string) extras {
 	x := extras{arrival: map[string]arrival{}, achievements: map[string][]achievement{}, milestones: map[string][]milestone{}}
 
 	// arrival order: by (height, index) of the first tx
@@ -85,7 +95,7 @@ func (d *dataset) extras() extras {
 		}
 	}
 	lowPerTx, highTotal := quantile(perTx, gasLowPct), quantile(totals, gasHighPct)
-	pioneers := d.pioneers()
+	pioneers := pioneers(callers)
 
 	for addr, a := range d.accs {
 		var got []achievement
@@ -126,15 +136,10 @@ func (d *dataset) extras() extras {
 	return x
 }
 
-// pioneers maps each Realm Pioneer to the realms they pioneered, the most-called (by distinct
-// addresses) first.
-func (d *dataset) pioneers() map[string][]string {
-	type realm struct {
-		path    string
-		callers int
-		first   []string
-	}
-	var realms []realm
+// callers lists each realm's callers in the order of their first call, leaving out its deployer
+// and bots (Realm Pioneer's slots and the order shown on Top Realms both count only these).
+func (d *dataset) callers() map[string][]string {
+	out := make(map[string][]string, len(d.firstCall))
 	for path, calls := range d.firstCall {
 		var who []string
 		for addr := range calls {
@@ -142,13 +147,28 @@ func (d *dataset) pioneers() map[string][]string {
 				who = append(who, addr)
 			}
 		}
-		if len(who) < pioneerMinCallers {
-			continue
-		}
 		sort.Slice(who, func(i, j int) bool {
 			a, b := calls[who[i]], calls[who[j]]
 			return a[0] < b[0] || (a[0] == b[0] && a[1] < b[1])
 		})
+		out[path] = who
+	}
+	return out
+}
+
+// pioneers maps each Realm Pioneer to the realms they pioneered, the most-called (by distinct
+// addresses) first.
+func pioneers(callers map[string][]string) map[string][]string {
+	type realm struct {
+		path    string
+		callers int
+		first   []string
+	}
+	var realms []realm
+	for path, who := range callers {
+		if len(who) < pioneerMinCallers {
+			continue
+		}
 		realms = append(realms, realm{path, len(who), who[:pioneerSlots]})
 	}
 	sort.Slice(realms, func(i, j int) bool {
@@ -164,6 +184,53 @@ func (d *dataset) pioneers() map[string][]string {
 		}
 	}
 	return out
+}
+
+// progressFor lists the reachable achievements the address hasn't earned (see progress).
+// Streak counts the current run: the one that reaches the chain tip's day or the day before, since
+// today can still be active.
+func (d *dataset) progressFor(a *acc, earned []achievement) []progress {
+	has := map[string]bool{}
+	for _, e := range earned {
+		has[e.ID] = true
+	}
+	var out []progress
+	if !has["century"] {
+		out = append(out, progress{ID: "century", Have: a.txs, Need: centuryMin})
+	}
+	if !has["streak"] {
+		today := int(d.st.TipTime.Sub(d.start).Hours() / 24)
+		out = append(out, progress{ID: "streak", Have: currentStreak(a.days, today), Need: streakMin})
+	}
+	if !has["triple-threat"] {
+		p := progress{ID: "triple-threat", Need: 3}
+		for _, c := range []string{"defi", "collect", "play"} {
+			if a.cats[c] > 0 {
+				p.Have++
+			} else {
+				p.Missing = append(p.Missing, c)
+			}
+		}
+		out = append(out, p)
+	}
+	if !has["citizen"] {
+		out = append(out, progress{ID: "citizen", Need: 1})
+	}
+	return out
+}
+
+// currentStreak: the run of consecutive active days ending on today or, if today has no activity
+// yet, on yesterday; 0 when neither was active.
+func currentStreak(days map[int]bool, today int) int {
+	end := today
+	if !days[end] {
+		end--
+	}
+	n := 0
+	for days[end-n] {
+		n++
+	}
+	return n
 }
 
 // longestStreak: the longest run of consecutive day numbers.

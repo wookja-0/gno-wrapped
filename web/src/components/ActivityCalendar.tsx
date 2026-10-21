@@ -1,7 +1,7 @@
 'use client';
 
 import { useId, useState, type KeyboardEvent, type PointerEvent } from 'react';
-import { CAL_COLORS, calendarDays, calendarMonths, calendarWeeks, fmt, type WrappedData } from '@/lib/wrapped';
+import { CAL_COLORS, calendarDays, calendarMonths, calendarWeeks, fmt, type DayWallet, type WrappedData } from '@/lib/wrapped';
 import { DataTable, ViewSwitch, type View } from './ChartTable';
 import { DayList } from './DayList';
 import { useCopy } from './useLocale';
@@ -11,12 +11,14 @@ import { useCopy } from './useLocale';
  * Share view: one cell per week by active days — the batch never sends a shared recap the daily
  * series. Hover, or focus the grid and use the arrow keys, to read a cell; Table swaps the grid for
  * the same values as a table, in the same box. On the owner's grid, clicking a day with transactions
- * (or Enter on it) lists them below, linked to Gnoscan.
+ * (or Enter on it) lists them below, linked to Gnoscan. `wallets` (several wallets added up) lists
+ * every wallet's transactions that day; by default it's the recap's own address.
  */
-export function ActivityCalendar({ data }: { data: WrappedData }) {
+export function ActivityCalendar({ data, wallets }: { data: WrappedData; wallets?: DayWallet[] }) {
   const c = useCopy();
   const cal = data.calendar!;
   const daily = !!cal.daily;
+  const owners = wallets ?? (data.address && cal.daily ? [{ address: data.address, daily: cal.daily }] : []);
   const cells = daily ? calendarDays(data) : calendarWeeks(data);
   const months = daily ? calendarMonths(data, c.month) : [];
   const [active, setActive] = useState<number | null>(null);
@@ -27,7 +29,7 @@ export function ActivityCalendar({ data }: { data: WrappedData }) {
 
   const text = (i: number) => (daily ? c.dayText(cells[i]) : c.weekText(cells[i], data.season.start, i));
   const lastPast = cells.findLastIndex((x) => !x.future);
-  const canOpen = (i: number | null): i is number => i !== null && daily && !!data.address && !cells[i].future && cells[i].count > 0;
+  const canOpen = (i: number | null): i is number => i !== null && daily && owners.length > 0 && !cells[i].future && cells[i].count > 0;
   const toggle = (i: number | null) => { if (canOpen(i)) setOpen((o) => (o === i ? null : i)); };
   const step = (e: KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(active ?? lastPast); return; } // like the arrows: from the last day
@@ -120,7 +122,14 @@ export function ActivityCalendar({ data }: { data: WrappedData }) {
       </div>
     </div>
     {open !== null && (
-      <DayList key={cells[open].date} data={data} date={cells[open].date} count={cells[open].count} onClose={() => setOpen(null)} />
+      <DayList
+        key={cells[open].date}
+        season={data.season.id}
+        date={cells[open].date}
+        count={cells[open].count}
+        wallets={owners.map((w) => ({ address: w.address, count: w.daily[open] ?? 0 }))}
+        onClose={() => setOpen(null)}
+      />
     )}
     </>
   );

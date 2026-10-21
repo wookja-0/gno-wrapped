@@ -88,6 +88,7 @@ type acc struct {
 	firstPos  [2]int               // (height, index) of the first tx, for arrival order
 	days      map[int]bool         // UTC days (since season start) with activity, for streaks
 	daily     []int                // txs per UTC day of the season, for the calendar
+	hours     [24]int              // txs per UTC hour of the day, for the clock card
 	dayTxs    map[int][]dayTx      // the first dayTxCap txs of each active day, for the calendar's day list
 	moments   map[string]time.Time // first swap / collect / deploy, 100th tx (see milestones)
 	gasUgnot  int64
@@ -113,6 +114,8 @@ type realmStat struct {
 	Path    string `json:"path"`
 	TopFunc string `json:"topFunc"`
 	Calls   int    `json:"calls"`
+	Order   int    `json:"order,omitempty"`   // the address's place among the realm's callers by first call, 1 = first (owner view only; none for its deployer and bots)
+	Callers int    `json:"callers,omitempty"` // addresses that have called the realm, its deployer and bots not counted
 }
 
 type wrapped struct {
@@ -140,6 +143,8 @@ type wrapped struct {
 	Arrival        arrival       `json:"arrival"`
 	Achievements   []achievement `json:"achievements"`
 	Milestones     []milestone   `json:"milestones"`
+	Progress       []progress    `json:"progress,omitempty"` // achievements still in reach while the season is live (owner view only)
+	Hours          []int         `json:"hours,omitempty"`    // txs per UTC hour, [0] = 00:00–00:59 (owner view only; the web shows the viewer's time zone)
 }
 
 // calendar: activity by day. The owner gets txs per UTC day; a share link only gets active days per
@@ -264,6 +269,7 @@ func (d *dataset) add(t *rawTx, at time.Time) {
 	day := int(at.Sub(d.start).Hours() / 24)
 	a.days[day] = true
 	a.daily[day]++
+	a.hours[at.UTC().Hour()]++
 	if len(a.dayTxs[day]) < dayTxCap {
 		a.dayTxs[day] = append(a.dayTxs[day], summarize(t, at))
 	}
@@ -551,7 +557,15 @@ func (d *dataset) render(ids *shareIDs, updatedAt time.Time) (map[string][]byte,
 		chosen[addr], personaOf[addr] = p, p.ID
 	}
 	ranks := personaRanks(d.accs, personaOf)
-	ex := d.extras()
+	callers := d.callers()
+	order := make(map[string]map[string]int, len(callers)) // realm → caller → place, 1 = first
+	for path, who := range callers {
+		order[path] = make(map[string]int, len(who))
+		for i, addr := range who {
+			order[path][addr] = i + 1
+		}
+	}
+	ex := d.extras(callers)
 	reports := d.realmReports()
 	achCounts := map[string]int{}
 
@@ -584,6 +598,14 @@ func (d *dataset) render(ids *shareIDs, updatedAt time.Time) (map[string][]byte,
 			Arrival:        ex.arrival[addr],
 			Achievements:   orEmpty(ex.achievements[addr]),
 			Milestones:     orEmpty(ex.milestones[addr]),
+			Hours:          a.hours[:],
+		}
+		if !final {
+			w.Progress = d.progressFor(a, w.Achievements)
+		}
+		for i := range w.TopRealms {
+			r := &w.TopRealms[i]
+			r.Order, r.Callers = order[r.Path][addr], len(callers[r.Path])
 		}
 		if err := validate(w, d.weeks, d.days); err != nil {
 			return nil, fmt.Errorf("%s: %w", addr, err)
@@ -735,6 +757,8 @@ func validate(w wrapped, weeks, days int) error {
 		return fmt.Errorf("swaps.weekly has %d entries, season has %d weeks", len(w.Swaps.Weekly), weeks)
 	case len(w.Calendar.Daily) != days:
 		return fmt.Errorf("calendar.daily has %d entries, season has %d days", len(w.Calendar.Daily), days)
+	case w.Hours != nil && len(w.Hours) != 24:
+		return fmt.Errorf("hours has %d entries, want 24", len(w.Hours))
 	case w.TxCount < 1 || w.FirstTx.MainnetDay < 1:
 		return fmt.Errorf("txCount/firstTx out of range")
 	case w.Percentile < 0 || w.Percentile > 99:
