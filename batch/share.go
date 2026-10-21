@@ -124,5 +124,13 @@ func redact(w wrapped) wrapped {
 		deployed[i] = mask(p)
 	}
 	w.DeployedRealms = deployed
+	if w.Builder != nil {
+		builder := make([]realmReport, len(w.Builder))
+		for i, r := range w.Builder {
+			r.Path = mask(r.Path)
+			builder[i] = r
+		}
+		w.Builder = builder
+	}
 	return w
 }

@@ -46,6 +46,10 @@ type rawTx struct {
 			Typename string `json:"__typename"`
 			Type     string `json:"type"`
 			PkgPath  string `json:"pkg_path"`
+			Attrs    []struct {
+				Key   string `json:"key"`
+				Value string `json:"value"`
+			} `json:"attrs"`
 		} `json:"events"`
 	} `json:"response"`
 }
@@ -89,6 +93,9 @@ type acc struct {
 	gasUgnot  int64
 	swaps     int
 	weekly    []int
+	defi      defiStats                 // GnoSwap beyond swaps (activity.go)
+	pairs     map[[2]string]int         // token pair → swaps, for defi.TopPair
+	gov       govStats                  // governance votes, proposals, GNS delegations
 	calls     map[string]map[string]int // pkg_path → func → count
 	deployed  []string
 	lastAt    time.Time
@@ -122,6 +129,10 @@ type wrapped struct {
 	RealmCount     int           `json:"realmCount"` // distinct realms called
 	DeployedRealms []string      `json:"deployedRealms"`
 	Swaps          swaps         `json:"swaps"`
+	DeFi           *defiStats    `json:"defi,omitempty"`       // GnoSwap beyond swaps
+	Governance     *govStats     `json:"governance,omitempty"` // votes, proposals, GNS delegations
+	Builder        []realmReport `json:"builder,omitempty"`    // deployedRealms with their use, most-called first
+	FailedTxs      int           `json:"failedTxs,omitempty"`  // failed txs this season (txCount counts successful ones)
 	GasFeeGnot     float64       `json:"gasFeeGnot"`
 	Persona        persona       `json:"persona"`
 	PersonaRank    *personaRank  `json:"personaRank,omitempty"` // within the persona; none for First Steps and bots
@@ -169,6 +180,7 @@ type dataset struct {
 	days      int                          // season length in days
 	firstCall map[string]map[string][2]int // realm → caller → (height, index) of their first call, for Realm Pioneer
 	deployer  map[string]string            // realm → the address that deployed it
+	failed    map[string]int               // address → failed in-season txs (recaps count only successful ones)
 	totalTxs  int                          // successful in-season txs with an actor (what recaps count)
 	rawTxs    int                          // every cached tx, failed ones included: matches the chain's total_txs
 }
@@ -190,7 +202,7 @@ func loadDataset(c config) (*dataset, error) {
 		return nil, fmt.Errorf("season.end: %w", err)
 	}
 	end = end.AddDate(0, 0, 1)
-	d := &dataset{accs: map[string]*acc{}, firstCall: map[string]map[string][2]int{}, deployer: map[string]string{}, st: st, start: start, end: end,
+	d := &dataset{accs: map[string]*acc{}, failed: map[string]int{}, firstCall: map[string]map[string][2]int{}, deployer: map[string]string{}, st: st, start: start, end: end,
 		weeks: int(math.Ceil(end.Sub(start).Hours() / 24 / 7)), days: int(end.Sub(start).Hours() / 24)}
 
 	if err := readChunks(c, d.applyChunk); err != nil {
@@ -216,7 +228,16 @@ func (d *dataset) applyChunk(ch chunk) error {
 		if !ok {
 			return fmt.Errorf("no block time for height %d", t.BlockHeight)
 		}
-		if !t.Success || at.Before(d.start) || !at.Before(d.end) {
+		if at.Before(d.start) || !at.Before(d.end) {
+			continue
+		}
+		if !t.Success {
+			if who := t.actor(); who != "" {
+				if d.failed == nil {
+					d.failed = map[string]int{}
+				}
+				d.failed[who]++
+			}
 			continue
 		}
 		d.add(&t, at)
@@ -249,6 +270,20 @@ func (d *dataset) add(t *rawTx, at time.Time) {
 	if a.txs == 100 {
 		a.moment("tx-100", at)
 	}
+	for _, e := range t.Response.Events {
+		if e.Typename == "GnoEvent" && strings.HasPrefix(e.PkgPath, "gno.land/r/gnoswap/router") && (e.Type == "ExactInSwap" || e.Type == "ExactOutSwap") {
+			var in, out string
+			for _, kv := range e.Attrs {
+				switch kv.Key {
+				case "input":
+					in = kv.Value
+				case "output":
+					out = kv.Value
+				}
+			}
+			a.trackSwapPair(in, out)
+		}
+	}
 	if t.isSwap() {
 		a.swaps++
 		a.weekly[int(at.Sub(d.start).Hours()/24/7)]++
@@ -273,6 +308,7 @@ func (d *dataset) add(t *rawTx, at time.Time) {
 				a.calls[v.PkgPath] = map[string]int{}
 			}
 			a.calls[v.PkgPath][v.Func]++
+			a.track(v.PkgPath, v.Func)
 			if d.firstCall[v.PkgPath] == nil {
 				d.firstCall[v.PkgPath] = map[string][2]int{}
 			}
@@ -516,6 +552,7 @@ func (d *dataset) render(ids *shareIDs, updatedAt time.Time) (map[string][]byte,
 	}
 	ranks := personaRanks(d.accs, personaOf)
 	ex := d.extras()
+	reports := d.realmReports()
 	achCounts := map[string]int{}
 
 	shards := map[string]map[string]wrapped{}
@@ -536,6 +573,10 @@ func (d *dataset) render(ids *shareIDs, updatedAt time.Time) (map[string][]byte,
 			RealmCount:     len(a.calls),
 			DeployedRealms: append([]string{}, a.deployed...),
 			Swaps:          swaps{Count: a.swaps, Weekly: a.weekly},
+			DeFi:           a.defiFor(),
+			Governance:     govOrNil(a.gov),
+			Builder:        builderReport(a.deployed, reports),
+			FailedTxs:      d.failed[addr],
 			GasFeeGnot:     roundGnot(a.gasUgnot),
 			Persona:        chosen[addr],
 			PersonaRank:    ranks[addr],

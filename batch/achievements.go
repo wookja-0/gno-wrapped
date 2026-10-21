@@ -18,7 +18,7 @@ type arrival struct {
 
 type achievement struct {
 	ID     string   `json:"id"`
-	Value  float64  `json:"value,omitempty"`  // early: tier; streak: days; century: txs; pioneer: realms
+	Value  float64  `json:"value,omitempty"`  // early: tier; streak: days; century: txs; pioneer: realms; citizen: votes + proposals
 	Realms []string `json:"realms,omitempty"` // pioneer: up to 3, most-used first (owner view only, see redact)
 }
 
@@ -106,6 +106,9 @@ func (d *dataset) extras() extras {
 		}
 		if a.txs >= centuryMin {
 			got = append(got, achievement{ID: "century", Value: float64(a.txs)})
+		}
+		if a.gov.Votes+a.gov.Proposals > 0 {
+			got = append(got, achievement{ID: "citizen", Value: float64(a.gov.Votes + a.gov.Proposals)})
 		}
 		if realms := pioneers[addr]; len(realms) > 0 {
 			got = append(got, achievement{ID: "pioneer", Value: float64(len(realms)), Realms: realms[:min(pioneerShown, len(realms))]})
