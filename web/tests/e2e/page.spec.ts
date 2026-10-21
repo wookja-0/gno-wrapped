@@ -271,6 +271,43 @@ test.describe('since your last visit', () => {
   });
 });
 
+test.describe('compare two recaps', () => {
+  test('from your recap: paste a friend\'s link, see both side by side, no address', async ({ page }) => {
+    await open(page, `/s1/${ADDR}?fixture=full`);
+    const form = page.getByRole('region', { name: 'Share your Wrapped' });
+    const input = form.getByLabel('Compare with a friend: paste their share link');
+    await input.fill('not a link');
+    await form.getByRole('button', { name: 'Compare' }).click();
+    await expect(form.getByRole('alert')).toContainText('share link');
+    await input.fill('https://wrapped.example/s1/s/fxwhale00000');
+    await form.getByRole('button', { name: 'Compare' }).click();
+    await page.waitForURL('**/s1/compare/fxfull000000/fxwhale00000');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Two recaps, side by side');
+    await expect(page.locator('.gw-compare-persona')).toHaveText(['Realm Hopper', 'DeFi Pilot']);
+    const txs = page.getByRole('row', { name: /^Transactions/ });
+    await expect(txs).toContainText('1,284');
+    await expect(txs.locator('.gw-compare-ahead')).toContainText('48,210');
+    await page.reload(); // a fresh load: a client-side navigation keeps the owner page's data in the document
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Two recaps, side by side');
+    const html = await page.content();
+    for (const leak of [ADDR, ADDR.slice(0, 6), 'txhash=', 'gnoscan.io/account']) expect(html, leak).not.toContain(leak);
+  });
+
+  test('from a shared recap: paste yours, yours goes on the left', async ({ page }) => {
+    await open(page, '/s1/s/fxwhale00000?fixture=whale');
+    const cta = page.getByRole('region', { name: 'Get your own Gno Wrapped' });
+    await cta.getByLabel('Already have yours? Compare it with this one').fill('fxfull000000');
+    await cta.getByRole('button', { name: 'Compare' }).click();
+    await page.waitForURL('**/s1/compare/fxfull000000/fxwhale00000');
+  });
+
+  test('an unknown share ID shows not found', async ({ page }) => {
+    await page.goto('/s1/compare/fxfull000000/zzzzzzzzzzzz'); // streamed behind a loading screen, so the status is already 200
+    await expect(page.getByText('This page could not be found.')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Two recaps, side by side' })).toHaveCount(0);
+  });
+});
+
 test.describe('achievements and timeline', () => {
   test('recap lists achievements, arrival order and the season timeline', async ({ page }) => {
     await open(page, `/s1/${ADDR}?fixture=full`);
@@ -422,6 +459,11 @@ test.describe('scroll reveal', () => {
 });
 
 test.describe('intro and empty', () => {
+  test('the intro counts down to the end of the season', async ({ page }) => {
+    await open(page, '/');
+    await expect(page.locator('.gw-countdown')).toHaveText(/^(\d+ days? left in|Last day of) Mainnet Season 1$/);
+  });
+
   test('footer links to the gno.land ecosystem in new tabs', async ({ page }) => {
     await open(page, '/');
     const source = page.locator('footer').getByRole('link', { name: 'Source' });
@@ -457,8 +499,3 @@ test.describe('intro and empty', () => {
     await expect(page.getByText('Your story starts next season.')).toBeVisible();
   });
 });
-  test('the intro counts down to the end of the season', async ({ page }) => {
-    await open(page, '/');
-    await expect(page.locator('.gw-countdown')).toHaveText(/^(\d+ days? left in|Last day of) Mainnet Season 1$/);
-  });
-

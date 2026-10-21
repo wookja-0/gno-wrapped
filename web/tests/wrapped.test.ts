@@ -3,7 +3,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { achievementIconRows, PERSONA_IDS, personaBadge, personaBadgeRows, personaOrbit, personaSymbolRows } from '../src/lib/art';
 import {
-  ACHIEVEMENT_ORDER, arrivalText, CAL_COLORS, calendarDays, calendarMonths, calendarWeeks, countdownText, dayLevel, daysLeft, dayText, dayTxAction, daySeries, peakIndex, seasonDays, visitDiff, visitSnapshot, weekLevel, weekText, builderCards, fmtGas, timeline, gnoscanAccount, gnoscanRealm, gnoscanTx, personaRankText, personaRuleText, personaWhy, rankTopPct, shareLink, sharePost, X_MAX, xLength, fuelLine, gasPerTx, isEmpty, ogRankCard, realmShortName,
+  ACHIEVEMENT_ORDER, arrivalText, CAL_COLORS, calendarDays, calendarMonths, calendarWeeks, compareRows, countdownText, parseShareId, dayLevel, daysLeft, dayText, dayTxAction, daySeries, peakIndex, seasonDays, visitDiff, visitSnapshot, weekLevel, weekText, builderCards, fmtGas, timeline, gnoscanAccount, gnoscanRealm, gnoscanTx, personaRankText, personaRuleText, personaWhy, rankTopPct, shareLink, sharePost, X_MAX, xLength, fuelLine, gasPerTx, isEmpty, ogRankCard, realmShortName,
   slideIds, summaryRank, truncMid, validate, weekRange, type WrappedData,
 } from '../src/lib/wrapped';
 
@@ -252,6 +252,24 @@ describe('season countdown and the final recap', () => {
     expect(post.split('\n')[0]).toBe('My Mainnet Season 1 on gno.land: the final recap 🎁');
     expect(xLength(post)).toBeLessThanOrEqual(X_MAX);
     expect(sharePost(load('full')).split('\n')[0]).toBe('My Mainnet Season 1 on gno.land 🎁');
+  });
+});
+
+describe('compare two recaps', () => {
+  it('reads a share ID from a link or the ID itself, nothing else', () => {
+    expect(parseShareId('https://gnowrapped.wookjin.cloud/s1/s/0502axjyazs8')).toBe('0502axjyazs8');
+    expect(parseShareId(' https://x.example/s1/s/0502AXJYAZS8?utm=1 ')).toBe('0502axjyazs8');
+    expect(parseShareId('0502axjyazs8')).toBe('0502axjyazs8');
+    expect(parseShareId('https://x.example/s1/g1wrappedsampleqqqqqqqqqqqqqqqqqqqqqqqqq')).toBeNull();
+    expect(parseShareId('0502axjyazs')).toBeNull();
+  });
+  it('marks who is ahead: more, or an earlier arrival; gas and ties have no mark', () => {
+    const rows = compareRows(load('full'), load('whale'));
+    const by = Object.fromEntries(rows.map((r) => [r.label, r]));
+    expect(by['Transactions']).toEqual({ label: 'Transactions', a: '1,284', b: '48,210', ahead: 'b' });
+    expect(by['Arrived on mainnet']).toMatchObject({ a: 'Day 22', b: 'Day 1', ahead: 'b' });
+    expect(by['Gas spent'].ahead).toBeNull();
+    expect(compareRows(load('full'), load('full')).every((r) => r.ahead === null)).toBe(true);
   });
 });
 
