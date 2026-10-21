@@ -25,6 +25,9 @@ and a share card for X and Discord. It follows the chain live, so new activity s
 - **Since your last visit**: what changed since you last opened your recap (new transactions,
   achievements, rank). The comparison is kept in your browser only.
 - **Sharing**: a post for X / Discord, a 1200×630 preview card, and a 1080×1920 image download.
+  Once the season is over they say it's the final recap; until then the site counts down the days left.
+- **Compare**: paste a friend's share link to see both recaps side by side (`/s1/compare/<id>/<id>`).
+  It uses the share views only, so neither address appears.
 - **Links out**: your account, first transaction and realms on [Gnoscan](https://gnoscan.io).
 
 <p align="center"><img src="docs/screenshots/share-card.png" width="600" alt="Share card shown on X and Discord"></p>
