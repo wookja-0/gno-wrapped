@@ -37,7 +37,7 @@ fi
 install -d -o 65532 -g 65532 "$DIR/data" "$DIR/data/out" # out/ too: the api mounts it, and Docker would create it as root
 if [ ! -f "$DIR/.env" ]; then
   cat >"$DIR/.env" <<'ENV'
-# Public hostname (its A record points here); Caddy gets its certificate from Let's Encrypt
+# Public hostname (its A record points here); the host's CronBark nginx serves its certificate
 DOMAIN=
 # Optional: s3://bucket/prefix for a daily copy of data/share-ids.json (needs s3:PutObject there)
 BACKUP_S3_URI=
