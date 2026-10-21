@@ -295,7 +295,7 @@ export function sharePost(d: WrappedData): string {
   const rankLine = d.personaRank && rankTopPct(d.personaRank) <= 50 ? `🏅 ${personaRankText(d)} (top ${rankTopPct(d.personaRank)}%)` : '';
   const seasonName = `Mainnet Season ${d.season.id.replace(/^s/i, '')}`;
   const build = (opt: string[]) =>
-    [`My ${seasonName} on gno.land 🎁`, '', ...[...head, ...opt, rankLine].filter(Boolean), '', 'Unwrap yours 👇', shareLink(d), '', SHARE.HASHTAG].join('\n');
+    [`My ${seasonName} on gno.land${d.final ? ': the final recap' : ''} 🎁`, '', ...[...head, ...opt, rankLine].filter(Boolean), '', 'Unwrap yours 👇', shareLink(d), '', SHARE.HASHTAG].join('\n');
   let post = build(optional);
   for (let n = optional.length - 1; n >= 0 && xLength(post) > X_MAX; n--) post = build(optional.slice(0, n));
   return post;
@@ -397,6 +397,20 @@ export function personaRankText(d: WrappedData): string | null {
   const r = d.personaRank, id = d.persona?.id;
   if (!r || !id) return null;
   return `#${fmt(r.rank)} of ${fmt(r.of)} ${PERSONA_PLURAL[id] ?? d.persona!.title}`;
+}
+
+// ---------- season countdown ----------
+
+/** Whole UTC days left after today: 0 on the season's last day, null once it's over. */
+export function daysLeft(s: Season, now: number): number | null {
+  const end = Date.parse(s.end) + 864e5; // exclusive: the day after the last
+  const today = Math.floor(now / 864e5) * 864e5; // this UTC day's midnight
+  return now >= end ? null : Math.round((end - today) / 864e5) - 1;
+}
+/** "71 days left in Mainnet Season 1" / "Last day of Mainnet Season 1". */
+export function countdownText(s: Season, left: number): string {
+  const name = `Mainnet Season ${s.id.replace(/^s/i, '')}`;
+  return left === 0 ? `Last day of ${name}` : `${fmt(left)} ${plural(left, 'day', 'days')} left in ${name}`;
 }
 
 // ---------- activity calendar ----------

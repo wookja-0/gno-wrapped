@@ -35,8 +35,9 @@ export function ShareCardOG({ d }: { d: WrappedData }): ReactElement {
             {wordmark(p)[0].map((L, i) => <Grid key={i} art={L} />)}
           </div>
         </div>
-        <div style={{ display: 'flex', padding: '10px 18px', borderRadius: 999, background: '#1F6BFF', color: '#FFFFFF', fontFamily: 'Silkscreen', fontSize: 26, letterSpacing: '0.04em' }}>
-          {'MAINNET SEASON ' + d.season.id.replace(/^s/i, '').toUpperCase()}
+        {/* the final recap says so, in the same width: "SEASON 1 · FINAL" is as long as "MAINNET SEASON 1" */}
+        <div style={{ display: 'flex', padding: '10px 18px', borderRadius: 999, background: d.final ? '#FF8A3D' : '#1F6BFF', color: d.final ? '#0A0F2E' : '#FFFFFF', fontFamily: 'Silkscreen', fontSize: 26, letterSpacing: '0.04em' }}>
+          {d.final ? `SEASON ${d.season.id.replace(/^s/i, '').toUpperCase()} · FINAL` : 'MAINNET SEASON ' + d.season.id.replace(/^s/i, '').toUpperCase()}
         </div>
       </div>
 

@@ -166,7 +166,8 @@ body { color: #F4F6FF; font-family: 'Archivo', system-ui, sans-serif; }
 /* ---------- live ticker ---------- */
 .gw-live { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 16px 0 0; font-size: 13px; color: #C9D3F5; }
 .gw-live-dot { width: 8px; height: 8px; background: #5BD15B; animation: gwBlink 1600ms steps(1) infinite; }
-.gw-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.gw-pills { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.gw-countdown { font-size: 13px; font-weight: 600; color: #FFB27A; }
 .gw-live-dot-final { background: #FF8A3D; animation: none; }
 .gw-live-block { color: #7DB3FF; animation: gwFade 600ms both; }
 .gw-live .gw-ext { margin: 0; font-size: 13px; font-weight: 400; gap: 4px; }

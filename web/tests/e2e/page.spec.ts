@@ -56,6 +56,7 @@ test.describe('recap page', () => {
   test('a final recap says so; a live one says it updates', async ({ page }) => {
     await open(page, `/s1/${ADDR}?fixture=whale`); // final: true
     await expect(page.locator('.gw-pills')).toContainText('FINAL');
+    await expect(page.locator('.gw-countdown')).toHaveCount(0); // no countdown once final
     await expect(page.locator('footer')).toContainText('Data as of 2026-12-31 · Built from public on-chain data · Final results');
     await open(page, `/s1/${ADDR}?fixture=full`);
     await expect(page.locator('.gw-pills')).not.toContainText('FINAL');
@@ -456,3 +457,8 @@ test.describe('intro and empty', () => {
     await expect(page.getByText('Your story starts next season.')).toBeVisible();
   });
 });
+  test('the intro counts down to the end of the season', async ({ page }) => {
+    await open(page, '/');
+    await expect(page.locator('.gw-countdown')).toHaveText(/^(\d+ days? left in|Last day of) Mainnet Season 1$/);
+  });
+

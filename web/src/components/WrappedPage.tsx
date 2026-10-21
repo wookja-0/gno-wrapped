@@ -13,6 +13,7 @@ import { ActivityCalendar } from './ActivityCalendar';
 import { DiscordIcon, XIcon } from './BrandIcons';
 import { PersonaBadge, Pill, Pixel } from './pixel';
 import { SinceLastVisit } from './SinceLastVisit';
+import { SeasonCountdown } from './SeasonCountdown';
 import { SummaryExport } from './SummaryExport';
 import { useHydrated } from './useReducedMotion';
 import { CONFIG } from '@/lib/config';
@@ -87,6 +88,7 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
                 <Pill>{seasonPill(season)}</Pill>
                 {data.final && <Pill style={{ background: '#FF8A3D', color: '#0A0F2E' }}>FINAL</Pill>}
               </div>
+                {season && <SeasonCountdown season={season} final={data.final} />}
             </Reveal>
             <Reveal delay={80}><p className="gw-kicker" style={{ marginTop: 22 }}>{shared ? 'Season persona' : 'Your season persona'}</p></Reveal>
             <Reveal delay={160}><h1 className="gw-persona-title">{persona.title}</h1></Reveal>

@@ -3,7 +3,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { achievementIconRows, PERSONA_IDS, personaBadge, personaBadgeRows, personaOrbit, personaSymbolRows } from '../src/lib/art';
 import {
-  ACHIEVEMENT_ORDER, arrivalText, CAL_COLORS, calendarDays, calendarMonths, calendarWeeks, dayLevel, dayText, dayTxAction, daySeries, peakIndex, seasonDays, visitDiff, visitSnapshot, weekLevel, weekText, builderCards, fmtGas, timeline, gnoscanAccount, gnoscanRealm, gnoscanTx, personaRankText, personaRuleText, personaWhy, rankTopPct, shareLink, sharePost, X_MAX, xLength, fuelLine, gasPerTx, isEmpty, ogRankCard, realmShortName,
+  ACHIEVEMENT_ORDER, arrivalText, CAL_COLORS, calendarDays, calendarMonths, calendarWeeks, countdownText, dayLevel, daysLeft, dayText, dayTxAction, daySeries, peakIndex, seasonDays, visitDiff, visitSnapshot, weekLevel, weekText, builderCards, fmtGas, timeline, gnoscanAccount, gnoscanRealm, gnoscanTx, personaRankText, personaRuleText, personaWhy, rankTopPct, shareLink, sharePost, X_MAX, xLength, fuelLine, gasPerTx, isEmpty, ogRankCard, realmShortName,
   slideIds, summaryRank, truncMid, validate, weekRange, type WrappedData,
 } from '../src/lib/wrapped';
 
@@ -233,6 +233,25 @@ describe('the whole season', () => {
     ]);
     expect(peakIndex([1, 7, 7, 2])).toBe(1);
     expect(peakIndex([0, 0])).toBe(-1);
+  });
+});
+
+describe('season countdown and the final recap', () => {
+  const s = { id: 's1', start: '2026-09-12', end: '2026-12-31' };
+  it('counts whole UTC days after today; 0 on the last day; null once over', () => {
+    expect(daysLeft(s, Date.parse('2026-10-21T09:00:00Z'))).toBe(71);
+    expect(daysLeft(s, Date.parse('2026-12-30T23:59:00Z'))).toBe(1);
+    expect(daysLeft(s, Date.parse('2026-12-31T00:00:00Z'))).toBe(0);
+    expect(daysLeft(s, Date.parse('2027-01-01T00:00:00Z'))).toBeNull();
+    expect(countdownText(s, 71)).toBe('71 days left in Mainnet Season 1');
+    expect(countdownText(s, 1)).toBe('1 day left in Mainnet Season 1');
+    expect(countdownText(s, 0)).toBe('Last day of Mainnet Season 1');
+  });
+  it("a final recap's post says so, and still fits on X", () => {
+    const post = sharePost({ ...load('whale'), final: true });
+    expect(post.split('\n')[0]).toBe('My Mainnet Season 1 on gno.land: the final recap 🎁');
+    expect(xLength(post)).toBeLessThanOrEqual(X_MAX);
+    expect(sharePost(load('full')).split('\n')[0]).toBe('My Mainnet Season 1 on gno.land 🎁');
   });
 });
 

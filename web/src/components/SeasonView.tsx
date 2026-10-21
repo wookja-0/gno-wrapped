@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { seasonPill } from '@/lib/summary';
 import { addDays, fmt, fmtDate, fmtGas, fmtShort, gnoscanRealm, peakIndex, plural, type SeasonData } from '@/lib/wrapped';
 import { DailyChart } from './DailyChart';
+import { SeasonCountdown } from './SeasonCountdown';
 import { Pill } from './pixel';
 import { Card, ExtLink, Footer, Nav, PathText, Reveal, Starfield } from './web';
 
@@ -27,6 +28,7 @@ export function SeasonView({ data, loading }: { data: SeasonData | null; loading
           <div className="gw-pills">
             <Pill>{data ? seasonPill(data.season) : 'MAINNET SEASON'}</Pill>
             {data?.final && <Pill style={{ background: '#FF8A3D', color: '#0A0F2E' }}>FINAL</Pill>}
+            {data && <SeasonCountdown season={data.season} final={data.final} />}
           </div>
         </Reveal>
         <Reveal delay={80}><h1 className="gw-h1">Mainnet Season {n}, all of gno.land</h1></Reveal>
