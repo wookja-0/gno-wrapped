@@ -77,7 +77,10 @@
     {
       "id": "pioneer",
       "value": 2,
-      "realms": ["gno.land/r/gnoswap/router", "gno.land/r/gnoland/wugnot"]
+      "realms": [
+        "gno.land/r/gnoswap/router",
+        "gno.land/r/gnoland/wugnot"
+      ]
     },
     {
       "id": "streak",
@@ -109,5 +112,32 @@
     "daily": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 73, 0, 77, 0, 17, 0, 0, 0, 1, 0, 27, 0, 0, 64, 0, 0, 48, 0, 0, 0, 9, 0, 1, 0, 0, 0, 0, 0, 45, 0, 7, 0, 33, 0, 104, 35, 65, 56, 1, 1, 73, 1, 23, 0, 0, 0, 27, 0, 112, 0, 0, 1, 0, 0, 0, 0, 0, 130, 0, 0, 50, 0, 0, 18, 0, 0, 125, 0, 0, 0, 0, 6, 0, 0, 0, 0, 5, 0, 0, 3, 0, 0, 0, 0, 22, 0, 4, 0, 20, 0],
     "activeDays": 34,
     "longestStreak": 9
-  }
+  },
+  "failedTxs": 7,
+  "defi": {
+    "positions": 3,
+    "liquidityMoves": 2,
+    "feesCollected": 5,
+    "staked": 2,
+    "rewardsClaimed": 4,
+    "topPair": {
+      "tokens": [
+        "GNOT",
+        "GNS"
+      ],
+      "swaps": 24
+    }
+  },
+  "builder": [
+    {
+      "path": "gno.land/r/g1wrap.../counter",
+      "callers": 12,
+      "calls": 340
+    },
+    {
+      "path": "gno.land/r/g1wrap.../hello",
+      "callers": 0,
+      "calls": 0
+    }
+  ]
 }

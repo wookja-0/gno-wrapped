@@ -1,3 +1,4 @@
+import { HtmlLang } from '@/components/useLocale';
 import type { Metadata, Viewport } from 'next';
 import '@fontsource/archivo/400.css';
 import '@fontsource/archivo/500.css';
@@ -32,7 +33,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('gw-js')" }} />
       </head>
-      <body>{children}</body>
+      <body><HtmlLang />{children}</body>
     </html>
   );
 }

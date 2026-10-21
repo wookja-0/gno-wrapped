@@ -271,6 +271,81 @@ test.describe('since your last visit', () => {
   });
 });
 
+test.describe('GnoSwap detail, success rate, builder report, governance', () => {
+  test('full: favorite pair, GnoSwap chips, success rate, realm use', async ({ page }) => {
+    await open(page, `/s1/${ADDR}?fixture=full`);
+    const defi = page.getByRole('region', { name: 'DeFi' });
+    await expect(defi).toContainText('Favorite pair: GNOT ↔ GNS · 24 swaps');
+    await expect(defi.getByRole('list', { name: 'More on GnoSwap' }).locator('li')).toHaveCount(5);
+    await expect(page.getByRole('region', { name: 'Fuel' })).toContainText('99% of your transactions went through (7 failed).');
+    const builder = page.getByRole('region', { name: 'Builder' });
+    await expect(builder).toContainText('Your realms got 340 calls from other addresses.');
+    await expect(builder).toContainText('340 calls from 12 addresses');
+    await expect(builder).toContainText('No one else has called it yet');
+    await expect(page.getByRole('region', { name: 'Governance' })).toHaveCount(0);
+  });
+
+  test('whale: governance card and the Citizen achievement', async ({ page }) => {
+    await open(page, `/s1/${ADDR}?fixture=whale`);
+    const gov = page.getByRole('region', { name: 'Governance' });
+    await expect(gov.locator('li')).toHaveText(['3 votes', '1 proposal', '4 GNS delegations']);
+    await expect(page.getByRole('region', { name: 'Achievements' })).toContainText('Citizen');
+  });
+});
+
+test.describe('story mode', () => {
+  test('plays from the hero: keys, tap, Escape, and focus back on the button', async ({ page }) => {
+    await open(page, `/s1/${ADDR}?fixture=full`);
+    const play = page.getByRole('button', { name: '▶ Play your story' });
+    await play.click();
+    const story = page.getByRole('dialog', { name: 'Season story' });
+    await expect(story).toContainText('1 / 10');
+    await expect(story).toContainText('Your Mainnet Season 1 on gno.land');
+    await page.keyboard.press('ArrowRight');
+    await expect(story).toContainText('2 / 10');
+    await expect(story).toContainText('Day 22');
+    await page.keyboard.press('ArrowLeft');
+    await expect(story).toContainText('1 / 10');
+    const card = story.locator('.gw-story-card');
+    const box = (await card.boundingBox())!;
+    await page.mouse.click(box.x + box.width * 0.8, box.y + box.height / 2); // tap the right side
+    await expect(story).toContainText('2 / 10');
+    await page.keyboard.press('Escape');
+    await expect(story).toHaveCount(0);
+    await expect(play).toBeFocused();
+  });
+
+  test('the persona card shows the badge (its pixels have height)', async ({ page }) => {
+    await open(page, `/s1/${ADDR}?fixture=full&story`);
+    const story = page.getByRole('dialog', { name: 'Season story' });
+    for (let n = 0; n < 8; n++) await page.keyboard.press('ArrowRight');
+    await expect(story).toContainText('9 / 10');
+    const badge = story.getByRole('img', { name: 'Realm Hopper badge' });
+    await expect(badge).toBeVisible();
+    const tallest = await badge.evaluate((el) => Math.max(...[...el.children].map((c) => c.getBoundingClientRect().height)));
+    expect(tallest).toBeGreaterThan(0);
+  });
+
+  test('advances by itself every few seconds', async ({ page }) => {
+    await page.clock.install();
+    await open(page, `/s1/${ADDR}?fixture=full&story`); // ?story opens it straight away
+    const story = page.getByRole('dialog', { name: 'Season story' });
+    await expect(story).toContainText('1 / 10');
+    await page.clock.runFor(6500);
+    await expect(story).toContainText('2 / 10');
+  });
+
+  test('a shared recap plays "the story" and ends with "unwrap your own"', async ({ page }) => {
+    await open(page, '/s1/s/fxfull000000?fixture=full');
+    await page.getByRole('button', { name: '▶ Play the story' }).click();
+    const story = page.getByRole('dialog', { name: 'Season story' });
+    for (let n = 0; n < 9; n++) await page.keyboard.press('ArrowRight');
+    await expect(story).toContainText('10 / 10');
+    await expect(story.getByRole('link', { name: 'Unwrap your own' })).toBeVisible();
+    expect(await story.innerHTML()).not.toContain('g1wrap');
+  });
+});
+
 test.describe('compare two recaps', () => {
   test('from your recap: paste a friend\'s link, see both side by side, no address', async ({ page }) => {
     await open(page, `/s1/${ADDR}?fixture=full`);
@@ -327,7 +402,7 @@ test.describe('achievements and timeline', () => {
 
   test('/personas lists all achievements', async ({ page }) => {
     await page.goto('/personas#achievements');
-    await expect(page.locator('#achievements .gw-ach')).toHaveCount(7);
+    await expect(page.locator('#achievements .gw-ach')).toHaveCount(8);
   });
 
   test('intro shows the live ticker (needs the api with batch output)', async ({ page }) => {
@@ -497,5 +572,43 @@ test.describe('intro and empty', () => {
   test('an address the API has no recap for shows EmptyState', async ({ page }) => {
     await page.goto(`/s1/${UNKNOWN}`);
     await expect(page.getByText('Your story starts next season.')).toBeVisible();
+  });
+});
+
+test.describe('Korean', () => {
+  test('the toggle switches the page to Korean and remembers it', async ({ page }) => {
+    await open(page, `/s1/${ADDR}?fixture=full`);
+    await page.getByRole('button', { name: '한국어' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('렐름 호퍼');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'ko');
+    await expect(page.getByRole('region', { name: '시즌 한눈에 보기' })).toContainText('트랜잭션');
+    await expect(page.getByText('트랜잭션의 99%가 성공했어요(실패 7건).')).toBeVisible();
+    await page.reload();
+    await page.locator('[data-hydrated]').waitFor();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('렐름 호퍼');
+    await page.getByRole('button', { name: 'EN' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Realm Hopper');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  });
+
+  test('a Korean browser still starts in English; once switched, the story and the share post are Korean', async ({ browser }) => {
+    const ctx = await browser.newContext({ locale: 'ko-KR', viewport: { width: 390, height: 844 } });
+    const page = await ctx.newPage();
+    await open(page, '/');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    await expect(page.getByRole('button', { name: 'Unwrap' })).toBeVisible();
+    await open(page, `/s1/${ADDR}?fixture=full`);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Realm Hopper');
+    await page.getByRole('button', { name: '한국어' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('렐름 호퍼');
+    expect(await overflowing(page)).toEqual([]);
+    const x = page.getByRole('link', { name: 'X에 공유' }).first();
+    expect(decodeURIComponent((await x.getAttribute('href'))!)).toContain('나의 메인넷 시즌 1');
+    await page.getByRole('button', { name: '▶ 스토리로 보기' }).click();
+    const story = page.getByRole('dialog', { name: '시즌 스토리' });
+    await expect(story).toContainText('gno.land에서 보낸 나의 메인넷 시즌 1');
+    await page.keyboard.press('ArrowRight');
+    await expect(story).toContainText('도착');
+    await ctx.close();
   });
 });

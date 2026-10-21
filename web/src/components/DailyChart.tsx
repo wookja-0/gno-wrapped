@@ -1,8 +1,9 @@
 'use client';
 
 import { useId, useState, type KeyboardEvent, type PointerEvent } from 'react';
-import { daySeries, fmt, fmtShort, peakIndex, plural, type Season } from '@/lib/wrapped';
+import { daySeries, fmt, peakIndex, type Season } from '@/lib/wrapped';
 import { DataTable, ViewSwitch, type View } from './ChartTable';
+import { useCopy } from './useLocale';
 
 /**
  * One daily series as a column chart: a slot per season day (days that haven't happened keep their
@@ -10,8 +11,9 @@ import { DataTable, ViewSwitch, type View } from './ChartTable';
  * the chart and use the arrow keys, to read a day; Table swaps the chart for every day with a value.
  */
 export function DailyChart({ label, values, season, dataAsOf, unit }: {
-  label: string; values: number[]; season: Season; dataAsOf: string; unit: [string, string];
+  label: string; values: number[]; season: Season; dataAsOf: string; unit: readonly [string, string];
 }) {
+  const c = useCopy();
   const days = daySeries(values, season, dataAsOf);
   const peak = peakIndex(values);
   const max = Math.max(1, ...values);
@@ -20,7 +22,7 @@ export function DailyChart({ label, values, season, dataAsOf, unit }: {
   const [view, setView] = useState<View>('chart');
   const lastPast = days.findLastIndex((d) => !d.future);
   const text = (i: number) =>
-    days[i].future ? `${fmtShort(days[i].date)} hasn't happened yet` : `${fmt(days[i].value)} ${plural(days[i].value, unit[0], unit[1])} on ${fmtShort(days[i].date)}`;
+    days[i].future ? c.dayFuture(days[i].date) : c.dayValue(days[i].value, unit, days[i].date);
 
   const step = (e: KeyboardEvent) => {
     const by = { ArrowLeft: -1, ArrowRight: 1, Home: -Infinity, End: Infinity }[e.key];
@@ -60,20 +62,20 @@ export function DailyChart({ label, values, season, dataAsOf, unit }: {
           </div>
           <div style={{ height: 2, background: '#2A3566' }} />
           <div className="gw-axis gw-mono" style={{ fontSize: 11 }}>
-            <span>{fmtShort(season.start)}</span><span>{fmtShort(season.end)}</span>
+            <span>{c.short_(season.start)}</span><span>{c.short_(season.end)}</span>
           </div>
         </div>
         {view === 'table' && (
           <DataTable
             label={label}
-            head={['Day', unit[1][0].toUpperCase() + unit[1].slice(1)]}
-            rows={days.flatMap((d) => (!d.future && d.value > 0 ? [[fmtShort(d.date), fmt(d.value)] as [string, string]] : []))}
-            empty="Nothing yet."
+            head={[c.colDay, unit[1][0].toUpperCase() + unit[1].slice(1)]}
+            rows={days.flatMap((d) => (!d.future && d.value > 0 ? [[c.short_(d.date), fmt(d.value)] as [string, string]] : []))}
+            empty={c.nothingYet}
           />
         )}
       </div>
       <p id={readout} className="gw-cal-readout" aria-live="polite">
-        {view === 'table' ? `${fmt(values.reduce((a, b) => a + b, 0))} ${unit[1]} in all` : active !== null ? text(active) : peak >= 0 ? `Peak: ${text(peak)}` : 'Nothing yet.'}
+        {view === 'table' ? c.inAll(values.reduce((a, b) => a + b, 0), unit[1]) : active !== null ? text(active) : peak >= 0 ? c.peak(text(peak)) : c.nothingYet}
       </p>
       <div className="gw-chart-foot">
         <span />

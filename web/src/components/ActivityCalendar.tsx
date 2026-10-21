@@ -1,11 +1,10 @@
 'use client';
 
 import { useId, useState, type KeyboardEvent, type PointerEvent } from 'react';
-import {
-  CAL_COLORS, calendarDays, calendarMonths, calendarWeeks, dayText, fmt, fmtShort, plural, weekRange, weekText, type WrappedData,
-} from '@/lib/wrapped';
+import { CAL_COLORS, calendarDays, calendarMonths, calendarWeeks, fmt, type WrappedData } from '@/lib/wrapped';
 import { DataTable, ViewSwitch, type View } from './ChartTable';
 import { DayList } from './DayList';
+import { useCopy } from './useLocale';
 
 /**
  * Activity calendar. Owner view: a day-by-day grid (one column per season week, seven days down).
@@ -15,18 +14,19 @@ import { DayList } from './DayList';
  * (or Enter on it) lists them below, linked to Gnoscan.
  */
 export function ActivityCalendar({ data }: { data: WrappedData }) {
+  const c = useCopy();
   const cal = data.calendar!;
   const daily = !!cal.daily;
   const cells = daily ? calendarDays(data) : calendarWeeks(data);
-  const months = daily ? calendarMonths(data) : [];
+  const months = daily ? calendarMonths(data, c.month) : [];
   const [active, setActive] = useState<number | null>(null);
   const [view, setView] = useState<View>('chart');
   const [open, setOpen] = useState<number | null>(null); // the day whose transactions are listed
   const readout = useId();
-  const label = daily ? 'Transactions per day' : 'Active days per week';
+  const label = daily ? c.perDay : c.perWeek;
 
-  const text = (i: number) => (daily ? dayText(cells[i]) : weekText(cells[i], data.season.start, i));
-  const lastPast = cells.findLastIndex((c) => !c.future);
+  const text = (i: number) => (daily ? c.dayText(cells[i]) : c.weekText(cells[i], data.season.start, i));
+  const lastPast = cells.findLastIndex((x) => !x.future);
   const canOpen = (i: number | null): i is number => i !== null && daily && !!data.address && !cells[i].future && cells[i].count > 0;
   const toggle = (i: number | null) => { if (canOpen(i)) setOpen((o) => (o === i ? null : i)); };
   const step = (e: KeyboardEvent) => {
@@ -48,10 +48,10 @@ export function ActivityCalendar({ data }: { data: WrappedData }) {
       <div>
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', columnGap: 14 }}>
         <span className="gw-hero-num">{fmt(cal.activeDays)}</span>
-        <span className="gw-big-line">{plural(cal.activeDays, 'active day', 'active days')}</span>
+        <span className="gw-big-line">{c.activeDays(cal.activeDays)}</span>
       </div>
       <p className="gw-body-strong" style={{ color: '#C9D3F5' }}>
-        Longest streak: {fmt(cal.longestStreak)} {plural(cal.longestStreak, 'day', 'days')} in a row
+        {c.streak(cal.longestStreak)}
       </p>
       </div>
       <div style={{ minWidth: 0 }}>
@@ -78,41 +78,41 @@ export function ActivityCalendar({ data }: { data: WrappedData }) {
                 </div>
               )}
               <div className="gw-cal-cells">
-                {cells.map((c, i) => (
+                {cells.map((x, i) => (
                   <div
-                    key={c.date}
+                    key={x.date}
                     data-i={i}
-                    className={`gw-cal-cell ${c.future ? 'gw-cal-future' : ''} ${active === i ? 'gw-cal-active' : ''} ${canOpen(i) ? 'gw-cal-has' : ''} ${open === i ? 'gw-cal-open' : ''}`}
-                    style={c.future ? undefined : { background: CAL_COLORS[c.level] }}
+                    className={`gw-cal-cell ${x.future ? 'gw-cal-future' : ''} ${active === i ? 'gw-cal-active' : ''} ${canOpen(i) ? 'gw-cal-has' : ''} ${open === i ? 'gw-cal-open' : ''}`}
+                    style={x.future ? undefined : { background: CAL_COLORS[x.level] }}
                   />
                 ))}
               </div>
             </div>
             {!daily && (
               <div className="gw-axis gw-mono" style={{ fontSize: 11 }}>
-                <span>{fmtShort(data.season.start)}</span><span>{fmtShort(data.season.end)}</span>
+                <span>{c.short_(data.season.start)}</span><span>{c.short_(data.season.end)}</span>
               </div>
             )}
           </div>
           {view === 'table' && (
             <DataTable
               label={label}
-              head={daily ? ['Day', 'Transactions'] : ['Week of', 'Active days']}
-              rows={cells.flatMap((c, i): [string, string][] => (daily ? (c.count > 0 ? [[fmtShort(c.date), fmt(c.count)]] : []) : c.future ? [] : [[weekRange(i, data.season.start), `${c.count} of 7`]]))}
-              empty="No activity yet."
+              head={daily ? [c.colDay, c.colTransactions] : [c.colWeek, c.colActiveDays]}
+              rows={cells.flatMap((x, i): [string, string][] => (daily ? (x.count > 0 ? [[c.short_(x.date), fmt(x.count)]] : []) : x.future ? [] : [[c.week(i, data.season.start), c.ofSeven(x.count)]]))}
+              empty={c.noActivityYet}
             />
           )}
         </div>
         <p id={readout} className="gw-cal-readout" aria-live="polite">
           {view === 'table'
-            ? daily ? `${fmt(cal.activeDays)} ${plural(cal.activeDays, 'day', 'days')} with transactions` : `${fmt(cal.activeDays)} active ${plural(cal.activeDays, 'day', 'days')} in all`
-            : active !== null ? text(active) : daily ? 'Hover, or use the arrow keys; click a day for its list' : 'Hover a week, or use the arrow keys'}
+            ? daily ? c.daysWithTx(cal.activeDays) : c.activeDaysInAll(cal.activeDays)
+            : active !== null ? text(active) : daily ? c.hintDay : c.hintWeek}
         </p>
         <div className="gw-chart-foot">
           <div className={`gw-cal-legend ${view === 'table' ? 'gw-viz-hidden' : ''}`} aria-hidden="true">
-            <span>{daily ? 'Less' : '0 days'}</span>
-            {CAL_COLORS.map((c) => <i key={c} style={{ background: c }} />)}
-            <span>{daily ? 'More' : '7 days'}</span>
+            <span>{daily ? c.less : c.zeroDays}</span>
+            {CAL_COLORS.map((x) => <i key={x} style={{ background: x }} />)}
+            <span>{daily ? c.more : c.sevenDays}</span>
           </div>
           <ViewSwitch view={view} onChange={setView} label={label} />
         </div>

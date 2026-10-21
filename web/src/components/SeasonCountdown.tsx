@@ -1,7 +1,8 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
-import { countdownText, daysLeft, type Season } from '@/lib/wrapped';
+import { daysLeft, type Season } from '@/lib/wrapped';
+import { useCopy } from './useLocale';
 
 const noop = () => () => {};
 
@@ -12,6 +13,7 @@ const noop = () => () => {};
  */
 export function SeasonCountdown({ season, final }: { season: Season; final?: boolean }) {
   const left = useSyncExternalStore(noop, () => daysLeft(season, Date.now()), () => null);
+  const c = useCopy();
   if (final || left === null) return null;
-  return <span className="gw-countdown">{countdownText(season, left)}</span>;
+  return <span className="gw-countdown">{c.countdown(season, left)}</span>;
 }

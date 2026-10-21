@@ -16,12 +16,19 @@ and a share card for X and Discord. It follows the chain live, so new activity s
   Player One, GNOT Courier, First Steps), picked by rules checked in order, with the reason in your
   own numbers and your rank among others with the same persona.
 - **Achievements**: Early Arrival, Realm Pioneer (among the first 10 to call a realm that 50+
-  addresses use), On a Roll, Triple Threat, Century, Validators' Friend, Gas Saver.
+  addresses use), Citizen (voted on or proposed a GovDAO or GnoSwap governance proposal), On a Roll,
+  Triple Threat, Century, Validators' Friend, Gas Saver.
 - **Arrival**: your mainnet day, your place in arrival order, and a season timeline
   (first transaction, first swap, first NFT, first realm deployed, 100th transaction).
 - **Activity**: transactions and percentile, a day-by-day calendar with your longest streak (click a day
   to page through its first 100 transactions, each linked to Gnoscan), top realms,
-  GnoSwap swaps by week, realms deployed, gas.
+  GnoSwap swaps by week, gas, and how many of your transactions went through.
+- **GnoSwap**: your most-swapped token pair, positions opened, liquidity changes, fees and rewards
+  collected, positions staked.
+- **Builder**: each realm you deployed with how many other addresses called it, and how often.
+- **Governance**: your votes and proposals on gno.land's GovDAO and GnoSwap governance, and GNS delegations.
+- **Story mode**: the recap as full-screen cards, one at a time (tap or →, hold to pause). Add `?story`
+  to a recap link to open it that way.
 - **Since your last visit**: what changed since you last opened your recap (new transactions,
   achievements, rank). The comparison is kept in your browser only.
 - **Sharing**: a post for X / Discord, a 1200×630 preview card, and a 1080×1920 image download.
@@ -29,8 +36,12 @@ and a share card for X and Discord. It follows the chain live, so new activity s
 - **Compare**: paste a friend's share link to see both recaps side by side (`/s1/compare/<id>/<id>`).
   It uses the share views only, so neither address appears.
 - **Links out**: your account, first transaction and realms on [Gnoscan](https://gnoscan.io).
+- **English and Korean**: English by default; switch in the top bar. The choice is kept in your
+  browser. Share cards stay in English.
 
 <p align="center"><img src="docs/screenshots/share-card.png" width="600" alt="Share card shown on X and Discord"></p>
+
+<p align="center"><img src="docs/screenshots/story.png" width="280" alt="Story mode on a phone: the persona card"></p>
 
 The site's `/season` page is the same recap for the whole chain: totals, transactions and new
 addresses per day, and the most-used realms.

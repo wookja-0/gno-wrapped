@@ -6,6 +6,7 @@ import { PersonaBadge, Pixel } from './pixel';
 export interface SummaryVM {
   seasonPill: string;
   final?: boolean;
+  copy?: { persona: string; topRealm: string; footer: string }; // in the visitor's language
   persona: Persona;
   stats: { label: string; value: string }[];
   topRealm: { path: string; detail: string } | null;
@@ -33,7 +34,7 @@ export function SummaryExport({ vm }: { vm: SummaryVM }) {
           {vm.final && <span style={{ padding: '12px 22px', borderRadius: 999, background: '#FF8A3D', color: '#0A0F2E', fontFamily: "'Silkscreen', monospace", fontSize: 26, letterSpacing: '0.04em' }}>FINAL</span>}
         </div>
         <div style={{ marginTop: 44 }}><PersonaBadge id={vm.persona.id} p={12} label={`${vm.persona.title} badge`} /></div>
-        <p style={{ margin: '40px 0 0', fontSize: 34, fontWeight: 500, color: '#C9D3F5' }}>Your season persona</p>
+        <p style={{ margin: '40px 0 0', fontSize: 34, fontWeight: 500, color: '#C9D3F5' }}>{vm.copy?.persona ?? 'Your season persona'}</p>
         <p style={{ margin: '8px 0 0', fontSize: titleSize, lineHeight: 1.05, fontWeight: 900, letterSpacing: '-0.03em', color: '#FF8A3D' }}>{vm.persona.title}</p>
         <p style={{ margin: '16px 0 0', maxWidth: 820, fontSize: 34, lineHeight: 1.35, color: '#D3DBF7' }}>{vm.persona.line}</p>
 
@@ -47,7 +48,7 @@ export function SummaryExport({ vm }: { vm: SummaryVM }) {
         </div>
         {vm.topRealm && (
           <div style={{ marginTop: 24, width: '100%', boxSizing: 'border-box', padding: '28px 30px', borderRadius: 28, background: '#10173A', border: '2px solid #2A3566', display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'left' }}>
-            <div style={{ fontSize: 28, color: '#A3AED6' }}>Top realm</div>
+            <div style={{ fontSize: 28, color: '#A3AED6' }}>{vm.copy?.topRealm ?? 'Top realm'}</div>
             <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, fontSize: 30, color: '#9CC2FF', wordBreak: 'break-all' }}>{vm.topRealm.path}</div>
             <div style={{ fontSize: 30, color: '#D3DBF7' }}>{vm.topRealm.detail}</div>
           </div>
@@ -55,7 +56,7 @@ export function SummaryExport({ vm }: { vm: SummaryVM }) {
       </div>
 
       <div style={{ position: 'absolute', left: '50%', bottom: 56, transform: 'translateX(-50%)', padding: '18px 36px', borderRadius: 28, background: 'rgba(10,16,48,0.88)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, textAlign: 'center', whiteSpace: 'nowrap' }}>
-        <div style={{ fontSize: 24, color: '#D3DBF7' }}>Data as of {vm.dataAsOf} · Built from public on-chain data</div>
+        <div style={{ fontSize: 24, color: '#D3DBF7' }}>{vm.copy?.footer ?? `Data as of ${vm.dataAsOf} · Built from public on-chain data`}</div>
       </div>
     </div>
   );

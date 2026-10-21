@@ -337,6 +337,7 @@ const ACH_ROWS: Record<string, string[]> = {
   'gas-saver': ['......GG', '....GGGG', '...GGGG.', '..GGGG..', '.GGGG...', '.GG.....', 'G.......', '........'], // leaf
   'validators-friend': ['........', '.RR..RR.', 'RRRRRRRR', 'RRRRRRRR', '.RRRRRR.', '..RRRR..', '...RR...', '........'], // heart
   pioneer: ['.WGGGG..', '.WGGGGG.', '.WGGGG..', '.W......', '.W......', '.W......', '.W......', 'OOOOOOO.'], // planted flag
+  citizen: ['..WWWW..', '..WWOW..', '..WOWW..', 'BBB..BBB', 'BBBBBBBB', 'BBBBBBBB', 'B.BBBB.B', 'BBBBBBBB'], // ballot into a box
   century: ['YYYYYYYY', 'Y.YYYY.Y', 'Y.YYYY.Y', '.YYYYYY.', '..YYYY..', '...YY...', '..YYYY..', '.YYYYYY.'], // trophy
 };
 export const achievementIcon = (id: string, p: number): Art => pix(ACH_ROWS[id] ?? ACH_ROWS.century, ACH_PAL, p);
