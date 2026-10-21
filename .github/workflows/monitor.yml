@@ -1,0 +1,59 @@
+name: Monitor
+
+# Every 15 minutes: is the site up, and is the batch keeping up with the chain? A failing check opens
+# one issue labelled `monitor` (GitHub emails the repo's watchers); the next passing check closes it.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: monitor
+  cancel-in-progress: false
+
+env:
+  SITE: ${{ vars.SHARE_BASE_URL }}
+  INDEXER_URL: https://indexer.gno.land/graphql/query
+  MAX_LAG: 300 # blocks; about 20 minutes at gnoland-1's ~3.5s blocks
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the site and the batch's lag
+        id: check
+        run: |
+          problem=""
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 --retry 3 --retry-delay 10 --retry-all-errors "$SITE/" || true)
+          if [ "$code" = 000 ] || [ -z "$code" ]; then problem="$SITE/ did not answer"
+          elif [ "$code" != 200 ]; then problem="$SITE/ answered HTTP $code"; fi
+          live=$(curl -fsS --max-time 20 --retry 3 --retry-delay 10 --retry-all-errors "$SITE/api/live" || true)
+          height=$(jq -r '.height // empty' <<<"$live" 2>/dev/null || true)
+          tip=$(curl -fsS --max-time 20 -H 'content-type: application/json' -d '{"query":"{ latestBlockHeight }"}' "$INDEXER_URL" \
+            | jq -r '.data.latestBlockHeight // empty' 2>/dev/null || true)
+          if [ -z "$problem" ] && [ -z "$height" ]; then
+            problem="$SITE/api/live has no height: ${live:-no response}"
+          elif [ -z "$problem" ] && [ -n "$tip" ] && [ $((tip - height)) -gt "$MAX_LAG" ]; then
+            problem="the batch is $((tip - height)) blocks behind the chain (site at $height, indexer at $tip)"
+          fi
+          echo "site=$height indexer=$tip: ${problem:-ok}"
+          echo "problem=$problem" >>"$GITHUB_OUTPUT"
+      - name: Open, or close, the alert issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PROBLEM: ${{ steps.check.outputs.problem }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          open=$(gh issue list --label monitor --state open --json number --jq '.[0].number // empty')
+          if [ -n "$PROBLEM" ] && [ -z "$open" ]; then
+            gh label create monitor --color B60205 --description "Opened by the monitor workflow" 2>/dev/null || true
+            gh issue create --label monitor --title "Site check failing" \
+              --body "$(printf '%s\n\nSince %s UTC. Checked by [this run](%s); the issue closes itself once a check passes.' "$PROBLEM" "$(date -u '+%F %H:%M')" "$RUN")"
+          elif [ -z "$PROBLEM" ] && [ -n "$open" ]; then
+            gh issue close "$open" --comment "Recovered at $(date -u '+%F %H:%M') UTC ([run]($RUN))."
+          fi

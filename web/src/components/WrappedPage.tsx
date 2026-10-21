@@ -10,8 +10,10 @@ import {
 } from '@/lib/wrapped';
 import Link from 'next/link';
 import { ActivityCalendar } from './ActivityCalendar';
+import { CompareForm } from './CompareForm';
 import { DiscordIcon, XIcon } from './BrandIcons';
 import { PersonaBadge, Pill, Pixel } from './pixel';
+import { SeasonCountdown } from './SeasonCountdown';
 import { SinceLastVisit } from './SinceLastVisit';
 import { SummaryExport } from './SummaryExport';
 import { useHydrated } from './useReducedMotion';
@@ -86,6 +88,7 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
               <div className="gw-pills">
                 <Pill>{seasonPill(season)}</Pill>
                 {data.final && <Pill style={{ background: '#FF8A3D', color: '#0A0F2E' }}>FINAL</Pill>}
+                {season && <SeasonCountdown season={season} final={data.final} />}
               </div>
             </Reveal>
             <Reveal delay={80}><p className="gw-kicker" style={{ marginTop: 22 }}>{shared ? 'Season persona' : 'Your season persona'}</p></Reveal>
@@ -320,6 +323,9 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
                   <Icon d={LINK} size={16} /> Copy link
                 </button>
               </div>
+              {season && data.shareId && (
+                <CompareForm season={season.id} pair={(mine) => [mine, data.shareId!]} label="Already have yours? Compare it with this one" placeholder="Your share link" />
+              )}
             </div>
             {season && (
               // eslint-disable-next-line @next/next/no-img-element
@@ -346,6 +352,9 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
                 </button>
               </div>
               <p className="gw-hint" style={{ marginTop: 12 }}>The link and images never show your address.</p>
+              {season && data.shareId && (
+                <CompareForm season={season.id} pair={(theirs) => [data.shareId!, theirs]} label="Compare with a friend: paste their share link" placeholder="Their share link" />
+              )}
             </div>
             {season && (
               // What X and Discord show for the link.

@@ -1,9 +1,10 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { createLimiter } from '../src/lib/limiter';
 import { achievementIconRows, PERSONA_IDS, personaBadge, personaBadgeRows, personaOrbit, personaSymbolRows } from '../src/lib/art';
 import {
-  ACHIEVEMENT_ORDER, arrivalText, CAL_COLORS, calendarDays, calendarMonths, calendarWeeks, dayLevel, dayText, dayTxAction, daySeries, peakIndex, seasonDays, visitDiff, visitSnapshot, weekLevel, weekText, builderCards, fmtGas, timeline, gnoscanAccount, gnoscanRealm, gnoscanTx, personaRankText, personaRuleText, personaWhy, rankTopPct, shareLink, sharePost, X_MAX, xLength, fuelLine, gasPerTx, isEmpty, ogRankCard, realmShortName,
+  ACHIEVEMENT_ORDER, arrivalText, CAL_COLORS, calendarDays, calendarMonths, calendarWeeks, compareRows, countdownText, parseShareId, dayLevel, daysLeft, dayText, dayTxAction, daySeries, peakIndex, seasonDays, visitDiff, visitSnapshot, weekLevel, weekText, builderCards, fmtGas, timeline, gnoscanAccount, gnoscanRealm, gnoscanTx, personaRankText, personaRuleText, personaWhy, rankTopPct, shareLink, sharePost, X_MAX, xLength, fuelLine, gasPerTx, isEmpty, ogRankCard, realmShortName,
   slideIds, summaryRank, truncMid, validate, weekRange, type WrappedData,
 } from '../src/lib/wrapped';
 
@@ -233,6 +234,54 @@ describe('the whole season', () => {
     ]);
     expect(peakIndex([1, 7, 7, 2])).toBe(1);
     expect(peakIndex([0, 0])).toBe(-1);
+  });
+});
+
+describe('season countdown and the final recap', () => {
+  const s = { id: 's1', start: '2026-09-12', end: '2026-12-31' };
+  it('counts whole UTC days after today; 0 on the last day; null once over', () => {
+    expect(daysLeft(s, Date.parse('2026-10-21T09:00:00Z'))).toBe(71);
+    expect(daysLeft(s, Date.parse('2026-12-30T23:59:00Z'))).toBe(1);
+    expect(daysLeft(s, Date.parse('2026-12-31T00:00:00Z'))).toBe(0);
+    expect(daysLeft(s, Date.parse('2027-01-01T00:00:00Z'))).toBeNull();
+    expect(countdownText(s, 71)).toBe('71 days left in Mainnet Season 1');
+    expect(countdownText(s, 1)).toBe('1 day left in Mainnet Season 1');
+    expect(countdownText(s, 0)).toBe('Last day of Mainnet Season 1');
+  });
+  it("a final recap's post says so, and still fits on X", () => {
+    const post = sharePost({ ...load('whale'), final: true });
+    expect(post.split('\n')[0]).toBe('My Mainnet Season 1 on gno.land: the final recap 🎁');
+    expect(xLength(post)).toBeLessThanOrEqual(X_MAX);
+    expect(sharePost(load('full')).split('\n')[0]).toBe('My Mainnet Season 1 on gno.land 🎁');
+  });
+});
+
+describe('compare two recaps', () => {
+  it('reads a share ID from a link or the ID itself, nothing else', () => {
+    expect(parseShareId('https://gnowrapped.wookjin.cloud/s1/s/0502axjyazs8')).toBe('0502axjyazs8');
+    expect(parseShareId(' https://x.example/s1/s/0502AXJYAZS8?utm=1 ')).toBe('0502axjyazs8');
+    expect(parseShareId('0502axjyazs8')).toBe('0502axjyazs8');
+    expect(parseShareId('https://x.example/s1/g1wrappedsampleqqqqqqqqqqqqqqqqqqqqqqqqq')).toBeNull();
+    expect(parseShareId('0502axjyazs')).toBeNull();
+  });
+  it('marks who is ahead: more, or an earlier arrival; gas and ties have no mark', () => {
+    const rows = compareRows(load('full'), load('whale'));
+    const by = Object.fromEntries(rows.map((r) => [r.label, r]));
+    expect(by['Transactions']).toEqual({ label: 'Transactions', a: '1,284', b: '48,210', ahead: 'b' });
+    expect(by['Arrived on mainnet']).toMatchObject({ a: 'Day 22', b: 'Day 1', ahead: 'b' });
+    expect(by['Gas spent'].ahead).toBeNull();
+    expect(compareRows(load('full'), load('full')).every((r) => r.ahead === null)).toBe(true);
+  });
+});
+
+describe('rate limiter', () => {
+  it('allows max hits per window per key, then says when to retry', () => {
+    const l = createLimiter(2, 60_000);
+    expect(l.hit('a', 0)).toEqual({ ok: true, retryAfter: 60 });
+    expect(l.hit('a', 1_000).ok).toBe(true);
+    expect(l.hit('a', 30_000)).toEqual({ ok: false, retryAfter: 30 });
+    expect(l.hit('b', 30_000).ok).toBe(true); // another client
+    expect(l.hit('a', 60_000).ok).toBe(true); // a new window
   });
 });
 

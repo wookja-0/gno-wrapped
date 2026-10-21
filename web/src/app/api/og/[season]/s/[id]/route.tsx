@@ -7,5 +7,5 @@ export async function GET(req: Request, { params }: RouteContext<'/api/og/[seaso
   const { season, id } = await params;
   const fixture = FIXTURES_ENABLED ? new URL(req.url).searchParams.get('fixture') : null;
   if (!fixture && !SHARE_ID.test(id)) return new Response('invalid share id', { status: 400 });
-  return ogResponse(fixture ? await getFixture(fixture, true) : await getShared(season, id));
+  return ogResponse(fixture ? await getFixture(fixture, true) : await getShared(season, id), req);
 }

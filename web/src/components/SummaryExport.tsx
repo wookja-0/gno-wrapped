@@ -5,6 +5,7 @@ import { PersonaBadge, Pixel } from './pixel';
 /** Display-ready strings for the 1080x1920 "Download image" frame (built like SummaryCard's). */
 export interface SummaryVM {
   seasonPill: string;
+  final?: boolean;
   persona: Persona;
   stats: { label: string; value: string }[];
   topRealm: { path: string; detail: string } | null;
@@ -29,6 +30,7 @@ export function SummaryExport({ vm }: { vm: SummaryVM }) {
         </div>
         <div style={{ marginTop: 40, display: 'flex', alignItems: 'center', gap: 16 }}>
           <span style={{ padding: '12px 22px', borderRadius: 999, background: '#1F6BFF', color: '#FFFFFF', fontFamily: "'Silkscreen', monospace", fontSize: 26, letterSpacing: '0.04em' }}>{vm.seasonPill}</span>
+          {vm.final && <span style={{ padding: '12px 22px', borderRadius: 999, background: '#FF8A3D', color: '#0A0F2E', fontFamily: "'Silkscreen', monospace", fontSize: 26, letterSpacing: '0.04em' }}>FINAL</span>}
         </div>
         <div style={{ marginTop: 44 }}><PersonaBadge id={vm.persona.id} p={12} label={`${vm.persona.title} badge`} /></div>
         <p style={{ margin: '40px 0 0', fontSize: 34, fontWeight: 500, color: '#C9D3F5' }}>Your season persona</p>

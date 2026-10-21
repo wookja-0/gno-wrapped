@@ -93,6 +93,15 @@ export async function getFixture(name: string, shared = false): Promise<WrappedD
   return shared ? redactFixture(d) : d;
 }
 
+/** Dev/test only: the fixture whose shareId this is, as its share view (for /compare). */
+export async function getFixtureByShareId(id: string): Promise<WrappedData | null> {
+  for (const name of FIXTURES_ENABLED ? FIXTURE_NAMES : []) {
+    const d = await getFixture(name, true);
+    if (d?.shareId === id) return d;
+  }
+  return null;
+}
+
 /** Dev-only mirror of the batch's redact() (batch/share.go), so share views can be tested on fixtures. */
 function redactFixture(d: WrappedData): WrappedData {
   // fixtures abbreviate the owner's namespace ("gno.land/r/g1wrap.../hello"), so mask by prefix too

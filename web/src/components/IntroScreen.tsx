@@ -7,6 +7,7 @@ import { ADDRESS_RE, fmtShort } from '@/lib/wrapped';
 import Link from 'next/link';
 import { AdenaIcon } from './AdenaIcon';
 import { LiveTicker } from './LiveTicker';
+import { SeasonCountdown } from './SeasonCountdown';
 import { Pill, Wordmark } from './pixel';
 import { useHydrated } from './useReducedMotion';
 import { Footer, Nav, Starfield } from './web';
@@ -61,6 +62,7 @@ export function IntroScreen() {
       <main className="gw-main gw-intro">
         <div style={{ animation: RISE(0), display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
           <Pill>{seasonPill}</Pill>
+          <SeasonCountdown season={season} final={final} />
         </div>
         <LiveTicker onFinal={setFinal} />
         <div className="gw-intro-mark" style={{ animation: RISE(80) }}>

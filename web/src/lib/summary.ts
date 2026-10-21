@@ -32,6 +32,7 @@ export function exportVm(d: WrappedData): SummaryVM {
   const top = d.topRealms?.[0];
   return {
     seasonPill: seasonPill(season),
+    final: d.final,
     persona: d.persona ?? { id: '', title: '', line: '' },
     stats: summaryStats(d),
     topRealm: top ? { path: top.path, detail: topRealmDetail(d) } : null,

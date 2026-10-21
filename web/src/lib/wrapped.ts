@@ -295,7 +295,7 @@ export function sharePost(d: WrappedData): string {
   const rankLine = d.personaRank && rankTopPct(d.personaRank) <= 50 ? `🏅 ${personaRankText(d)} (top ${rankTopPct(d.personaRank)}%)` : '';
   const seasonName = `Mainnet Season ${d.season.id.replace(/^s/i, '')}`;
   const build = (opt: string[]) =>
-    [`My ${seasonName} on gno.land 🎁`, '', ...[...head, ...opt, rankLine].filter(Boolean), '', 'Unwrap yours 👇', shareLink(d), '', SHARE.HASHTAG].join('\n');
+    [`My ${seasonName} on gno.land${d.final ? ': the final recap' : ''} 🎁`, '', ...[...head, ...opt, rankLine].filter(Boolean), '', 'Unwrap yours 👇', shareLink(d), '', SHARE.HASHTAG].join('\n');
   let post = build(optional);
   for (let n = optional.length - 1; n >= 0 && xLength(post) > X_MAX; n--) post = build(optional.slice(0, n));
   return post;
@@ -397,6 +397,20 @@ export function personaRankText(d: WrappedData): string | null {
   const r = d.personaRank, id = d.persona?.id;
   if (!r || !id) return null;
   return `#${fmt(r.rank)} of ${fmt(r.of)} ${PERSONA_PLURAL[id] ?? d.persona!.title}`;
+}
+
+// ---------- season countdown ----------
+
+/** Whole UTC days left after today: 0 on the season's last day, null once it's over. */
+export function daysLeft(s: Season, now: number): number | null {
+  const end = Date.parse(s.end) + 864e5; // exclusive: the day after the last
+  const today = Math.floor(now / 864e5) * 864e5; // this UTC day's midnight
+  return now >= end ? null : Math.round((end - today) / 864e5) - 1;
+}
+/** "71 days left in Mainnet Season 1" / "Last day of Mainnet Season 1". */
+export function countdownText(s: Season, left: number): string {
+  const name = `Mainnet Season ${s.id.replace(/^s/i, '')}`;
+  return left === 0 ? `Last day of ${name}` : `${fmt(left)} ${plural(left, 'day', 'days')} left in ${name}`;
 }
 
 // ---------- activity calendar ----------
@@ -503,6 +517,37 @@ export const peakIndex = (values: number[]) => {
   const max = Math.max(0, ...values);
   return max > 0 ? values.indexOf(max) : -1;
 };
+
+// ---------- compare two recaps ----------
+
+/** A share ID from what someone pasted: the ID itself or any link ending in /s/<id>. */
+export function parseShareId(input: string): string | null {
+  const m = input.trim().toLowerCase().match(/(?:^|\/s\/)([0-9a-z]{12})(?=$|[/?#])/);
+  return m ? m[1] : null;
+}
+
+export interface CompareRow { label: string; a: string; b: string; ahead: 'a' | 'b' | null }
+
+/** Side-by-side rows for /compare. `ahead` marks the larger number (an earlier day for arrival); ties and gas have none. */
+export function compareRows(a: WrappedData, b: WrappedData): CompareRow[] {
+  const row = (label: string, va: number, vb: number, show: (n: number) => string, better: 'more' | 'less' | null = 'more'): CompareRow => ({
+    label, a: show(va), b: show(vb),
+    ahead: !better || va === vb ? null : (better === 'more') === (va > vb) ? 'a' : 'b',
+  });
+  const days = (n: number) => `${fmt(n)} ${plural(n, 'day', 'days')}`;
+  return [
+    row('Transactions', a.txCount, b.txCount, fmt),
+    row('More active than', a.percentile || 0, b.percentile || 0, (n) => `${n}%`),
+    row('Arrived on mainnet', a.firstTx?.mainnetDay ?? 0, b.firstTx?.mainnetDay ?? 0, (n) => `Day ${n}`, 'less'),
+    row('Active days', a.calendar?.activeDays ?? 0, b.calendar?.activeDays ?? 0, fmt),
+    row('Longest streak', a.calendar?.longestStreak ?? 0, b.calendar?.longestStreak ?? 0, days),
+    row('Realms called', a.realmCount ?? a.topRealms.length, b.realmCount ?? b.topRealms.length, fmt),
+    row('Swaps on GnoSwap', a.swaps?.count ?? 0, b.swaps?.count ?? 0, fmt),
+    row('Realms deployed', a.deployedRealms?.length ?? 0, b.deployedRealms?.length ?? 0, fmt),
+    row('Achievements', a.achievements?.length ?? 0, b.achievements?.length ?? 0, fmt),
+    row('Gas spent', a.gasFeeGnot || 0, b.gasFeeGnot || 0, (n) => `${fmtGas(n)} GNOT`, null),
+  ];
+}
 
 // ---------- since your last visit ----------
 
