@@ -41,6 +41,8 @@ and a share card for X and Discord. It follows the chain live, so new activity s
 
 <p align="center"><img src="docs/screenshots/share-card.png" width="600" alt="Share card shown on X and Discord"></p>
 
+<p align="center"><img src="docs/screenshots/story.png" width="280" alt="Story mode on a phone: the persona card"></p>
+
 The site's `/season` page is the same recap for the whole chain: totals, transactions and new
 addresses per day, and the most-used realms.
 
