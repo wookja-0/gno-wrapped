@@ -1,10 +1,13 @@
 import { FIXTURES_ENABLED, getDay, getFixtureDay } from '@/lib/data';
+import { limited, limits } from '@/lib/rateLimit';
 import { ADDRESS_RE } from '@/lib/wrapped';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** The recap calendar's day list, fetched when a day is clicked (the api itself isn't exposed to browsers). */
 export async function GET(req: Request, { params }: RouteContext<'/api/day/[season]/[address]/[date]'>) {
+  const tooMany = limited(req, limits.day);
+  if (tooMany) return tooMany;
   const { season, address: raw, date } = await params;
   const address = raw.toLowerCase();
   if (!/^s\d+$/.test(season) || !ADDRESS_RE.test(address) || !DATE_RE.test(date)) {

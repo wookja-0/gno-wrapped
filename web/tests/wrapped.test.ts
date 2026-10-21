@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { createLimiter } from '../src/lib/limiter';
 import { achievementIconRows, PERSONA_IDS, personaBadge, personaBadgeRows, personaOrbit, personaSymbolRows } from '../src/lib/art';
 import {
   ACHIEVEMENT_ORDER, arrivalText, CAL_COLORS, calendarDays, calendarMonths, calendarWeeks, compareRows, countdownText, parseShareId, dayLevel, daysLeft, dayText, dayTxAction, daySeries, peakIndex, seasonDays, visitDiff, visitSnapshot, weekLevel, weekText, builderCards, fmtGas, timeline, gnoscanAccount, gnoscanRealm, gnoscanTx, personaRankText, personaRuleText, personaWhy, rankTopPct, shareLink, sharePost, X_MAX, xLength, fuelLine, gasPerTx, isEmpty, ogRankCard, realmShortName,
@@ -270,6 +271,17 @@ describe('compare two recaps', () => {
     expect(by['Arrived on mainnet']).toMatchObject({ a: 'Day 22', b: 'Day 1', ahead: 'b' });
     expect(by['Gas spent'].ahead).toBeNull();
     expect(compareRows(load('full'), load('full')).every((r) => r.ahead === null)).toBe(true);
+  });
+});
+
+describe('rate limiter', () => {
+  it('allows max hits per window per key, then says when to retry', () => {
+    const l = createLimiter(2, 60_000);
+    expect(l.hit('a', 0)).toEqual({ ok: true, retryAfter: 60 });
+    expect(l.hit('a', 1_000).ok).toBe(true);
+    expect(l.hit('a', 30_000)).toEqual({ ok: false, retryAfter: 30 });
+    expect(l.hit('b', 30_000).ok).toBe(true); // another client
+    expect(l.hit('a', 60_000).ok).toBe(true); // a new window
   });
 });
 
