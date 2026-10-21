@@ -1,6 +1,9 @@
-# Production stack: the images built by .github/workflows/release.yml, behind Caddy (HTTPS from
-# Let's Encrypt). Run from the repo root on the server (deploy/deploy.sh does):
+# Production stack: the images built by .github/workflows/release.yml. Run from the repo root on
+# the server (deploy/deploy.sh does):
 #   IMAGE_TAG=<sha> docker compose --env-file .env -f deploy/compose.prod.yml up -d
+# The server is shared with CronBark: its nginx (compose project "app", network
+# app_cronbark-network) terminates HTTPS for DOMAIN and proxies to web as gno-wrapped-web:3000.
+# Nothing here publishes a port. Memory limits keep a runaway container from starving CronBark.
 name: gno-wrapped
 
 x-logging: &logging
@@ -21,6 +24,7 @@ services:
     environment: *indexer
     volumes:
       - ../data:/data
+    mem_limit: 512m
     restart: unless-stopped
     logging: *logging
 
@@ -39,6 +43,7 @@ services:
       DATA_DIR: /data/out
     volumes:
       - ../data/out:/data/out:ro
+    mem_limit: 256m
     restart: unless-stopped
     logging: *logging
 
@@ -47,25 +52,15 @@ services:
     environment:
       WRAPPED_API_URL: http://api:8080
     depends_on: [api]
+    mem_limit: 512m
     restart: unless-stopped
     logging: *logging
+    networks:
+      default:
+      cronbark:
+        aliases: [gno-wrapped-web]
 
-  caddy:
-    image: caddy:2-alpine
-    ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
-    environment:
-      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data # certificates: keep them, Let's Encrypt rate-limits re-issuing
-      - caddy_config:/config
-    depends_on: [web]
-    restart: unless-stopped
-    logging: *logging
-
-volumes:
-  caddy_data:
-  caddy_config:
+networks:
+  cronbark:
+    external: true
+    name: app_cronbark-network

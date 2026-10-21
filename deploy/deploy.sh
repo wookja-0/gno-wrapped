@@ -36,5 +36,7 @@ if ! healthy "$sha"; then
 fi
 
 echo "$sha" >.deployed
-docker image prune -af --filter "until=168h" >/dev/null # unused images older than a week
+# unused images of this repo older than a week (the host is shared: leave other images alone)
+docker image prune -af --filter "until=168h" \
+  --filter "label=org.opencontainers.image.source=https://github.com/wookja-0/gno-wrapped" >/dev/null
 echo "deployed ${sha}"
