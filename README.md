@@ -41,9 +41,13 @@ Every chart reads out the day under the pointer or the arrow keys and has a Tabl
 and achievements are decided is on the site's `/personas` page and in [`batch/build.go`](batch/build.go)
 and [`batch/achievements.go`](batch/achievements.go).
 
-<p align="center"><img src="docs/screenshots/share-card.png" width="600" alt="Share card shown on X and Discord"></p>
+<p align="center"><img src="docs/screenshots/share-card.png" width="760" alt="Share card shown on X and Discord"></p>
 
-<p align="center"><img src="docs/screenshots/story.png" width="280" alt="Story mode on a phone: the persona card"></p>
+<p align="center">
+  <img src="docs/screenshots/story-arrival.png" width="250" alt="Story mode on a phone: the mainnet day you arrived">
+  <img src="docs/screenshots/story-achievements.png" width="250" alt="Story mode: the achievements you unlocked">
+  <img src="docs/screenshots/story-persona.png" width="250" alt="Story mode: the season persona">
+</p>
 
 ![Personas page](docs/screenshots/personas.png)
 
