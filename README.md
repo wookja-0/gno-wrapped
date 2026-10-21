@@ -21,17 +21,24 @@ and a share card for X and Discord. It follows the chain live, so new activity s
 - **Season persona**: one of eight, picked by rules checked in order, with the reason in your own
   numbers and your rank among addresses with the same persona.
 - **Achievements**: eight to collect, from Early Arrival to Citizen (a GovDAO or GnoSwap governance vote).
+- **Next up**: while the season is live, the achievements still in reach and how far along you are
+  (e.g. 77 of 100 transactions, 2 of 3 days in a row).
+- **Clock**: your transactions by hour of day in your own time zone, the busiest hour, and whether
+  you're an Early Bird, an Afternoon or Evening Regular, or a Night Owl.
 - **Arrival and activity**: your mainnet day and arrival order, a season timeline, transactions,
   percentile and success rate.
 - **Calendar**: every day of the season and your longest streak; click a day for its first 100
   transactions, linked to [Gnoscan](https://gnoscan.io).
-- **Realms, GnoSwap and governance**: your top realms; swaps by week, your favorite pair, positions,
+- **Realms, GnoSwap and governance**: your top realms and your place among each one's callers
+  (#37 of 1,204, by first call); swaps by week, your favorite pair, positions,
   fees and rewards; votes, proposals and GNS delegations.
 - **Builder report**: each realm you deployed, and how many other addresses called it.
 - **Story mode**: the recap as full-screen cards, one at a time. Add `?story` to a recap link.
 - **Sharing**: a post for X and Discord, a 1200×630 preview card and a 1080×1920 image. Share links
   never carry your address ([Privacy](#privacy)).
 - **Compare**: two share links side by side, with neither address shown.
+- **Several wallets**: up to five of your addresses added up on one page (`/s1/wallets/<a>,<b>`):
+  transactions, days, hours, realms, GnoSwap and gas combined, personas and achievements per wallet.
 - **Since your last visit**: what changed since you last opened your recap, kept in your browser only.
 - **Season page**: `/season`, the same recap for the whole chain.
 - **Live, then final**: a countdown to the season's end; after it, recaps are marked final.
@@ -114,7 +121,9 @@ All data is public on-chain data. Share links still never carry the address:
   so the code being public doesn't let anyone map an ID back to an address.
 - Behind a share link the batch serves a redacted recap: no address in any form (the short
   `g1xxxx…xxxx` form alone identifies an address), no transaction hash, no exact arrival order,
-  and realm paths that contain the address are masked. The calendar shows only active days per week
+  and realm paths that contain the address are masked. There is no Clock (an hour-by-hour pattern gives
+  away a time zone), no Next up, and no place among a realm's callers (only how many callers it has).
+- The several-wallets page has no share link; its own link lists the addresses, like a recap's. The calendar shows only active days per week
   (a day-by-day pattern can be matched against the chain) and has no day list (transaction hashes lead
   to the address), and Realm Pioneer doesn't say which realms.
   The share card and image never show the address either.

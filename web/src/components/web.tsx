@@ -180,7 +180,7 @@ export function DataErrorBanner({ errors }: { errors: string[] }) {
 export function Footer({ dataAsOf, final, children }: { dataAsOf?: string | null; final?: boolean; children?: ReactNode }) {
   const c = useCopy();
   return (
-    <footer className="gw-footer">
+    <footer className={children ? 'gw-footer gw-footer-action' : 'gw-footer'}>
       <div className="gw-footer-text">
         {children}
         <p>

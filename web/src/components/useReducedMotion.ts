@@ -31,3 +31,8 @@ function subscribeNarrow(cb: () => void) {
 export function useNarrow(): boolean {
   return useSyncExternalStore(subscribeNarrow, () => window.matchMedia(NARROW).matches, () => false);
 }
+
+/** Minutes the browser's time zone is ahead of UTC (UTC+9 → 540); the server renders UTC. */
+export function useTzOffset(): number {
+  return useSyncExternalStore(noop, () => -new Date().getTimezoneOffset(), () => 0);
+}

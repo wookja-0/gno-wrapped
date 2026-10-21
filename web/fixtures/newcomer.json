@@ -16,7 +16,9 @@
     {
       "path": "gno.land/r/gnoland/users/v1",
       "topFunc": "Register",
-      "calls": 1
+      "calls": 1,
+      "order": 4981,
+      "callers": 4990
     }
   ],
   "deployedRealms": [],
@@ -52,5 +54,12 @@
     "daily": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
     "activeDays": 2,
     "longestStreak": 1
-  }
+  },
+  "hours": [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  "progress": [
+    {"id": "century", "have": 2, "need": 100},
+    {"id": "streak", "have": 0, "need": 3},
+    {"id": "triple-threat", "have": 0, "need": 3, "missing": ["defi", "collect", "play"]},
+    {"id": "citizen", "have": 0, "need": 1}
+  ]
 }

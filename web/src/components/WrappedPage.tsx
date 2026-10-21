@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { achievementIcon, door, pump, rocket } from '@/lib/art';
 import { exportVm, seasonPill, summaryStats, validSeason } from '@/lib/summary';
 import {
-  ACHIEVEMENT_ORDER, builderCards, timeline, downloadFilename, fmt, fmtGas, gasPerTx,
+  ACHIEVEMENT_ORDER, builderCards, nextUp, timeline, downloadFilename, fmt, fmtGas, gasPerTx,
   gnoscanAccount, gnoscanRealm, gnoscanTx, shareLink, shortAddress, slideIds, validate, xIntentUrl, type WrappedData,
 } from '@/lib/wrapped';
 import { personaIn } from '@/lib/i18n';
@@ -13,11 +13,13 @@ import Link from 'next/link';
 import { ActivityCalendar } from './ActivityCalendar';
 import { CompareForm } from './CompareForm';
 import { DiscordIcon, XIcon } from './BrandIcons';
+import { ClockCard } from './HourlyChart';
 import { PersonaBadge, Pill, Pixel } from './pixel';
 import { SeasonCountdown } from './SeasonCountdown';
 import { StoryMode } from './StoryMode';
 import { SinceLastVisit } from './SinceLastVisit';
 import { SummaryExport } from './SummaryExport';
+import { WalletForm } from './WalletForm';
 import { useCopy } from './useLocale';
 import { useHydrated } from './useReducedMotion';
 import { CONFIG } from '@/lib/config';
@@ -90,6 +92,7 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
   const steps = timeline(data, (id) => c.milestone(id), c.firstTransaction);
   const [activePre, activePct, activePost] = c.moreActiveThan(pct);
   const [perTxPre, perTxValue, perTxPost] = c.perTx(gasPerTx(gas, data.txCount));
+  const next = nextUp(data); // owner view of a live season only: the batch leaves it out otherwise
 
   return (
     <div className="gw-page" data-hydrated={hydrated || undefined}>
@@ -171,6 +174,27 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
           </Reveal>
         )}
 
+        {next.length > 0 && (
+          <Reveal as="section" className="gw-achievements" label={c.nextUpTitle}>
+            <h2 className="gw-h3">{c.nextUpTitle}</h2>
+            <p className="gw-next-lede">{c.nextUpLede}</p>
+            <ul className="gw-ach-list">
+              {next.map((p, i) => (
+                <Reveal as="li" key={p.id} className="gw-ach gw-ach-next" delay={i * 70}>
+                  <Pixel art={achievementIcon(p.id, 4)} />
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div className="gw-ach-title">{c.achievement(p.id).title}</div>
+                    <div className="gw-ach-text">{c.progressText(p)}</div>
+                    <div className="gw-progress" role="progressbar" aria-label={c.achievement(p.id).title} aria-valuemin={0} aria-valuemax={p.need} aria-valuenow={p.have}>
+                      <i style={{ width: `${(p.have / p.need) * 100}%` }} />
+                    </div>
+                  </div>
+                </Reveal>
+              ))}
+            </ul>
+          </Reveal>
+        )}
+
         <div className="gw-grid">
           {show.has('ArrivalSlide') && data.firstTx && (
             <Card label="Arrival" className="gw-span-6">
@@ -221,6 +245,8 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
             </Card>
           ) : null}
 
+          <ClockCard data={data} />
+
           {show.has('RealmSlide') && top && (
             <Card label="Top realms" className="gw-span-12">
               <Pill>TOP REALMS</Pill>
@@ -236,6 +262,7 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
                     <CountUp className="gw-hero-num" value={top.calls} format={fmt} />
                     <span className="gw-big-line">{c.callPlural(top.calls)}</span>
                   </div>
+                  {c.realmOrderLine(top) && <p className="gw-body-strong" style={{ color: '#C9D3F5' }}>{c.realmOrderLine(top)}</p>}
                 </div>
                 <ol className="gw-list">
                   {data.topRealms.slice(0, 3).map((r, i) => (
@@ -246,13 +273,17 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
                           <PathText path={r.path} max={40} narrowMax={26} className="gw-path-row" />
                           {!masked(r.path) && <ExtLink href={gnoscanRealm(r.path)} className="gw-ext gw-ext-icon" label={c.openOnGnoscan(r.path)} />}
                         </div>
-                        <div style={{ marginTop: 2, fontSize: 15, fontWeight: 700 }}>{r.topFunc}</div>
+                        <div style={{ marginTop: 2, fontSize: 15, fontWeight: 700 }}>
+                          {r.topFunc}
+                          {c.realmOrderText(r) && <span className="gw-realm-order"> · {c.realmOrderText(r)}</span>}
+                        </div>
                       </div>
                       <span style={{ fontSize: 18, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{fmt(r.calls)}</span>
                     </Reveal>
                   ))}
                 </ol>
               </div>
+              {data.topRealms.some((r) => r.callers) && <p className="gw-hint" style={{ marginTop: 14 }}>{c.callersNote}</p>}
             </Card>
           )}
 
@@ -358,6 +389,14 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
             </Card>
           )}
         </div>
+
+        {!shared && season && (
+          <Reveal as="section" className="gw-card" label={c.moreWallets} style={{ marginTop: 20 }}>
+            <h2 className="gw-h3">{c.moreWallets}</h2>
+            <p className="gw-hint">{c.moreWalletsHint}</p>
+            <WalletForm season={season.id} current={[data.address]} />
+          </Reveal>
+        )}
 
         {/* share (owner) / get your own (shared view) */}
         {shared ? (

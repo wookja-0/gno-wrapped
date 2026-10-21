@@ -112,10 +112,13 @@ func redact(w wrapped) wrapped {
 		achievements[i] = a
 	}
 	w.Achievements = achievements
+	w.Progress = nil // what you still need narrows down what you've done; it's for the owner only
+	w.Hours = nil    // an hour-by-hour pattern gives away a time zone and can be matched against the chain
 	w.Calendar = calendar{Weeks: activeDaysPerWeek(w.Calendar.Daily), ActiveDays: w.Calendar.ActiveDays, LongestStreak: w.Calendar.LongestStreak}
 	realms := make([]realmStat, len(w.TopRealms))
 	for i, r := range w.TopRealms {
 		r.Path = mask(r.Path)
+		r.Order = 0 // "the 37th to call this realm" is a direct lookup into chain data; keep the realm's caller count only
 		realms[i] = r
 	}
 	w.TopRealms = realms

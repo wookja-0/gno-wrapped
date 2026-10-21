@@ -66,6 +66,14 @@ body { color: #F4F6FF; font-family: 'Archivo', system-ui, sans-serif; }
 .gw-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
 .gw-span-5 { grid-column: span 5; } .gw-span-6 { grid-column: span 6; } .gw-span-7 { grid-column: span 7; } .gw-span-12 { grid-column: span 12; }
 .gw-card { padding: 28px; border-radius: 24px; background: rgba(16,23,58,0.92); border: 1px solid #26305A; min-width: 0; }
+.gw-wallets .gw-row { gap: 14px; }
+.gw-wallet-addr { font-size: 15px; font-weight: 600; color: #F4F6FF; text-decoration: none; }
+.gw-wallet-addr:hover, .gw-wallet-addr:focus-visible { color: #9CC2FF; text-decoration: underline; }
+.gw-wallet-none { width: 42px; height: 42px; border: 1px dashed #2A3566; }
+.gw-wallet-remove { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.gw-realm-order { font-weight: 500; color: #A3AED6; }
+.gw-clock { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 8px 32px; align-items: start; }
+.gw-clock-type { margin: 6px 0 0; font-size: clamp(40px, 5vw, 56px); line-height: 1; font-weight: 900; letter-spacing: -0.03em; }
 .gw-realms { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: end; }
 .gw-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .gw-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: #0B1131; border: 1px solid #222C58; }
@@ -120,6 +128,7 @@ body { color: #F4F6FF; font-family: 'Archivo', system-ui, sans-serif; }
 .gw-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .gw-chips li { padding: 6px 12px; border-radius: 999px; background: #10173A; border: 1px solid #2A3566; font-size: 14px; color: #C9D3F5; }
 .gw-chips strong { color: #F4F6FF; font-weight: 800; }
+.gw-chips-lg { margin-top: 18px; }
 .gw-chips-lg li { padding: 10px 16px; font-size: 17px; }
 .gw-realm-use { margin-top: 2px; font-size: 13px; color: #A3AED6; }
 .gw-lang { display: inline-flex; padding: 2px; border-radius: 9px; border: 1px solid #2A3566; }
@@ -186,14 +195,16 @@ body { color: #F4F6FF; font-family: 'Archivo', system-ui, sans-serif; }
 .gw-pager-buttons button[aria-current="page"] { background: #1F6BFF; border-color: #1F6BFF; color: #FFFFFF; }
 .gw-pager-buttons button:disabled { opacity: 0.35; cursor: default; }
 .gw-pager-buttons button:focus-visible { outline: 2px solid #7DB3FF; outline-offset: 1px; }
+.gw-pager-gap { min-width: 20px; align-self: center; text-align: center; color: #A3AED6; font-size: 13px; }
 .gw-day-list li { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 9px 0; border-top: 1px solid #1A2350; }
 .gw-day-time { font-size: 13px; color: #A3AED6; }
 .gw-day-what { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; min-width: 0; }
 .gw-day-action { font-size: 15px; font-weight: 700; }
 .gw-day-path { display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
 .gw-day-more { font-size: 12px; color: #A3AED6; }
+.gw-day-wallet { padding: 1px 8px; border-radius: 999px; border: 1px solid #2A3566; font-size: 11px; color: #9CC2FF; }
 .gw-day .gw-ext { margin: 0; font-size: 13px; }
-.gw-day-rest { margin-top: 12px !important; }
+.gw-day-rest { display: flex; width: fit-content; margin-top: 12px !important; } /* one per wallet, stacked */
 .gw-link-btn { padding: 0; border: 0; background: none; color: #9CC2FF; font: inherit; font-weight: 600; cursor: pointer; text-decoration: underline; }
 /* chart box: the readout and foot take the chart's width but never set it, so hovering can't resize the box */
 .gw-cal-readout { width: 0; min-width: 100%; margin: 12px 0 0; min-height: 1.4em; font-size: 13px; color: #C9D3F5; }
@@ -238,6 +249,11 @@ body { color: #F4F6FF; font-family: 'Archivo', system-ui, sans-serif; }
 .gw-ach { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 16px; background: #0B1131; border: 1px solid #222C58; }
 .gw-ach-title { font-size: 16px; font-weight: 800; color: #FF8A3D; }
 .gw-ach-text { margin-top: 2px; font-size: 13px; line-height: 1.4; color: #C9D3F5; overflow-wrap: anywhere; }
+/* next up: achievements still in reach */
+.gw-next-lede { margin: 4px 0 0; font-size: 14px; color: #A3AED6; }
+.gw-ach-next .gw-ach-title { color: #F4F6FF; }
+.gw-progress { height: 6px; margin-top: 8px; background: #1E2750; }
+.gw-progress i { display: block; height: 100%; background: #3D8BFF; }
 .gw-timeline { list-style: none; margin: 18px 0 0; padding: 14px 0 0; border-top: 1px solid #222C58; display: flex; flex-direction: column; gap: 8px; }
 .gw-timeline li { display: flex; gap: 14px; font-size: 14px; color: #D3DBF7; }
 .gw-timeline .gw-mono { flex: none; min-width: 56px; white-space: nowrap; color: #7DB3FF; font-size: 13px; }
@@ -297,6 +313,9 @@ body { color: #F4F6FF; font-family: 'Archivo', system-ui, sans-serif; }
 
 /* ---------- footer ---------- */
 .gw-footer { position: relative; z-index: 1; margin-top: 24px; }
+/* a footer button (Unwrap another address) sits closer to the page above it than to the footer text */
+.gw-footer-action { margin-top: -28px; }
+.gw-footer-action .gw-footer-text > .gw-btn { margin-bottom: 10px; }
 .gw-footer-text { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 0 24px 18px; text-align: center; font-size: 13px; color: #D3DBF7; }
 .gw-footer-text p { margin: 0; }
 .gw-source { display: inline-flex; align-items: center; gap: 5px; color: inherit; font-weight: 600; text-decoration: none; vertical-align: bottom; }
@@ -319,12 +338,13 @@ body { color: #F4F6FF; font-family: 'Archivo', system-ui, sans-serif; }
   .gw-cal-layout { display: block; }
   .gw-cal-layout .gw-chart { margin-top: 18px; }
   .gw-main { padding: 0 18px 40px; }
+  .gw-footer-action { margin-top: -16px; }
   .gw-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .gw-nav { padding: 12px 18px; }
   .gw-hero { grid-template-columns: 1fr; gap: 24px; padding-top: 36px; }
   .gw-hero-badge { order: -1; }
   .gw-span-5, .gw-span-6, .gw-span-7, .gw-span-12 { grid-column: span 12; }
-  .gw-realms, .gw-share, .gw-persona-list { grid-template-columns: 1fr; }
+  .gw-realms, .gw-share, .gw-persona-list, .gw-clock { grid-template-columns: 1fr; }
   .gw-card { padding: 22px; }
   .gw-share { padding: 22px; }
   .gw-intro, .gw-empty { padding-top: 40px; }

@@ -80,6 +80,17 @@ describe('Korean copy', () => {
   });
 });
 
+describe('Korean next up and clock', () => {
+  it('has its own words for both', () => {
+    expect(ko.progressText({ id: 'century', have: 77, need: 100 })).toBe('트랜잭션 77/100회. 23회 남았어요.');
+    expect(ko.progressText({ id: 'triple-threat', have: 1, need: 3, missing: ['collect', 'play'] })).toBe('1/3 완료. 남은 것: NFT, 온체인 게임.');
+    for (const p of load('newcomer').progress!) expect(ko.progressText(p), p.id).toMatch(/[가-힣]/);
+    for (const id of ['night-owl', 'early-bird', 'afternoon', 'evening'] as const) expect(ko.chronotype(id)).not.toBe(en.chronotype(id));
+    expect(ko.chronotypeLine({ from: 0, share: 0.6 })).toBe('트랜잭션의 60%가 00:00–06:00 사이에 있었어요.');
+    expect(ko.clockTz('UTC+9', false)).toBe('내 시간대(UTC+9) 기준이에요.');
+  });
+});
+
 describe('Korean story outro', () => {
   it('picks 이었어요 or 였어요 by how the season number ends', () => {
     expect(ko.story.outro(false, { id: 's1', start: '', end: '' }, true)).toBe('나의 메인넷 시즌 1이었어요.');

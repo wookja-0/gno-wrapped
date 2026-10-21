@@ -107,7 +107,7 @@ function redactFixture(d: WrappedData): WrappedData {
   // fixtures abbreviate the owner's namespace ("gno.land/r/g1wrap.../hello"), so mask by prefix too
   const mask = (p: string) => p.split(d.address).join('…').replace(new RegExp(`${d.address.slice(0, 6)}[^/]*`, 'g'), '…');
   return {
-    ...d, address: '', shared: true,
+    ...d, address: '', shared: true, hours: undefined, progress: undefined,
     firstTx: d.firstTx && { date: d.firstTx.date, mainnetDay: d.firstTx.mainnetDay },
     arrival: d.arrival && { of: d.arrival.of, tier: d.arrival.tier },
     achievements: d.achievements?.map(({ realms: _, ...a }) => a), // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -115,7 +115,7 @@ function redactFixture(d: WrappedData): WrappedData {
       weeks: Array.from({ length: Math.ceil((d.calendar.daily?.length ?? 0) / 7) }, (_, w) => (d.calendar!.daily ?? []).slice(w * 7, w * 7 + 7).filter((n) => n > 0).length),
       activeDays: d.calendar.activeDays, longestStreak: d.calendar.longestStreak,
     },
-    topRealms: d.topRealms.map((r) => ({ ...r, path: mask(r.path) })),
+    topRealms: d.topRealms.map(({ order: _, ...r }) => ({ ...r, path: mask(r.path) })), // eslint-disable-line @typescript-eslint/no-unused-vars
     deployedRealms: d.deployedRealms.map(mask),
     builder: d.builder?.map((r) => ({ ...r, path: mask(r.path) })),
   };
