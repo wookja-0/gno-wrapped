@@ -53,7 +53,19 @@ export interface WrappedData {
   arrival?: Arrival;
   achievements?: Achievement[];
   milestones?: Milestone[];
+  defi?: DefiStats;                                 // GnoSwap beyond swaps
+  governance?: GovStats;                            // votes, proposals, GNS delegations
+  builder?: RealmReport[];                          // deployedRealms with their use by others, most-called first
+  failedTxs?: number;                               // failed txs this season (txCount counts successful ones)
 }
+
+export interface DefiStats {
+  positions?: number; liquidityMoves?: number; feesCollected?: number; staked?: number; rewardsClaimed?: number;
+  topPair?: { tokens: [string, string]; swaps: number };
+}
+export interface GovStats { votes?: number; proposals?: number; delegations?: number }
+/** A deployed realm and its use by other addresses (the deployer not counted). */
+export interface RealmReport { path: string; callers: number; calls: number }
 
 /**
  * Activity by day. Owner view: txs per UTC day (daily[0] = season.start). Share view: only active
@@ -63,7 +75,7 @@ export interface Calendar { daily?: number[]; weeks?: number[]; activeDays: numb
 
 /** Mainnet arrival order. `order` is omitted behind a share link (it's a direct lookup into chain data). */
 export interface Arrival { order?: number; of: number; tier?: number }
-export type AchievementId = 'early' | 'pioneer' | 'streak' | 'triple-threat' | 'gas-saver' | 'validators-friend' | 'century';
+export type AchievementId = 'early' | 'pioneer' | 'citizen' | 'streak' | 'triple-threat' | 'gas-saver' | 'validators-friend' | 'century';
 /** `realms`: pioneer only, owner view only — up to 3 realms, most-used first. */
 export interface Achievement { id: AchievementId; value?: number; realms?: string[] }
 export type MilestoneId = 'first-swap' | 'first-collect' | 'first-deploy' | 'tx-100';
@@ -149,7 +161,7 @@ export function fmtGas(gas: number, value = gas): string {
 
 export const shortAddress = (a: string) => a.slice(0, 6) + '…' + a.slice(-4); // g1wrap…qqqq
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+export const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 export function fmtDate(iso: string): string { const [y, m, d] = iso.split('-').map(Number); return `${MONTHS[m - 1]} ${d}, ${y}`; }
 export function fmtShort(iso: string): string { const [, m, d] = iso.split('-').map(Number); return `${MONTHS[m - 1]} ${d}`; }
 
@@ -313,7 +325,7 @@ export function xLength(post: string): number {
 /** Public share link: the unguessable share ID, never the address (falls back for fixtures without one). */
 export const shareLink = (d: WrappedData) =>
   `${SHARE.BASE_URL}/${d.season.id}/${d.shareId ? `s/${d.shareId}` : d.address}`;
-export const xIntentUrl = (d: WrappedData) => 'https://x.com/intent/tweet?text=' + encodeURIComponent(sharePost(d));
+export const xIntentUrl = (d: WrappedData, post = sharePost) => 'https://x.com/intent/tweet?text=' + encodeURIComponent(post(d));
 
 // ---------- explorer links ----------
 
@@ -399,6 +411,74 @@ export function personaRankText(d: WrappedData): string | null {
   return `#${fmt(r.rank)} of ${fmt(r.of)} ${PERSONA_PLURAL[id] ?? d.persona!.title}`;
 }
 
+// ---------- story mode ----------
+
+export type StoryId = 'intro' | 'arrival' | 'activity' | 'calendar' | 'realm' | 'defi' | 'builder' | 'governance' | 'achievements' | 'persona' | 'outro';
+
+/** The story's slides for this recap, in order; one without data is left out. */
+export function storyIds(d: WrappedData): StoryId[] {
+  const ids: StoryId[] = ['intro'];
+  if (d.firstTx?.date) ids.push('arrival');
+  if (d.txCount > 0) ids.push('activity');
+  if (d.calendar?.activeDays) ids.push('calendar');
+  if (d.topRealms?.length) ids.push('realm');
+  if (d.swaps?.count > 0 || d.defi) ids.push('defi');
+  if (d.deployedRealms?.length) ids.push('builder');
+  if (d.governance) ids.push('governance');
+  if (d.achievements?.length) ids.push('achievements');
+  if (d.persona?.title) ids.push('persona');
+  ids.push('outro');
+  return ids;
+}
+
+// ---------- success rate, GnoSwap detail, governance, builder report ----------
+
+/** Share of transactions that went through, rounded down (one failure never reads as 100%); null with none failed. */
+export const successRate = (d: WrappedData) =>
+  d.failedTxs ? Math.floor((d.txCount / (d.txCount + d.failedTxs)) * 100) : null;
+/** Fuel card line: "94% of your transactions went through (12 failed)." */
+export function successText(d: WrappedData): string {
+  const rate = successRate(d);
+  if (rate === null) return d.txCount >= 5 ? 'Every one of your transactions went through.' : '';
+  return `${rate}% of your transactions went through (${fmt(d.failedTxs!)} failed).`;
+}
+
+/** DeFi card: what else the address did on GnoSwap, nonzero only. */
+export function defiLines(d: WrappedData): { label: string; value: string }[] {
+  const s = d.defi ?? {};
+  const rows: [number | undefined, string, string][] = [
+    [s.positions, 'position opened', 'positions opened'],
+    [s.liquidityMoves, 'liquidity change', 'liquidity changes'],
+    [s.feesCollected, 'fee collection', 'fee collections'],
+    [s.staked, 'position staked', 'positions staked'],
+    [s.rewardsClaimed, 'reward claimed', 'rewards claimed'],
+  ];
+  return rows.filter(([n]) => n).map(([n, one, many]) => ({ value: fmt(n!), label: plural(n!, one, many) }));
+}
+/** "GNOT ↔ GNS · 23 swaps" */
+export const topPairText = (d: WrappedData) => {
+  const p = d.defi?.topPair;
+  return p ? `${p.tokens[0]} ↔ ${p.tokens[1]} · ${fmt(p.swaps)} ${plural(p.swaps, 'swap', 'swaps')}` : null;
+};
+
+/** Governance card rows, nonzero only. */
+export function governanceLines(d: WrappedData): { label: string; value: string }[] {
+  const g = d.governance ?? {};
+  const rows: [number | undefined, string, string][] = [
+    [g.votes, 'vote', 'votes'], [g.proposals, 'proposal', 'proposals'], [g.delegations, 'GNS delegation', 'GNS delegations'],
+  ];
+  return rows.filter(([n]) => n).map(([n, one, many]) => ({ value: fmt(n!), label: plural(n!, one, many) }));
+}
+
+/** Builder card: one realm's use, or that nobody else has called it yet. */
+export const realmUseText = (r: RealmReport) =>
+  r.calls ? `${fmt(r.calls)} ${plural(r.calls, 'call', 'calls')} from ${fmt(r.callers)} ${plural(r.callers, 'address', 'addresses')}` : 'No one else has called it yet';
+/** "Your realms got 15,464 calls from other addresses", or null when nobody called them. */
+export function builderHeadline(d: WrappedData): string | null {
+  const calls = (d.builder ?? []).reduce((n, r) => n + r.calls, 0);
+  return calls ? `Your realms got ${fmt(calls)} ${plural(calls, 'call', 'calls')} from other addresses.` : null;
+}
+
 // ---------- season countdown ----------
 
 /** Whole UTC days left after today: 0 on the season's last day, null once it's over. */
@@ -450,14 +530,14 @@ export function calendarWeeks(d: WrappedData): CalendarCell[] {
 }
 
 /** Month labels for the owner grid: the week column where each month's 1st falls (and week 0). */
-export function calendarMonths(d: WrappedData): { week: number; label: string }[] {
+export function calendarMonths(d: WrappedData, name = (m: number) => MONTHS[m]): { week: number; label: string }[] {
   const out: { week: number; label: string }[] = [];
   const days = d.calendar?.daily?.length ?? 0;
   for (let i = 0; i < days; i++) {
     const date = addDays(d.season.start, i);
     if (i === 0 || date.endsWith('-01')) {
       const week = Math.floor(i / 7);
-      const label = MONTHS[Number(date.slice(5, 7)) - 1];
+      const label = name(Number(date.slice(5, 7)) - 1);
       if (out.length && out[out.length - 1].week === week) out[out.length - 1].label = label; // the 1st wins
       else out.push({ week, label });
     }
@@ -609,21 +689,26 @@ export const ACHIEVEMENTS: Record<AchievementId, { title: string; rule: string; 
       return v === 1 ? `One of the first 10 to call ${pioneerPath(realms[0])}.` : `One of the first 10 to call ${fmt(v)} popular realms, including ${pioneerPath(realms[0])}.`;
     },
   },
+  citizen: {
+    title: 'Citizen',
+    rule: 'Voted on or proposed a gno.land GovDAO or GnoSwap governance proposal.',
+    text: (v = 1) => `${fmt(v)} governance ${plural(v, 'vote or proposal', 'votes and proposals')} this season.`,
+  },
   streak: { title: 'On a Roll', rule: 'Active 3 or more days in a row (UTC days).', text: (v) => `${fmt(v ?? 3)} days in a row on gno.land.` },
   'triple-threat': { title: 'Triple Threat', rule: 'Used DeFi, NFTs and on-chain games.', text: () => 'DeFi, NFTs and on-chain games: you did all three.' },
   'gas-saver': { title: 'Gas Saver', rule: 'Among the lowest 10% in gas per transaction, with 5+ transactions.', text: () => 'Among the lowest gas per transaction this season.' },
   'validators-friend': { title: "Validators' Friend", rule: 'Among the top 10% in total gas paid.', text: () => 'Among the top 10% in gas paid. The validators thank you.' },
   century: { title: 'Century', rule: '100 or more transactions this season.', text: (v) => `${fmt(v ?? 100)} transactions this season.` },
 };
-export const ACHIEVEMENT_ORDER: AchievementId[] = ['early', 'pioneer', 'streak', 'triple-threat', 'century', 'validators-friend', 'gas-saver'];
+export const ACHIEVEMENT_ORDER: AchievementId[] = ['early', 'pioneer', 'citizen', 'streak', 'triple-threat', 'century', 'validators-friend', 'gas-saver'];
 
 export const MILESTONES: Record<MilestoneId, string> = {
   'first-swap': 'First swap on GnoSwap', 'first-collect': 'First NFT mint or buy', 'first-deploy': 'First realm deployed', 'tx-100': '100th transaction',
 };
 
 /** Season timeline: first transaction, then milestones in date order. */
-export function timeline(d: WrappedData): { label: string; date: string }[] {
-  const items = (d.milestones ?? []).map((m) => ({ label: MILESTONES[m.id] ?? m.id, date: m.date }));
-  if (d.firstTx) items.unshift({ label: 'First transaction', date: d.firstTx.date });
+export function timeline(d: WrappedData, label = (id: MilestoneId) => MILESTONES[id], first = 'First transaction'): { label: string; date: string }[] {
+  const items = (d.milestones ?? []).map((m) => ({ label: label(m.id) ?? m.id, date: m.date }));
+  if (d.firstTx) items.unshift({ label: first, date: d.firstTx.date });
   return items.sort((a, b) => a.date.localeCompare(b.date));
 }

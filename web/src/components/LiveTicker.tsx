@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { fmt, gnoscanBlock } from '@/lib/wrapped';
+import { gnoscanBlock } from '@/lib/wrapped';
+import { useCopy } from './useLocale';
 import { ExtLink } from './web';
 
 interface Live { addresses: number; transactions: number; height: number; final?: boolean }
@@ -35,24 +36,25 @@ export function LiveTicker({ onFinal }: { onFinal?: (final: boolean) => void }) 
     const iv = setInterval(read, 5000);
     return () => { stop = true; clearInterval(iv); };
   }, [onFinal]);
+  const c = useCopy();
   if (!live) return null;
   if (live.final) {
     return (
-      <p className="gw-live" role="status" aria-live="off" aria-label="Final season stats">
+      <p className="gw-live" role="status" aria-live="off" aria-label={c.finalLabel}>
         <span className="gw-live-dot gw-live-dot-final" aria-hidden="true" />
         <span className="gw-pixel-label" style={{ color: '#FF8A3D' }}>FINAL</span>
-        <span>{fmt(live.addresses)} addresses</span>
-        <span>{fmt(live.transactions)} transactions</span>
+        <span>{c.addresses(live.addresses)}</span>
+        <span>{c.transactions(live.transactions)}</span>
       </p>
     );
   }
   return (
-    <p className="gw-live" role="status" aria-live="off" aria-label="Live season stats">
+    <p className="gw-live" role="status" aria-live="off" aria-label={c.liveLabel}>
       <span className="gw-live-dot" aria-hidden="true" />
       <span className="gw-pixel-label" style={{ color: '#5BD15B' }}>LIVE</span>
-      <span>{fmt(live.addresses)} addresses</span>
-      <span>{fmt(live.transactions)} transactions</span>
-      <ExtLink key={bump} href={gnoscanBlock(live.height)} className="gw-ext gw-live-block gw-mono" label={`Block ${fmt(live.height)} on Gnoscan`}>block #{fmt(live.height)}</ExtLink>
+      <span>{c.addresses(live.addresses)}</span>
+      <span>{c.transactions(live.transactions)}</span>
+      <ExtLink key={bump} href={gnoscanBlock(live.height)} className="gw-ext gw-live-block gw-mono" label={c.blockOnGnoscan(live.height)}>{c.block(live.height)}</ExtLink>
     </p>
   );
 }

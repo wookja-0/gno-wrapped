@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { visitDiff, visitSnapshot, type VisitSnapshot, type WrappedData } from '@/lib/wrapped';
+import { useCopy } from './useLocale';
 
 const key = (d: WrappedData) => `gw:visit:${d.season.id}:${d.address}`;
 interface Visit { at: string; snap: VisitSnapshot }
@@ -22,7 +23,8 @@ function read(raw: string | null): Visit | null {
  * becomes the next one's comparison point.
  */
 export function SinceLastVisit({ data }: { data: WrappedData }) {
-  const [diff, setDiff] = useState<{ since: string; lines: string[] } | null>(null);
+  const c = useCopy();
+  const [prev, setPrev] = useState<Visit | null>(null); // the visit compared against, once it has changes to show
 
   useEffect(() => {
     if (!data.season?.id) return; // a recap without a season shows the DATA ERROR banner instead
@@ -37,26 +39,26 @@ export function SinceLastVisit({ data }: { data: WrappedData }) {
       const prev = read(base);
       const lines = prev ? visitDiff(prev.snap, data) : [];
       if (sessionStorage.getItem(k + ':dismissed') || !prev || !lines.length) return;
-      const since = new Date(prev.at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      setDiff({ since, lines }); // eslint-disable-line react-hooks/set-state-in-effect -- browser storage is only readable after mount
+      setPrev(prev); // eslint-disable-line react-hooks/set-state-in-effect -- browser storage is only readable after mount
     } catch {
       // storage disabled (private mode, blocked cookies): no comparison, nothing to show
     }
   }, [data]);
 
-  if (!diff) return null;
+  if (!prev) return null;
+  const lines = c.visitDiff(prev.snap, data);
   const dismiss = () => {
     sessionStorage.setItem(key(data) + ':dismissed', '1');
-    setDiff(null);
+    setPrev(null);
   };
   return (
-    <section className="gw-visit" aria-label="Since your last visit">
+    <section className="gw-visit" aria-label={c.sinceVisitRegion}>
       <div className="gw-visit-head">
-        <h2 className="gw-h3">Since your last visit on {diff.since}</h2>
-        <button type="button" className="gw-visit-close" onClick={dismiss} aria-label="Dismiss">×</button>
+        <h2 className="gw-h3">{c.sinceVisit(c.visitDate(prev.at))}</h2>
+        <button type="button" className="gw-visit-close" onClick={dismiss} aria-label={c.dismiss}>×</button>
       </div>
       <ul>
-        {diff.lines.map((l) => <li key={l}>{l}</li>)}
+        {lines.map((l) => <li key={l}>{l}</li>)}
       </ul>
     </section>
   );

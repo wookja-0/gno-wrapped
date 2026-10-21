@@ -7,6 +7,8 @@ import { easeOutCubic, TIMING, truncMid } from '@/lib/wrapped';
 import { CONFIG } from '@/lib/config';
 import { GitHubIcon } from './BrandIcons';
 import { EcosystemLinks } from './EcosystemLinks';
+import { LangToggle } from './LangToggle';
+import { useCopy } from './useLocale';
 import { Wordmark } from './pixel';
 import { useNarrow, useReducedMotion } from './useReducedMotion';
 
@@ -54,16 +56,18 @@ export function ExtLink({ href, children, className = 'gw-ext', label }: { href:
 }
 
 export function Nav({ short, onShare, explorer }: { short?: string; onShare?: () => void; explorer?: string }) {
+  const c = useCopy();
   return (
     <header className="gw-nav">
-      <Link href="/" aria-label="Gno Wrapped home" style={{ display: 'flex' }}><Wordmark p={3} /></Link>
+      <Link href="/" aria-label={c.home} style={{ display: 'flex' }}><Wordmark p={3} /></Link>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <LangToggle />
         {short && <span className="gw-chip">{short}</span>}
-        {explorer && <ExtLink href={explorer} className="gw-btn gw-btn-ghost gw-nav-ext"><span className="gw-nav-ext-text">View on Gnoscan</span></ExtLink>}
+        {explorer && <ExtLink href={explorer} className="gw-btn gw-btn-ghost gw-nav-ext"><span className="gw-nav-ext-text">{c.viewOnGnoscan}</span></ExtLink>}
         {onShare && (
-          <button type="button" className="gw-btn gw-btn-ghost" onClick={onShare}>
+          <button type="button" className="gw-btn gw-btn-ghost gw-nav-share" onClick={onShare} aria-label={c.share}>
             <Icon d={['M12 3v12', 'M7 8l5-5 5 5', 'M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5']} size={16} />
-            Share
+            <span className="gw-nav-share-text">{c.share}</span>
           </button>
         )}
       </div>
@@ -174,13 +178,14 @@ export function DataErrorBanner({ errors }: { errors: string[] }) {
 
 /** `final`: the season is over, so the data no longer changes. */
 export function Footer({ dataAsOf, final, children }: { dataAsOf?: string | null; final?: boolean; children?: ReactNode }) {
+  const c = useCopy();
   return (
     <footer className="gw-footer">
       <div className="gw-footer-text">
         {children}
         <p>
-          {dataAsOf ? `Data as of ${dataAsOf} · ` : ''}Built from public on-chain data · {final ? 'Final results' : 'Updated live'} ·{' '}
-          <a className="gw-source" href={CONFIG.REPO_URL} target="_blank" rel="noopener noreferrer"><GitHubIcon size={14} />Source</a>
+          {dataAsOf ? c.dataAsOf(dataAsOf) : ''}{c.builtFrom} · {final ? c.finalResults : c.updatedLive} ·{' '}
+          <a className="gw-source" href={CONFIG.REPO_URL} target="_blank" rel="noopener noreferrer"><GitHubIcon size={14} />{c.source}</a>
         </p>
         <EcosystemLinks />
       </div>

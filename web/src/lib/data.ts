@@ -117,5 +117,6 @@ function redactFixture(d: WrappedData): WrappedData {
     },
     topRealms: d.topRealms.map((r) => ({ ...r, path: mask(r.path) })),
     deployedRealms: d.deployedRealms.map(mask),
+    builder: d.builder?.map((r) => ({ ...r, path: mask(r.path) })),
   };
 }

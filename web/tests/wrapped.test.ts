@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { createLimiter } from '../src/lib/limiter';
 import { achievementIconRows, PERSONA_IDS, personaBadge, personaBadgeRows, personaOrbit, personaSymbolRows } from '../src/lib/art';
 import {
-  ACHIEVEMENT_ORDER, arrivalText, CAL_COLORS, calendarDays, calendarMonths, calendarWeeks, compareRows, countdownText, parseShareId, dayLevel, daysLeft, dayText, dayTxAction, daySeries, peakIndex, seasonDays, visitDiff, visitSnapshot, weekLevel, weekText, builderCards, fmtGas, timeline, gnoscanAccount, gnoscanRealm, gnoscanTx, personaRankText, personaRuleText, personaWhy, rankTopPct, shareLink, sharePost, X_MAX, xLength, fuelLine, gasPerTx, isEmpty, ogRankCard, realmShortName,
+  ACHIEVEMENT_ORDER, arrivalText, CAL_COLORS, calendarDays, calendarMonths, builderHeadline, calendarWeeks, storyIds, compareRows, defiLines, governanceLines, realmUseText, successRate, successText, topPairText, countdownText, parseShareId, dayLevel, daysLeft, dayText, dayTxAction, daySeries, peakIndex, seasonDays, visitDiff, visitSnapshot, weekLevel, weekText, builderCards, fmtGas, timeline, gnoscanAccount, gnoscanRealm, gnoscanTx, personaRankText, personaRuleText, personaWhy, rankTopPct, shareLink, sharePost, X_MAX, xLength, fuelLine, gasPerTx, isEmpty, ogRankCard, realmShortName,
   slideIds, summaryRank, truncMid, validate, weekRange, type WrappedData,
 } from '../src/lib/wrapped';
 
@@ -271,6 +271,40 @@ describe('compare two recaps', () => {
     expect(by['Arrived on mainnet']).toMatchObject({ a: 'Day 22', b: 'Day 1', ahead: 'b' });
     expect(by['Gas spent'].ahead).toBeNull();
     expect(compareRows(load('full'), load('full')).every((r) => r.ahead === null)).toBe(true);
+  });
+});
+
+describe('success rate, GnoSwap detail, governance, builder report', () => {
+  it('success rate rounds down and has a line for clean records', () => {
+    const d = load('full'); // 1,284 ok, 7 failed
+    expect(successRate(d)).toBe(99);
+    expect(successText(d)).toBe('99% of your transactions went through (7 failed).');
+    expect(successText({ ...d, failedTxs: 0 })).toBe('Every one of your transactions went through.');
+    expect(successText({ ...d, txCount: 2, failedTxs: 0 })).toBe('');
+    expect(successRate({ ...d, txCount: 999, failedTxs: 1 })).toBe(99); // never 100% with a failure
+  });
+  it('GnoSwap and governance lines list nonzero numbers only', () => {
+    const d = load('full');
+    expect(defiLines(d).map((l) => `${l.value} ${l.label}`)).toEqual(['3 positions opened', '2 liquidity changes', '5 fee collections', '2 positions staked', '4 rewards claimed']);
+    expect(topPairText(d)).toBe('GNOT ↔ GNS · 24 swaps');
+    expect(defiLines({ ...d, defi: { staked: 1 } })).toEqual([{ value: '1', label: 'position staked' }]);
+    expect(governanceLines(load('whale')).map((l) => `${l.value} ${l.label}`)).toEqual(['3 votes', '1 proposal', '4 GNS delegations']);
+    expect(governanceLines(d)).toEqual([]);
+  });
+  it('builder report: totals and per-realm lines', () => {
+    const d = load('full');
+    expect(builderHeadline(d)).toBe('Your realms got 340 calls from other addresses.');
+    expect(realmUseText({ path: 'x', callers: 12, calls: 340 })).toBe('340 calls from 12 addresses');
+    expect(realmUseText({ path: 'x', callers: 0, calls: 0 })).toBe('No one else has called it yet');
+    expect(builderHeadline({ ...d, builder: [{ path: 'x', callers: 0, calls: 0 }] })).toBeNull();
+  });
+});
+
+describe('story mode', () => {
+  it('slides follow the data: none for what a recap lacks', () => {
+    expect(storyIds(load('full'))).toEqual(['intro', 'arrival', 'activity', 'calendar', 'realm', 'defi', 'builder', 'achievements', 'persona', 'outro']);
+    expect(storyIds(load('whale'))).toContain('governance');
+    expect(storyIds(load('newcomer'))).not.toContain('builder');
   });
 });
 

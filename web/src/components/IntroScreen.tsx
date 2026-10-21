@@ -9,6 +9,7 @@ import { AdenaIcon } from './AdenaIcon';
 import { LiveTicker } from './LiveTicker';
 import { SeasonCountdown } from './SeasonCountdown';
 import { Pill, Wordmark } from './pixel';
+import { useCopy } from './useLocale';
 import { useHydrated } from './useReducedMotion';
 import { Footer, Nav, Starfield } from './web';
 
@@ -25,6 +26,7 @@ export function IntroScreen() {
   const [addr, setAddr] = useState('');
   const [err, setErr] = useState('');
   const [final, setFinal] = useState(false); // from the ticker: the season is over
+  const c = useCopy();
   const season = CONFIG.CURRENT_SEASON;
   const seasonPill = `MAINNET ${season.id.toUpperCase()} / ${fmtShort(season.start).toUpperCase()} - ${fmtShort(season.end).toUpperCase()}`;
 
@@ -36,22 +38,22 @@ export function IntroScreen() {
   const submit = (e: FormEvent) => {
     e.preventDefault();
     const a = addr.trim().toLowerCase();
-    if (!a) return setErr('Paste a g1… address first.');
-    if (!ADDRESS_RE.test(a)) return setErr("That doesn't look like a gno.land address. It starts with g1 and is 40 characters long.");
+    if (!a) return setErr(c.errEmpty);
+    if (!ADDRESS_RE.test(a)) return setErr(c.errInvalid);
     open(a);
   };
 
   // Adena injects window.adena. TODO: verify against a real Adena install (not testable headless).
   const connect = async () => {
     const adena = (window as unknown as { adena?: AdenaProvider }).adena;
-    if (!adena) return setErr('Adena wallet not found. Install it from adena.app, or paste your address below.');
+    if (!adena) return setErr(c.errNoAdena);
     try {
       await adena.AddEstablish('Gno Wrapped');
       const a = (await adena.GetAccount())?.data?.address?.toLowerCase();
       if (a && ADDRESS_RE.test(a)) open(a);
-      else setErr("Couldn't read an address from Adena. Paste it below instead.");
+      else setErr(c.errAdenaRead);
     } catch {
-      setErr('Adena connection was cancelled. Try again, or paste your address below.');
+      setErr(c.errAdenaCancel);
     }
   };
 
@@ -69,34 +71,34 @@ export function IntroScreen() {
           <div className="gw-wide-only"><Wordmark p={9} twoLines /></div>
           <div className="gw-narrow-only"><Wordmark p={6} twoLines /></div>
         </div>
-        <h1 className="gw-h1" style={{ animation: RISE(160) }}>Your Mainnet Season {season.id.replace(/^s/i, '')} on gno.land</h1>
-        <p className="gw-lede" style={{ animation: RISE(200) }}>Your first season on gno.land mainnet, unwrapped: when you arrived, the realms you called, your swaps, your gas and your persona.</p>
+        <h1 className="gw-h1" style={{ animation: RISE(160) }}>{c.introTitle(season)}</h1>
+        <p className="gw-lede" style={{ animation: RISE(200) }}>{c.introLede}</p>
         <div className="gw-intro-form" style={{ animation: RISE(240) }}>
           <button type="button" className="gw-btn gw-btn-primary gw-btn-lg" onClick={connect}>
             <AdenaIcon size={24} />
-            Connect Adena
+            {c.connectAdena}
           </button>
-          <div className="gw-divider">or paste an address</div>
+          <div className="gw-divider">{c.orPaste}</div>
           <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <label htmlFor="gw-addr" style={{ fontSize: 13, fontWeight: 500, color: '#A3AED6' }}>Wallet address</label>
+            <label htmlFor="gw-addr" style={{ fontSize: 13, fontWeight: 500, color: '#A3AED6' }}>{c.walletAddress}</label>
             <div style={{ display: 'flex', gap: 8 }}>
               <input id="gw-addr" className="gw-input" value={addr} onChange={(e) => { setAddr(e.target.value); setErr(''); }} placeholder="g1…" autoComplete="off" spellCheck={false} aria-invalid={!!err} style={{ borderColor: err ? '#FFB27A' : undefined }} />
-              <button type="submit" className="gw-btn gw-btn-light gw-btn-lg">Unwrap</button>
+              <button type="submit" className="gw-btn gw-btn-light gw-btn-lg">{c.unwrap}</button>
             </div>
             {err && <p role="alert" style={{ margin: 0, fontSize: 13, lineHeight: 1.4, color: '#FFB27A' }}>{err}</p>}
           </form>
           {CONFIG.SHOW_SAMPLE_BUTTONS && (
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, fontSize: 13, color: '#A3AED6' }}>
-              <span>Try a sample:</span>
-              {[['Active wallet', CONFIG.SAMPLE_ACTIVE_ADDRESS], ['No activity', CONFIG.SAMPLE_EMPTY_ADDRESS]].map(([label, a]) => (
+              <span>{c.trySample}</span>
+              {[[c.sampleActive, CONFIG.SAMPLE_ACTIVE_ADDRESS], [c.sampleEmpty, CONFIG.SAMPLE_EMPTY_ADDRESS]].map(([label, a]) => (
                 <button key={label} type="button" className="gw-btn gw-btn-ghost" onClick={() => { setAddr(a); setErr(''); }}>{label}</button>
               ))}
             </div>
           )}
         </div>
         <p className="gw-why" style={{ marginTop: 28 }}>
-          <Link href="/personas" className="gw-ext">Meet the 8 season personas →</Link>
-          <Link href="/season" className="gw-ext">See the whole season →</Link>
+          <Link href="/personas" className="gw-ext">{c.meetPersonas}</Link>
+          <Link href="/season" className="gw-ext">{c.seeSeason}</Link>
         </p>
       </main>
       <Footer final={final} />
