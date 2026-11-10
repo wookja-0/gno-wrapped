@@ -822,3 +822,25 @@ test.describe('Connect Adena', () => {
     await expect(page).toHaveURL(`/s1/${ADDR}?fixture=full`);
   });
 });
+
+test.describe('privacy', () => {
+  test('linked from every footer; says what is and isn\'t collected', async ({ page }) => {
+    await open(page, `/s1/${ADDR}?fixture=full`);
+    await expect(page.locator('footer')).toContainText('No cookies or trackers');
+    await page.locator('footer').getByRole('link', { name: 'Privacy' }).click();
+    await expect(page).toHaveURL('/privacy');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('What Gno Wrapped knows about you');
+    await expect(page.locator('.gw-privacy-item')).toHaveCount(7);
+    await expect(page.getByRole('region', { name: 'Server logs' })).toContainText('your IP address');
+    await expect(page.getByRole('link', { name: 'Open an issue' })).toHaveAttribute('href', 'https://github.com/wookja-0/gno-wrapped/issues');
+  });
+
+  test('in Korean, and fits a phone', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.addInitScript(() => localStorage.setItem('gw-lang', 'ko'));
+    await open(page, '/privacy');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Gno Wrapped가 아는 것');
+    await expect(page.locator('footer')).toContainText('쿠키·추적 없음');
+    expect(await overflowing(page)).toEqual([]);
+  });
+});

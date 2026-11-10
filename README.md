@@ -115,6 +115,9 @@ transaction. The batch only ever queries by height range.
 
 ## Privacy
 
+The site's `/privacy` page tells visitors the same in plain words, in English and Korean. It sets no
+cookies and loads no third-party scripts; the browser talks only to the site itself.
+
 All data is public on-chain data. Share links still never carry the address:
 
 - Each address gets a random share ID (`/s1/s/<id>`). IDs are random, not derived from the address,

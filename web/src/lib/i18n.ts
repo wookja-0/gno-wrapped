@@ -23,7 +23,7 @@ const en = {
   // chrome
   viewOnGnoscan: 'View on Gnoscan', share: 'Share', home: 'Gno Wrapped home', language: 'Language',
   dataAsOf: (d: string) => `Data as of ${d} · `, builtFrom: 'Built from public on-chain data', finalResults: 'Final results',
-  updatedLive: 'Updated live', source: 'Source', unwrapAnother: 'Unwrap another address', full: 'FULL', short: 'SHORT',
+  updatedLive: 'Updated live', source: 'Source', noTrackers: 'No cookies or trackers', privacyLink: 'Privacy', unwrapAnother: 'Unwrap another address', full: 'FULL', short: 'SHORT',
   openOnGnoscan: (what: string) => `Open ${what} on Gnoscan`,
   live: 'LIVE', final: 'FINAL', liveLabel: 'Live season stats', finalLabel: 'Final season stats',
   addresses: (x: number) => `${fmt(x)} addresses`, transactions: (x: number) => `${fmt(x)} transactions`,
@@ -50,6 +50,22 @@ const en = {
   adenaNoAccountSteps: ["Open Adena from your browser's toolbar (it may be under the puzzle-piece icon)", 'Create a new wallet, or import one', 'Come back and try again'],
   installAdena: 'Install Adena', reloadPage: 'Reload this page', pasteAddress: 'Paste an address instead', copyPageLink: "Copy this page's link",
   or: 'or', adenaSteps: 'Steps',
+
+  // privacy page
+  privacy: {
+    pill: 'PRIVACY', title: 'What Gno Wrapped knows about you',
+    lede: 'Very little. It reads public gno.land chain data and shows it back to you. There are no accounts, cookies or trackers.',
+    sections: [
+      ['No cookies, no trackers', 'The site sets no cookies and loads no analytics, ads or third-party scripts. Your browser talks only to this site; fonts and icons are served from here too.'],
+      ['Public chain data only', 'Recaps are built from the public gno.land transaction indexer: the same transactions anyone can see on Gnoscan. An address you paste is used only to look up its recap.'],
+      ['Your Adena wallet', "Connect Adena asks Adena for one thing: your address. The site never asks Adena to sign or send anything, and you can disconnect it in Adena's connected sites at any time."],
+      ['Share links', "A share link carries a random ID, not your address, and the recap behind it leaves out what points straight to your address: transaction hashes, your exact arrival order, day-by-day activity. Its numbers are still public data, so a determined person could match them against the chain. The several-wallets page is different: its link lists the addresses, so share it only if you mean to."],
+      ['In your browser', 'Your language and the "Since your last visit" numbers are kept in your browser\'s local storage. They never leave your device, and clearing the site\'s data removes them.'],
+      ['Server logs', 'Like most websites, the server logs requests to keep the site running: the page\'s link, which contains any wallet address you looked up, and your IP address. Logs aren\'t shared or used for anything else.'],
+      ['Open source', 'All of the code is public on GitHub, and the live site is built from it, so you can check any of the above. Questions or concerns: open an issue.'],
+    ] as [string, string][],
+    viewSource: 'View the source', openIssue: 'Open an issue',
+  },
 
   // several wallets
   walletsTitle: 'Your wallets, together', walletsLabel: 'Wallets',
@@ -298,6 +314,7 @@ const ko: Copy = {
   ...en,
   viewOnGnoscan: 'Gnoscan에서 보기', share: '공유', home: 'Gno Wrapped 홈', language: '언어',
   dataAsOf: (d) => `${d} 기준 · `, builtFrom: '공개 온체인 데이터로 만들었어요', finalResults: '최종 결과', updatedLive: '실시간 반영',
+  noTrackers: '쿠키·추적 없음', privacyLink: '개인정보',
   source: '소스', unwrapAnother: '다른 주소 열어보기', full: '전체', short: '줄이기', openOnGnoscan: (w) => `Gnoscan에서 ${w} 열기`,
   liveLabel: '실시간 시즌 통계', finalLabel: '시즌 최종 통계',
   addresses: (x) => `주소 ${fmt(x)}개`, transactions: (x) => `트랜잭션 ${fmt(x)}건`, block: (h) => `블록 #${fmt(h)}`, blockOnGnoscan: (h) => `Gnoscan에서 블록 ${fmt(h)} 보기`,
@@ -322,6 +339,21 @@ const ko: Copy = {
   adenaNoAccountSteps: ['브라우저 툴바에서 Adena 열기(퍼즐 모양 아이콘 안에 있을 수 있어요)', '새 지갑을 만들거나 기존 지갑 가져오기', '돌아와서 다시 시도'],
   installAdena: 'Adena 설치', reloadPage: '페이지 새로고침', pasteAddress: '주소 직접 붙여넣기', copyPageLink: '이 페이지 링크 복사',
   or: '또는', adenaSteps: '순서',
+
+  privacy: {
+    pill: 'PRIVACY', title: 'Gno Wrapped가 아는 것',
+    lede: '거의 없어요. 공개된 gno.land 체인 데이터를 읽어서 보여줄 뿐이에요. 계정도, 쿠키도, 추적 도구도 없어요.',
+    sections: [
+      ['쿠키·추적 도구 없음', '쿠키를 만들지 않고, 분석·광고·외부 스크립트도 불러오지 않아요. 브라우저는 이 사이트하고만 통신하고, 폰트와 아이콘도 이 사이트에서 내려받아요.'],
+      ['공개 체인 데이터만', '결과는 공개된 gno.land 트랜잭션 인덱서 데이터로 만들어요. Gnoscan에서 누구나 볼 수 있는 바로 그 트랜잭션이에요. 붙여넣은 주소는 그 주소의 결과를 찾는 데만 써요.'],
+      ['Adena 지갑', 'Adena 연결은 딱 하나, 지갑 주소만 요청해요. 서명이나 전송은 절대 요청하지 않고, Adena의 연결된 사이트 목록에서 언제든 연결을 끊을 수 있어요.'],
+      ['공유 링크', '공유 링크에는 주소 대신 무작위 ID가 들어가고, 주소로 바로 이어지는 정보(트랜잭션 해시, 정확한 도착 순서, 날짜별 활동)는 빠져요. 다만 숫자 자체는 공개 데이터라 마음먹으면 체인과 대조해 볼 수는 있어요. 지갑 모아보기 페이지는 달라요. 링크에 주소들이 그대로 들어가니 공유할 때 주의하세요.'],
+      ['브라우저에 남는 것', '언어 설정과 "지난 방문 이후" 숫자는 브라우저의 로컬 저장소에만 있어요. 기기 밖으로 나가지 않고, 사이트 데이터를 지우면 사라져요.'],
+      ['서버 로그', '여느 웹사이트처럼 사이트 운영을 위해 서버가 요청을 기록해요. 페이지 링크(조회한 지갑 주소가 들어 있어요)와 IP 주소예요. 로그는 공유하거나 다른 용도로 쓰지 않아요.'],
+      ['오픈소스', '코드는 전부 GitHub에 공개돼 있고 실제 사이트도 그 코드로 만들어져서, 위 내용을 직접 확인할 수 있어요. 궁금하거나 걱정되는 점은 이슈로 남겨 주세요.'],
+    ],
+    viewSource: '소스 보기', openIssue: '이슈 남기기',
+  },
 
   walletsTitle: '내 지갑 모아보기', walletsLabel: '지갑',
   walletsLede: (x, s) => `메인넷 시즌 ${n(s)}의 지갑 ${fmt(x)}개를 합쳤어요. 페르소나·순위·업적은 지갑마다 따로 정해져서 지갑별로 보여줘요.`,

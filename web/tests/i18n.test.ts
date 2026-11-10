@@ -91,6 +91,16 @@ describe('Korean next up and clock', () => {
   });
 });
 
+describe('privacy page', () => {
+  it('has the same sections in Korean, each translated', () => {
+    expect(ko.privacy.sections).toHaveLength(en.privacy.sections.length);
+    for (const [title, body] of ko.privacy.sections) {
+      expect(title).toMatch(/[가-힣]/);
+      expect(body).toMatch(/[가-힣]/);
+    }
+  });
+});
+
 describe('Korean story outro', () => {
   it('picks 이었어요 or 였어요 by how the season number ends', () => {
     expect(ko.story.outro(false, { id: 's1', start: '', end: '' }, true)).toBe('나의 메인넷 시즌 1이었어요.');
