@@ -38,7 +38,7 @@ export function PersonasView({ data, loading }: { data: PersonasData | null; loa
                   <h2 className="gw-persona-name">{t.personaTitle(p.id, p.title)}</h2>
                   <p className="gw-persona-line">{t.personaLine(p.id, p.line)}</p>
                   <p className="gw-persona-rule">{t.personaRule(p.rule)}</p>
-                  <p className="gw-hint" style={{ marginTop: 8 }}>{p.rankBy ? t.rankedByFull(p.rankBy) : t.noRanking}</p>
+                  <p className="gw-hint" style={{ marginTop: 8 }}>{p.rankBy ? t.rankedByFull(p.rankBy) : t.noRanking(p.id)}</p>
                   <div className="gw-persona-share" aria-label={t.ofAddresses(pct)}>
                     <div className="gw-persona-bar"><div style={{ width: `${Math.max(pct, 0.6)}%`, background: c.mid }} /></div>
                     <span>{t.shareOfAddresses(pct, p.count)}</span>

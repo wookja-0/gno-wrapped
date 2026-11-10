@@ -7,7 +7,7 @@ import { getPersonas } from '@/lib/data';
 
 export const metadata: Metadata = {
   title: 'Personas · Gno Wrapped',
-  description: 'How Gno Wrapped picks your season persona: eight personas, checked in order, from your on-chain activity.',
+  description: 'How Gno Wrapped picks your season persona: nine personas, checked in order, from your on-chain activity.',
 };
 
 // Counts come from the live batch output via the api, so they're read at request time (the static

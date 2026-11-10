@@ -74,6 +74,10 @@ func (a *acc) track(pkgPath, fn string) {
 		if fn == "Delegate" {
 			a.gov.Delegations++
 		}
+	case "gno.land/r/gnops/valopers":
+		if fn == "Register" {
+			a.valoper = true
+		}
 	}
 	if govRealm.MatchString(pkgPath) {
 		switch {

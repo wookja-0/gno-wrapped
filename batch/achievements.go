@@ -18,15 +18,19 @@ type arrival struct {
 
 type achievement struct {
 	ID     string   `json:"id"`
-	Value  float64  `json:"value,omitempty"`  // early: tier; streak: days; century: txs; pioneer: realms; citizen: votes + proposals
+	Value  float64  `json:"value,omitempty"`  // early: tier; streak, regular: days; century, flawless: txs; pioneer: realms; citizen: votes + proposals
 	Realms []string `json:"realms,omitempty"` // pioneer: up to 3, most-used first (owner view only, see redact)
 }
 
+// gardened: opened or staked a GnoSwap position, or delegated GNS (Token Gardener).
+func gardened(a *acc) bool { return a.defi.Positions+a.defi.Staked+a.gov.Delegations > 0 }
+
 // progress: an achievement the address doesn't have yet but can still earn this season, with how
 // far along it is. Only the ones that depend on the address alone: Early Arrival and Realm Pioneer
-// are decided by when others came, Gas Saver and Validators' Friend by everyone's gas.
+// are decided by when others came, Gas Saver and Validators' Friend by everyone's gas, and Flawless
+// is out of reach once a transaction has failed.
 type progress struct {
-	ID      string   `json:"id"` // century | streak | triple-threat | citizen
+	ID      string   `json:"id"` // century | streak | triple-threat | citizen | regular | flawless | token-gardener
 	Have    int      `json:"have"`
 	Need    int      `json:"need"`
 	Missing []string `json:"missing,omitempty"` // triple-threat: which of defi | collect | play are still to try
@@ -40,11 +44,13 @@ type milestone struct {
 var arrivalTiers = []int{100, 500, 1000, 2500}
 
 const (
-	streakMin  = 3   // consecutive active UTC days
-	centuryMin = 100 // txs
-	gasMinTxs  = 5   // Gas Saver needs at least this many txs to mean anything
-	gasLowPct  = 10  // Gas Saver: average gas per tx in the lowest 10%
-	gasHighPct = 90  // Validators' Friend: total gas in the top 10%
+	streakMin   = 3   // consecutive active UTC days
+	centuryMin  = 100 // txs
+	regularMin  = 30  // active UTC days in the season
+	flawlessMin = 20  // txs, none of them failed
+	gasMinTxs   = 5   // Gas Saver needs at least this many txs to mean anything
+	gasLowPct   = 10  // Gas Saver: average gas per tx in the lowest 10%
+	gasHighPct  = 90  // Validators' Friend: total gas in the top 10%
 
 	// Realm Pioneer: among the first pioneerSlots addresses to call a realm that at least
 	// pioneerMinCallers addresses have called (its deployer and bots don't count or take a slot).
@@ -120,6 +126,15 @@ func (d *dataset) extras(callers map[string][]string) extras {
 		if a.gov.Votes+a.gov.Proposals > 0 {
 			got = append(got, achievement{ID: "citizen", Value: float64(a.gov.Votes + a.gov.Proposals)})
 		}
+		if len(a.days) >= regularMin {
+			got = append(got, achievement{ID: "regular", Value: float64(len(a.days))})
+		}
+		if a.txs >= flawlessMin && d.failed[addr] == 0 {
+			got = append(got, achievement{ID: "flawless", Value: float64(a.txs)})
+		}
+		if gardened(a) {
+			got = append(got, achievement{ID: "token-gardener"})
+		}
 		if realms := pioneers[addr]; len(realms) > 0 {
 			got = append(got, achievement{ID: "pioneer", Value: float64(len(realms)), Realms: realms[:min(pioneerShown, len(realms))]})
 		}
@@ -189,7 +204,7 @@ func pioneers(callers map[string][]string) map[string][]string {
 // progressFor lists the reachable achievements the address hasn't earned (see progress).
 // Streak counts the current run: the one that reaches the chain tip's day or the day before, since
 // today can still be active.
-func (d *dataset) progressFor(a *acc, earned []achievement) []progress {
+func (d *dataset) progressFor(a *acc, failed int, earned []achievement) []progress {
 	has := map[string]bool{}
 	for _, e := range earned {
 		has[e.ID] = true
@@ -215,6 +230,15 @@ func (d *dataset) progressFor(a *acc, earned []achievement) []progress {
 	}
 	if !has["citizen"] {
 		out = append(out, progress{ID: "citizen", Need: 1})
+	}
+	if !has["regular"] {
+		out = append(out, progress{ID: "regular", Have: len(a.days), Need: regularMin})
+	}
+	if !has["flawless"] && failed == 0 {
+		out = append(out, progress{ID: "flawless", Have: a.txs, Need: flawlessMin})
+	}
+	if !has["token-gardener"] {
+		out = append(out, progress{ID: "token-gardener", Need: 1})
 	}
 	return out
 }

@@ -36,7 +36,7 @@ const en = {
   introLede: 'Your first season on gno.land mainnet, unwrapped: when you arrived, the realms you called, your swaps, your gas and your persona.',
   connectAdena: 'Connect Adena', orPaste: 'or paste an address', walletAddress: 'Wallet address', unwrap: 'Unwrap',
   trySample: 'Try a sample:', sampleActive: 'Active wallet', sampleEmpty: 'No activity',
-  meetPersonas: 'Meet the 8 season personas →', seeSeason: 'See the whole season →',
+  meetPersonas: 'Meet the 9 season personas →', seeSeason: 'See the whole season →',
   errEmpty: 'Paste a g1… address first.', errInvalid: "That doesn't look like a gno.land address. It starts with g1 and is 40 characters long.",
   errAdenaRead: "Couldn't read an address from Adena. Paste it below instead.", errAdenaCancel: 'Adena connection was cancelled. Try again, or paste your address below.',
   errAdenaLocked: 'Adena is locked. Unlock it and try again, or paste your address below.',
@@ -94,7 +94,7 @@ const en = {
   personaWhy, personaRankText, personaRule: personaRuleText,
   rankedBy: (m: RankMetric) => `ranked by ${RANK_METRIC[m]}`, rankedByFull: (m: RankMetric) => `Ranked by ${RANK_METRIC[m]}.`,
   topPct: (r: Parameters<typeof rankTopPct>[0]) => `top ${rankTopPct(r)}%`,
-  noRanking: 'No ranking: everyone here is just getting started.',
+  noRanking: (id: string) => (id === 'validator' ? 'No ranking: registering is the whole of it.' : 'No ranking: everyone here is just getting started.'),
   seasonPersona: (shared: boolean) => (shared ? 'Season persona' : 'Your season persona'), howPersonasWork: 'How personas work ↗',
   playStory: (shared: boolean) => (shared ? '▶ Play the story' : '▶ Play your story'),
 
@@ -184,7 +184,7 @@ const en = {
   weekOf: (range: string, x: number) => `Week of ${range}: ${x} of 7 days`,
 
   // personas page
-  personasPill: 'SEASON PERSONAS', personasTitle: 'Eight personas, one per address',
+  personasPill: 'SEASON PERSONAS', personasTitle: 'Nine personas, one per address',
   personasLede: "Your persona isn't a score or a rank. It's one label picked from your on-chain activity this season: the rules below are checked in order, and the first one that fits is yours.",
   personasUnavailable: "Persona data isn't available right now.",
   ofAddresses: (pct: number) => `${pct.toFixed(1)}% of addresses`,
@@ -257,6 +257,7 @@ function koWeek(i: number, start: string): string {
 
 const KO_PERSONA: Record<string, [string, string]> = {
   builder: ['빌더', '메인넷에 직접 코드를 올렸어요.'],
+  validator: ['밸리데이터', '체인을 함께 돌리겠다고 손을 들었어요.'],
   'day-one-explorer': ['첫날 탐험가', '지도가 그려지기도 전에 이미 와 있었어요.'],
   'realm-hopper': ['렐름 호퍼', '한 렐름에 오래 머무른 적이 없어요.'],
   'defi-pilot': ['디파이 파일럿', '스왑, 풀, 스테이킹까지. GnoSwap이 본거지였어요.'],
@@ -274,17 +275,20 @@ const KO_CATEGORY: Record<string, string> = { defi: 'GnoSwap과 wugnot', collect
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 
 const KO_ACH: Record<AchievementId, { title: string; rule: string; text: (v?: number, realms?: string[]) => string }> = {
-  early: { title: '얼리 어라이벌', rule: '메인넷에 도착한 첫 1,000개 주소 안에 들었어요.', text: (v) => `메인넷 첫 ${fmt(v ?? 1000)}명 안에 들었어요.` },
+  early: { title: '선발대', rule: '메인넷에 도착한 첫 1,000개 주소 안에 들었어요.', text: (v) => `메인넷 첫 ${fmt(v ?? 1000)}명 안에 들었어요.` },
   pioneer: {
     title: '렐름 개척자', rule: '50개 이상 주소가 쓰는 렐름을 처음 호출한 10명 안에 들었어요(배포자는 제외).',
     text: (v = 1, realms) => (realms?.length ? (v === 1 ? `${realms[0]}을(를) 처음 호출한 10명 중 하나예요.` : `인기 렐름 ${fmt(v)}곳을 처음 호출한 10명 안에 들었어요. ${realms[0]} 포함.`) : `인기 렐름 ${fmt(v)}곳을 처음 호출한 10명 안에 들었어요.`),
   },
-  citizen: { title: '시티즌', rule: 'gno.land GovDAO나 GnoSwap 거버넌스 제안에 투표하거나 제안했어요.', text: (v = 1) => `이번 시즌 거버넌스 투표·제안 ${fmt(v)}회.` },
-  streak: { title: '온 어 롤', rule: '3일 이상 연속으로 활동했어요(UTC 기준).', text: (v) => `${fmt(v ?? 3)}일 연속 gno.land에서 활동했어요.` },
-  'triple-threat': { title: '트리플 스렛', rule: '디파이, NFT, 온체인 게임을 모두 써봤어요.', text: () => '디파이, NFT, 온체인 게임. 셋 다 해봤어요.' },
-  'gas-saver': { title: '가스 세이버', rule: '트랜잭션 5회 이상이면서 트랜잭션당 가스가 하위 10%예요.', text: () => '이번 시즌 트랜잭션당 가스가 가장 적은 편이에요.' },
+  citizen: { title: '한 표 행사', rule: 'gno.land GovDAO나 GnoSwap 거버넌스 제안에 투표하거나 제안했어요.', text: (v = 1) => `이번 시즌 거버넌스 투표·제안 ${fmt(v)}회.` },
+  streak: { title: '연속 출석', rule: '3일 이상 연속으로 활동했어요(UTC 기준).', text: (v) => `${fmt(v ?? 3)}일 연속 gno.land에서 활동했어요.` },
+  'triple-threat': { title: '삼관왕', rule: '디파이, NFT, 온체인 게임을 모두 써봤어요.', text: () => '디파이, NFT, 온체인 게임. 셋 다 해봤어요.' },
+  'gas-saver': { title: '가스 절약왕', rule: '트랜잭션 5회 이상이면서 트랜잭션당 가스가 하위 10%예요.', text: () => '이번 시즌 트랜잭션당 가스가 가장 적은 편이에요.' },
   'validators-friend': { title: '밸리데이터의 친구', rule: '낸 가스 총액이 상위 10%예요.', text: () => '가스 총액 상위 10%. 밸리데이터가 고마워해요.' },
-  century: { title: '센추리', rule: '이번 시즌 트랜잭션 100회 이상.', text: (v) => `이번 시즌 트랜잭션 ${fmt(v ?? 100)}회.` },
+  century: { title: '백 번 클럽', rule: '이번 시즌 트랜잭션 100회 이상.', text: (v) => `이번 시즌 트랜잭션 ${fmt(v ?? 100)}회.` },
+  regular: { title: '단골', rule: '이번 시즌 30일 이상 활동했어요(UTC 기준).', text: (v) => `이번 시즌 ${fmt(v ?? 30)}일 활동했어요.` },
+  flawless: { title: '무결점', rule: '이번 시즌 트랜잭션 20회 이상, 실패는 한 번도 없어요.', text: (v) => `트랜잭션 ${fmt(v ?? 20)}회, 실패 0회.` },
+  'token-gardener': { title: '토큰 정원사', rule: 'GnoSwap 포지션을 열거나 스테이킹했거나, GNS를 위임했어요.', text: () => 'GnoSwap에 토큰을 심어 키웠어요.' },
 };
 const KO_TRY: Record<NonNullable<Progress['missing']>[number], string> = { defi: '디파이', collect: 'NFT', play: '온체인 게임' };
 const KO_CHRONO: Record<Chronotype, string> = { 'night-owl': '올빼미형', 'early-bird': '아침형', afternoon: '오후형', evening: '저녁형' };
@@ -325,7 +329,7 @@ const ko: Copy = {
   introLede: 'gno.land 메인넷 첫 시즌을 풀어봐요. 언제 도착했는지, 어떤 렐름을 불렀는지, 스왑과 가스, 그리고 나의 페르소나까지.',
   connectAdena: 'Adena 연결', orPaste: '또는 주소 붙여넣기', walletAddress: '지갑 주소', unwrap: '열어보기',
   trySample: '샘플 보기:', sampleActive: '활발한 지갑', sampleEmpty: '활동 없음',
-  meetPersonas: '시즌 페르소나 8종 보기 →', seeSeason: '시즌 전체 보기 →',
+  meetPersonas: '시즌 페르소나 9종 보기 →', seeSeason: '시즌 전체 보기 →',
   errEmpty: '먼저 g1… 주소를 붙여넣어 주세요.', errInvalid: 'gno.land 주소가 아닌 것 같아요. g1으로 시작하는 40자 주소예요.',
   errAdenaRead: 'Adena에서 주소를 읽지 못했어요. 아래에 직접 붙여넣어 주세요.', errAdenaCancel: 'Adena 연결이 취소됐어요. 다시 시도하거나 아래에 주소를 붙여넣어 주세요.',
   errAdenaLocked: 'Adena가 잠겨 있어요. 잠금을 풀고 다시 시도하거나 아래에 주소를 붙여넣어 주세요.',
@@ -380,6 +384,7 @@ const ko: Copy = {
     const p = d.persona, s = p?.share ? pct(p.share) : '';
     switch (p?.id) {
       case 'builder': return `메인넷에 렐름 ${fmt(d.deployedRealms.length)}개를 배포했어요.`;
+      case 'validator': return 'gno.land 밸리데이터 운영자로 등록했어요.';
       case 'day-one-explorer': return `첫 트랜잭션이 메인넷 ${d.firstTx?.mainnetDay ?? '?'}일차에 있었어요.`;
       case 'realm-hopper': return `서로 다른 렐름 ${fmt(d.realmCount ?? d.topRealms.length)}곳을 호출했어요.`;
       case 'defi-pilot': return `무브의 ${s}가 GnoSwap과 wugnot이었어요.`;
@@ -394,6 +399,7 @@ const ko: Copy = {
   personaRule: (r: PersonaRule) => {
     switch (r.kind) {
       case 'deployed': return `메인넷에 렐름을 ${r.min}개 이상 배포했어요.`;
+      case 'valoper': return 'gno.land 밸리데이터 운영자로 등록했어요(r/gnops/valopers).';
       case 'firstDay': return `메인넷 첫 ${r.max}일 안에 첫 트랜잭션을 보냈어요.`;
       case 'realms': return `서로 다른 렐름을 ${r.min}곳 이상 호출했어요.`;
       case 'share': return `무브의 ${pct(r.min)} 이상이 ${KO_CATEGORY[r.category]}였어요.`;
@@ -402,7 +408,7 @@ const ko: Copy = {
     }
   },
   rankedBy: (m) => `${KO_METRIC[m]} 기준`, rankedByFull: (m) => `${KO_METRIC[m]} 기준으로 순위를 매겨요.`,
-  topPct: (r) => `상위 ${rankTopPct(r)}%`, noRanking: '순위 없음: 다들 막 시작했어요.',
+  topPct: (r) => `상위 ${rankTopPct(r)}%`, noRanking: (id) => (id === 'validator' ? '순위 없음: 등록 자체가 전부예요.' : '순위 없음: 다들 막 시작했어요.'),
   seasonPersona: (shared) => (shared ? '시즌 페르소나' : '나의 시즌 페르소나'), howPersonasWork: '페르소나 기준 보기 ↗',
   playStory: () => '▶ 스토리로 보기',
 
@@ -419,6 +425,9 @@ const ko: Copy = {
       case 'streak': return p.have ? `지금까지 ${fmt(p.have)}일 연속. ${fmt(p.need)}일까지 이어가 보세요.` : `${fmt(p.need)}일 연속으로 활동해 보세요(UTC 기준).`;
       case 'triple-threat': return `${p.have}/${p.need} 완료. 남은 것: ${(p.missing ?? []).map((m) => KO_TRY[m]).join(', ')}.`;
       case 'citizen': return 'GovDAO나 GnoSwap 거버넌스 제안에 투표해 보세요.';
+      case 'regular': return `활동일 ${fmt(p.have)}/${fmt(p.need)}일. ${fmt(p.need - p.have)}일 남았어요.`;
+      case 'flawless': return `트랜잭션 ${fmt(p.have)}/${fmt(p.need)}회, 실패 없음. 이대로만 가요.`;
+      case 'token-gardener': return 'GnoSwap 포지션을 열거나 스테이킹하거나, GNS를 위임해 보세요.';
     }
   },
   arrivedOn: (date) => `${koDate(date)}에 도착`, day: 'DAY',
@@ -526,7 +535,7 @@ const ko: Copy = {
   weekOf: (range, x) => `${range} 주: 7일 중 ${x}일`, comparison: '비교', persona: '페르소나',
   recapWeeks: (side, weeks) => `결과 ${side}의 주별 활동일: ${weeks.join(', ')}`,
 
-  personasPill: 'SEASON PERSONAS', personasTitle: '주소마다 하나, 페르소나 8종',
+  personasPill: 'SEASON PERSONAS', personasTitle: '주소마다 하나, 페르소나 9종',
   personasLede: '페르소나는 점수나 순위가 아니에요. 이번 시즌 온체인 활동으로 고른 이름표 하나예요. 아래 규칙을 순서대로 확인해서 처음 맞는 것이 내 페르소나예요.',
   personasUnavailable: '지금은 페르소나 데이터를 불러올 수 없어요.',
   ofAddresses: (p) => `주소의 ${p.toFixed(1)}%`,
