@@ -6,7 +6,7 @@ import { achievementIconRows, PERSONA_IDS, personaBadge, personaBadgeRows, perso
 import {
   ACHIEVEMENT_ORDER, arrivalText, CAL_COLORS, calendarDays, calendarMonths, builderHeadline, calendarWeeks, storyIds, compareRows, defiLines, governanceLines, realmUseText, successRate, successText, topPairText, countdownText, parseShareId, dayLevel, daysLeft, dayText, dayTxAction, daySeries, peakIndex, seasonDays, visitDiff, visitSnapshot, weekLevel, weekText, builderCards, fmtGas, timeline, gnoscanAccount, gnoscanRealm, gnoscanTx, personaRankText, personaRuleText, personaWhy, rankTopPct, shareLink, sharePost, X_MAX, xLength, fuelLine, gasPerTx, isEmpty, ogRankCard, realmShortName,
   slideIds, summaryRank, truncMid, validate, weekRange, type WrappedData,
-  combine, pagerSlots, parseAddresses, realmOrderLine, realmOrderText, walletsHref,
+  adenaOutcome, walletEnv, combine, pagerSlots, parseAddresses, realmOrderLine, realmOrderText, walletsHref,
   chronotype, chronotypeLine, hasClock, hourText, localHours, nextUp, progressText, tzLabel, tzShift,
 } from '../src/lib/wrapped';
 
@@ -540,5 +540,35 @@ describe('day list pager', () => {
     expect(pagerSlots(10, 6)).toEqual([0, null, 5, 6, 7, 8, 9]);
     expect(pagerSlots(10, 9)).toEqual([0, null, 5, 6, 7, 8, 9]);
     for (let p = 0; p < 10; p++) expect(pagerSlots(10, p)).toHaveLength(7);
+  });
+});
+
+describe('Connect Adena', () => {
+  const UA = {
+    chrome: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+    edge: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0',
+    whale: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Whale/3.28.266.14 Safari/537.36',
+    firefox: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:132.0) Gecko/20100101 Firefox/132.0',
+    safari: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15',
+    iphone: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
+    androidChrome: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36',
+    androidFirefox: 'Mozilla/5.0 (Android 14; Mobile; rv:132.0) Gecko/132.0 Firefox/132.0',
+    discord: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) discord/1.0.9170 Chrome/128.0.6613.186 Electron/32.2.7 Safari/537.36',
+  };
+  it('tells desktop Chromium and Firefox from where Adena can\'t run', () => {
+    expect([UA.chrome, UA.edge, UA.whale].map((u) => walletEnv(u))).toEqual(['chromium', 'chromium', 'chromium']);
+    expect(walletEnv(UA.firefox)).toBe('firefox');
+    for (const u of [UA.safari, UA.iphone, UA.androidChrome, UA.androidFirefox, UA.discord]) expect(walletEnv(u), u).toBe('unsupported');
+    expect(walletEnv(UA.chrome, true)).toBe('unsupported'); // a phone that asks for the desktop site
+  });
+  it('reads what Adena answered', () => {
+    expect(adenaOutcome({ status: 'failure', type: 'NO_ACCOUNT' })).toBe('no-account');
+    expect(adenaOutcome({ status: 'failure', type: 'WALLET_LOCKED' })).toBe('locked');
+    expect(adenaOutcome({ status: 'failure', type: 'CONNECTION_REJECTED' })).toBe('rejected');
+    expect(adenaOutcome({ status: 'failure', type: 'ALREADY_CONNECTED' })).toBe('connected');
+    expect(adenaOutcome({ status: 'success', type: 'CONNECTION_SUCCESS' })).toBe('connected');
+    expect(adenaOutcome({ status: 'success', type: 'GET_ACCOUNT', data: { address: 'g1…' } })).toBe('connected');
+    expect(adenaOutcome({ status: 'failure', type: 'UNEXPECTED' })).toBe('failed');
+    expect(adenaOutcome(undefined)).toBe('failed');
   });
 });

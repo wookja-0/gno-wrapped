@@ -22,6 +22,11 @@ export const CONFIG = {
   GNOLAND_URL: 'https://gno.land',
   GNOSWAP_URL: 'https://gnoswap.io',
   ADENA_URL: 'https://adena.app',
+  // Where "Connect Adena" sends a supported browser without the extension.
+  ADENA_STORE: {
+    chromium: 'https://chromewebstore.google.com/detail/adena/oefglhbffgfkcpboeackfgdagmlnihnh',
+    firefox: 'https://addons.mozilla.org/firefox/addon/adena/',
+  },
   // BuilderSlide shows at most this many cards, then "+N more" (real max is 300+ realms).
   BUILDER_MAX_CARDS: 3,
   // TODO: the prototype's "Try a sample" buttons. Shown only in fixture mode (dev/tests) until there's
