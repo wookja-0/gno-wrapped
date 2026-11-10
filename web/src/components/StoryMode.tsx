@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type Poin
 import Link from 'next/link';
 import { achievementIcon } from '@/lib/art';
 import { personaIn } from '@/lib/i18n';
-import { ACHIEVEMENT_ORDER, CAL_COLORS, fmt, storyIds, TIMING, weekLevel, xIntentUrl, type StoryId, type WrappedData } from '@/lib/wrapped';
+import { ACHIEVEMENT_ORDER, CAL_COLORS, earnedIds, fmt, storyIds, TIMING, weekLevel, xIntentUrl, type StoryId, type WrappedData } from '@/lib/wrapped';
 import { XIcon } from './BrandIcons';
 import { Tilt } from './Tilt';
 import { useClock } from './HourlyChart';
@@ -18,7 +18,7 @@ import { PathText } from './web';
  * card advances by itself after TIMING.slideMs; the last one stays. Progress runs on a timer (not a
  * CSS animation), so it keeps working under prefers-reduced-motion, where animations are cut short.
  */
-export function StoryMode({ data, onClose }: { data: WrappedData; onClose: () => void }) {
+export function StoryMode({ data, onClose, onDownload }: { data: WrappedData; onClose: () => void; onDownload?: () => void }) {
   const c = useCopy();
   const ids = storyIds(data);
   const [i, setI] = useState(0);
@@ -103,7 +103,7 @@ export function StoryMode({ data, onClose }: { data: WrappedData; onClose: () =>
           <button type="button" className="gw-story-close" onClick={onClose} aria-label={c.story.close}>×</button>
         </div>
         <div className="gw-story-body" key={ids[i]}>
-          <Slide id={ids[i]} data={data} />
+          <Slide id={ids[i]} data={data} onDownload={onDownload} />
         </div>
         <p className="gw-story-hint" aria-hidden="true">{c.story.hint}</p>
       </div>
@@ -120,7 +120,7 @@ function Big({ value, label }: { value: string; label: string }) {
   );
 }
 
-function Slide({ id, data: d }: { id: StoryId; data: WrappedData }) {
+function Slide({ id, data: d, onDownload }: { id: StoryId; data: WrappedData; onDownload?: () => void }) {
   const c = useCopy();
   const s = c.story, sh = !!d.shared;
   const persona = personaIn(c, d.persona)!;
@@ -130,7 +130,7 @@ function Slide({ id, data: d }: { id: StoryId; data: WrappedData }) {
       <>
         <div className="gw-story-mark"><Wordmark p={6} twoLines /></div>
         <h2 className="gw-story-title">{s.introTitle(sh, d.season)}</h2>
-        <p className="gw-story-line">{s.introLine}</p>
+        <p className="gw-story-line">{d.final ? s.introLineFinal : s.introLine}</p>
       </>
     ),
     arrival: () => (
@@ -230,10 +230,22 @@ function Slide({ id, data: d }: { id: StoryId; data: WrappedData }) {
     outro: () => (
       <>
         <h2 className="gw-story-title">{s.outro(sh, d.season, !!d.final)}</h2>
+        {d.final && d.persona && (
+          // the season is over: a certificate of it, to share or save
+          <div className="gw-story-cert">
+            <span className="gw-pixel-label gw-story-cert-tag">{s.complete(d.season)}</span>
+            <PersonaBadge id={d.persona.id} p={4} label={c.badge(persona.title)} />
+            <strong>{persona.title}</strong>
+            <span>{c.transactions(d.txCount)} · {c.achievementsOf(earnedIds(d).length)}</span>
+          </div>
+        )}
         {d.shared ? (
           <Link className="gw-btn gw-btn-primary gw-btn-lg" href="/">{c.unwrapOwn}</Link>
         ) : (
-          <a className="gw-btn gw-btn-x gw-btn-lg" href={xIntentUrl(d, c.sharePost)} target="_blank" rel="noopener"><XIcon size={18} /> {c.shareToX}</a>
+          <div className="gw-story-actions">
+            <a className="gw-btn gw-btn-x gw-btn-lg" href={xIntentUrl(d, c.sharePost)} target="_blank" rel="noopener"><XIcon size={18} /> {c.shareToX}</a>
+            {d.final && onDownload && <button type="button" className="gw-btn gw-btn-lg" onClick={onDownload}>{c.downloadImage}</button>}
+          </div>
         )}
       </>
     ),

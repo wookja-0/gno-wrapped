@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
-import { type Art, ogPlanet, ogStars, wordmark } from './art';
-import { fmt, ogPersonaSize, ogRankCard, ogValueSize, plural, type WrappedData } from './wrapped';
+import { achievementIcon, type Art, ogPlanet, ogStars, wordmark } from './art';
+import { achievementsOfText, earnedIds, fmt, OG_ACH_MAX, ogPersonaSize, ogRankCard, ogValueSize, plural, type WrappedData } from './wrapped';
 
 /**
  * ShareCardOG (1200x630) for Satori, ported from the handoff's ShareCardOG.dc.html.
@@ -16,6 +16,9 @@ export function ShareCardOG({ d }: { d: WrappedData }): ReactElement {
     { value: 'Day ' + (d.firstTx ? d.firstTx.mainnetDay : '?'), label: 'arrived on mainnet' },
   ];
   const title = d.persona?.title ?? '';
+  // With achievements, a row of their icons goes under the persona and everything below moves down a little.
+  const ach = earnedIds(d);
+  const at = ach.length ? { title: 148, stats: 322, statH: 166 } : { title: 160, stats: 296, statH: 190 };
   return (
     <div style={{ display: 'flex', position: 'relative', width: 1200, height: 630, overflow: 'hidden', background: '#0A1030', color: '#F4F6FF', fontFamily: 'Archivo' }}>
       {ogStars.map((st, i) => (
@@ -41,11 +44,19 @@ export function ShareCardOG({ d }: { d: WrappedData }): ReactElement {
         </div>
       </div>
 
-      <div style={{ display: 'flex', position: 'absolute', top: 160, left: 64, right: 64, fontSize: ogPersonaSize(title), lineHeight: 1, fontWeight: 900, letterSpacing: '-0.03em', color: '#FF8A3D', whiteSpace: 'nowrap' }}>{title}</div>
+      <div style={{ display: 'flex', position: 'absolute', top: at.title, left: 64, right: 64, fontSize: ogPersonaSize(title), lineHeight: 1, fontWeight: 900, letterSpacing: '-0.03em', color: '#FF8A3D', whiteSpace: 'nowrap' }}>{title}</div>
 
-      <div style={{ display: 'flex', position: 'absolute', top: 296, left: 64, right: 64, gap: 24 }}>
+      {ach.length > 0 && (
+        <div style={{ display: 'flex', position: 'absolute', top: 250, left: 64, right: 64, alignItems: 'center', gap: 14 }}>
+          {ach.slice(0, OG_ACH_MAX).map((id) => <Grid key={id} art={achievementIcon(id, 6)} />)}
+          {ach.length > OG_ACH_MAX && <div style={{ display: 'flex', fontSize: 28, fontWeight: 900, color: '#F4F6FF' }}>{`+${ach.length - OG_ACH_MAX}`}</div>}
+          <div style={{ display: 'flex', marginLeft: 10, fontSize: 28, fontWeight: 500, color: '#C9D3F5', whiteSpace: 'nowrap' }}>{achievementsOfText(ach.length)}</div>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', position: 'absolute', top: at.stats, left: 64, right: 64, gap: 24 }}>
         {stats.map((s, i) => (
-          <div key={i} style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, flexBasis: 0, minWidth: 0, height: 190, padding: '26px 28px', borderRadius: 24, background: '#10173A', border: '2px solid #2A3566' }}>
+          <div key={i} style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, flexBasis: 0, minWidth: 0, height: at.statH, padding: '26px 28px', borderRadius: 24, background: '#10173A', border: '2px solid #2A3566' }}>
             <div style={{ display: 'flex', fontSize: ogValueSize(s.value), lineHeight: 1, fontWeight: 900, letterSpacing: '-0.04em', whiteSpace: 'nowrap' }}>{s.value}</div>
             <div style={{ display: 'flex', marginTop: 'auto', fontSize: 28, lineHeight: 1.1, fontWeight: 500, color: '#C9D3F5', whiteSpace: 'nowrap' }}>{s.label}</div>
           </div>

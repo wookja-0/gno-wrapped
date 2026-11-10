@@ -22,6 +22,8 @@ and a share card for X and Discord. It follows the chain live, so new activity s
   numbers and your rank among addresses with the same persona.
 - **Achievements**: eleven to collect, from Early Arrival to Citizen (a GovDAO or GnoSwap governance vote),
   Regular (30 active days), Flawless (20+ transactions, none failed) and Token Gardener (GnoSwap liquidity, staking or GNS delegation).
+- **Collection**: all eleven achievements on your recap, the ones you haven't earned yet as grey
+  silhouettes with their rule, and a count (7 / 11).
 - **Next up**: while the season is live, the achievements still in reach and how far along you are
   (e.g. 77 of 100 transactions, 2 of 3 days in a row).
 - **Clock**: your transactions by hour of day in your own time zone, the busiest hour, and whether
@@ -35,8 +37,12 @@ and a share card for X and Discord. It follows the chain live, so new activity s
   fees and rewards; votes, proposals and GNS delegations.
 - **Builder report**: each realm you deployed, and how many other addresses called it.
 - **Story mode**: the recap as full-screen cards, one at a time. Add `?story` to a recap link.
-- **Sharing**: a post for X and Discord, a 1200×630 preview card and a 1080×1920 image. Share links
-  never carry your address ([Privacy](#privacy)).
+- **Sharing**: a post for X and Discord, a 1200×630 preview card and a 1080×1920 image, both with your
+  achievement icons. Share links never carry your address ([Privacy](#privacy)).
+- **README badge**: `/s1/s/<id>/badge.svg`, a small card with your persona and numbers for a GitHub
+  README, with the Markdown to copy on your recap. Built from the share link, so no address.
+- **Season's end**: once the season is over, story mode says so and ends with a certificate of it
+  (persona, transactions, achievements) to share or save.
 - **Compare**: two share links side by side, with neither address shown.
 - **Several wallets**: up to five of your addresses added up on one page (`/s1/wallets/<a>,<b>`):
   transactions, days, hours, realms, GnoSwap and gas combined, personas and achievements per wallet.

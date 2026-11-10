@@ -345,6 +345,9 @@ export function xLength(post: string): number {
 /** Public share link: the unguessable share ID, never the address (falls back for fixtures without one). */
 export const shareLink = (d: WrappedData) =>
   `${SHARE.BASE_URL}/${d.season.id}/${d.shareId ? `s/${d.shareId}` : d.address}`;
+/** README Markdown: the badge image, linking to the share link. Neither has the address. */
+export const readmeMarkdown = (d: WrappedData) =>
+  `[![Gno Wrapped](${SHARE.BASE_URL}/${d.season.id}/s/${d.shareId}/badge.svg)](${shareLink(d)})`;
 export const xIntentUrl = (d: WrappedData, post = sharePost) => 'https://x.com/intent/tweet?text=' + encodeURIComponent(post(d));
 
 // ---------- explorer links ----------
@@ -746,6 +749,13 @@ export const ACHIEVEMENTS: Record<AchievementId, { title: string; rule: string; 
   'token-gardener': { title: 'Token Gardener', rule: 'Opened or staked a GnoSwap position, or delegated GNS.', text: () => 'You planted your tokens on GnoSwap.' },
 };
 export const ACHIEVEMENT_ORDER: AchievementId[] = ['early', 'pioneer', 'citizen', 'streak', 'regular', 'triple-threat', 'token-gardener', 'century', 'flawless', 'validators-friend', 'gas-saver'];
+
+/** Earned achievements in collection order, for the share card and image. */
+export const earnedIds = (d: WrappedData): AchievementId[] => ACHIEVEMENT_ORDER.filter((id) => d.achievements?.some((a) => a.id === id));
+/** "7 of 11 achievements" (share card, image download). */
+export const achievementsOfText = (n: number) => `${fmt(n)} of ${ACHIEVEMENT_ORDER.length} achievements`;
+/** The share card shows this many achievement icons, then "+N". */
+export const OG_ACH_MAX = 8;
 
 export const MILESTONES: Record<MilestoneId, string> = {
   'first-swap': 'First swap on GnoSwap', 'first-collect': 'First NFT mint or buy', 'first-deploy': 'First realm deployed', 'tx-100': '100th transaction',

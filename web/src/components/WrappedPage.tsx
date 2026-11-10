@@ -6,7 +6,7 @@ import { achievementIcon, door, pump, rocket, personaColors } from '@/lib/art';
 import { exportVm, seasonPill, summaryStats, validSeason } from '@/lib/summary';
 import {
   ACHIEVEMENT_ORDER, builderCards, nextUp, timeline, downloadFilename, fmt, fmtGas, gasPerTx,
-  gnoscanAccount, gnoscanRealm, gnoscanTx, shareLink, shortAddress, slideIds, validate, xIntentUrl, type WrappedData,
+  gnoscanAccount, gnoscanRealm, gnoscanTx, readmeMarkdown, shareLink, shortAddress, slideIds, validate, xIntentUrl, type WrappedData,
 } from '@/lib/wrapped';
 import { personaIn } from '@/lib/i18n';
 import Link from 'next/link';
@@ -37,7 +37,7 @@ const LINK = ['M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1', 'M14 10a4 4 0
  * has no address in any form — no address chip, no Gnoscan account or tx links, no links to realm
  * paths the batch masked — and offers "unwrap your own" instead of the share tools.
  */
-export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string }) {
+export function WrappedPage({ data, ogSrc, badgeSrc }: { data: WrappedData; ogSrc: string; badgeSrc?: string }) {
   const router = useRouter();
   const hydrated = useHydrated();
   const c = useCopy();
@@ -98,6 +98,7 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
   const [activePre, activePct, activePost] = c.moreActiveThan(pct);
   const [perTxPre, perTxValue, perTxPost] = c.perTx(gasPerTx(gas, data.txCount));
   const next = nextUp(data); // owner view of a live season only: the batch leaves it out otherwise
+  const earned = new Map((data.achievements ?? []).map((a) => [a.id, a]));
 
   return (
     <div className="gw-page" data-hydrated={hydrated || undefined}>
@@ -159,28 +160,42 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
           ))}
         </section>
 
-        {data.achievements && data.achievements.length > 0 && (
+        {season && (
+          // the whole collection: earned ones in colour, the rest as grey silhouettes with their rule
           <Reveal as="section" className="gw-achievements" label={c.achievementsTitle}>
             <div className="gw-achievements-head">
-              <h2 className="gw-h3">{c.achievementsTitle}</h2>
+              <h2 className="gw-h3">
+                {c.achievementsTitle}
+                <span className="gw-ach-count">{c.collected(earned.size, ACHIEVEMENT_ORDER.length)}</span>
+              </h2>
               <Link href="/personas#achievements" target="_blank" rel="noopener" className="gw-ext" style={{ margin: 0 }}>{c.allAchievements}</Link>
             </div>
             <ul className="gw-ach-list">
-              {[...data.achievements]
-                .sort((a, b) => ACHIEVEMENT_ORDER.indexOf(a.id) - ACHIEVEMENT_ORDER.indexOf(b.id))
-                .map((a, i) => (
-                  <Reveal as="li" key={a.id} className={newAch.includes(a.id) ? 'gw-ach gw-ach-new' : 'gw-ach'} delay={i * 70}>
-                    <Pixel art={achievementIcon(a.id, 4)} />
+              {ACHIEVEMENT_ORDER.map((id, i) => {
+                const a = earned.get(id);
+                const isNew = newAch.includes(id);
+                return a ? (
+                  <Reveal as="li" key={id} className={isNew ? 'gw-ach gw-ach-new' : 'gw-ach'} delay={i * 40}>
+                    <Pixel art={achievementIcon(id, 4)} />
                     <div style={{ minWidth: 0 }}>
                       <div className="gw-ach-title">
-                        {c.achievement(a.id)?.title ?? a.id}
-                        {newAch.includes(a.id) && <span className="gw-ach-newtag">{c.newTag}</span>}
+                        {c.achievement(id)?.title ?? id}
+                        {isNew && <span className="gw-ach-newtag">{c.newTag}</span>}
                       </div>
-                      <div className="gw-ach-text">{c.achievement(a.id)?.text(a.value, a.realms)}</div>
+                      <div className="gw-ach-text">{c.achievement(id)?.text(a.value, a.realms)}</div>
                     </div>
-                    {newAch.includes(a.id) && <span className="gw-ach-shine" aria-hidden="true" />}
+                    {isNew && <span className="gw-ach-shine" aria-hidden="true" />}
                   </Reveal>
-                ))}
+                ) : (
+                  <Reveal as="li" key={id} className="gw-ach gw-ach-locked" delay={i * 40}>
+                    <Pixel art={achievementIcon(id, 4)} />
+                    <div style={{ minWidth: 0 }}>
+                      <div className="gw-ach-title">{c.achievement(id).title}<span className="gw-sr"> ({c.notEarned})</span></div>
+                      <div className="gw-ach-text">{c.achievement(id).rule}</div>
+                    </div>
+                  </Reveal>
+                );
+              })}
             </ul>
           </Reveal>
         )}
@@ -453,7 +468,14 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
               {season && data.shareId && (
                 <CompareForm season={season.id} pair={(theirs) => [data.shareId!, theirs]} label={c.compareFriend} placeholder={c.theirLink} />
               )}
-
+              {season && data.shareId && badgeSrc && (
+                <div className="gw-readme">
+                  <p className="gw-compare-label">{c.readmeBadge}</p>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={badgeSrc} alt={c.readmeBadgeAlt(persona.title)} height={72} />
+                  <button type="button" className="gw-btn" onClick={() => copy(readmeMarkdown(data), c.markdownCopied)}>{c.copyMarkdown}</button>
+                </div>
+              )}
             </div>
             {season && (
               // What X and Discord show for the link.
@@ -475,7 +497,7 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
         </div>
       )}
 
-      {(story ?? storyInUrl) && season && <StoryMode data={data} onClose={() => setStory(false)} />}
+      {(story ?? storyInUrl) && season && <StoryMode data={data} onClose={() => setStory(false)} onDownload={shared ? undefined : download} />}
       {toast && <div role="status" className="gw-toast">{toast}</div>}
       {errors.length > 0 && <DataErrorBanner errors={errors} />}
     </div>

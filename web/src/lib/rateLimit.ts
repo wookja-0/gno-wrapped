@@ -20,4 +20,5 @@ export const limits = {
   og: createLimiter(30), // card renders (cache misses only) per minute
   day: createLimiter(60), // day lists per minute
   live: createLimiter(120), // the ticker polls every 5s, so 12 a minute per open tab
+  badge: createLimiter(120), // README badges
 };

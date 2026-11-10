@@ -1,5 +1,5 @@
-import { exportPlanet, exportStars, wordmark } from '@/lib/art';
-import type { Persona } from '@/lib/wrapped';
+import { achievementIcon, exportPlanet, exportStars, wordmark } from '@/lib/art';
+import type { AchievementId, Persona } from '@/lib/wrapped';
 import { PersonaBadge, Pixel } from './pixel';
 
 /** Display-ready strings for the 1080x1920 "Download image" frame (built like SummaryCard's). */
@@ -11,6 +11,7 @@ export interface SummaryVM {
   stats: { label: string; value: string }[];
   topRealm: { path: string; detail: string } | null;
   dataAsOf: string;
+  achievements?: { ids: AchievementId[]; label: string }; // earned, in collection order
 }
 
 /** Static capture target: no animation, final values only (the handoff's SummaryExport.dc.html). No address: it's made to be shared. */
@@ -33,10 +34,19 @@ export function SummaryExport({ vm }: { vm: SummaryVM }) {
           <span style={{ padding: '12px 22px', borderRadius: 999, background: '#1F6BFF', color: '#FFFFFF', fontFamily: "'Silkscreen', monospace", fontSize: 26, letterSpacing: '0.04em' }}>{vm.seasonPill}</span>
           {vm.final && <span style={{ padding: '12px 22px', borderRadius: 999, background: '#FF8A3D', color: '#0A0F2E', fontFamily: "'Silkscreen', monospace", fontSize: 26, letterSpacing: '0.04em' }}>FINAL</span>}
         </div>
-        <div style={{ marginTop: 44 }}><PersonaBadge id={vm.persona.id} p={12} label={`${vm.persona.title} badge`} /></div>
+        {/* a smaller badge makes room for the achievements row */}
+        <div style={{ marginTop: 44 }}><PersonaBadge id={vm.persona.id} p={vm.achievements?.ids.length ? 10 : 12} label={`${vm.persona.title} badge`} /></div>
         <p style={{ margin: '40px 0 0', fontSize: 34, fontWeight: 500, color: '#C9D3F5' }}>{vm.copy?.persona ?? 'Your season persona'}</p>
         <p style={{ margin: '8px 0 0', fontSize: titleSize, lineHeight: 1.05, fontWeight: 900, letterSpacing: '-0.03em', color: '#FF8A3D' }}>{vm.persona.title}</p>
         <p style={{ margin: '16px 0 0', maxWidth: 820, fontSize: 34, lineHeight: 1.35, color: '#D3DBF7' }}>{vm.persona.line}</p>
+        {vm.achievements && vm.achievements.ids.length > 0 && (
+          <div style={{ marginTop: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 18 }}>
+              {vm.achievements.ids.map((id) => <Pixel key={id} art={achievementIcon(id, 7)} />)}
+            </div>
+            <div style={{ fontSize: 28, color: '#A3AED6' }}>{vm.achievements.label}</div>
+          </div>
+        )}
 
         <div style={{ marginTop: 44, width: '100%', display: 'flex', flexWrap: 'wrap', gap: 24, textAlign: 'left' }}>
           {vm.stats.map((s, i) => (
