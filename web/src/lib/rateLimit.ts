@@ -9,9 +9,12 @@ import { createLimiter, type Limiter } from './limiter';
 // the web container is reachable only through Caddy.
 const clientIp = (req: Request) => req.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown';
 
-/** A 429 when the client is over the limit, else null. Off outside production (dev server, e2e tests). */
+/**
+ * A 429 when the client is over the limit, else null. Off outside production and in fixture mode
+ * (the e2e tests, which run against a production build on CI; the live site never sets it).
+ */
 export function limited(req: Request, limiter: Limiter): Response | null {
-  if (process.env.NODE_ENV !== 'production') return null;
+  if (process.env.NODE_ENV !== 'production' || process.env.WRAPPED_FIXTURES === '1') return null;
   const { ok, retryAfter } = limiter.hit(clientIp(req));
   return ok ? null : new Response('Too many requests', { status: 429, headers: { 'Retry-After': String(retryAfter), 'Cache-Control': 'no-store' } });
 }

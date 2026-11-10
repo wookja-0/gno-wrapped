@@ -23,7 +23,7 @@ npm ci
 npx next typegen
 npm run typecheck && npm run lint
 npm test
-npm run e2e   # Playwright with your system Chrome; starts the api and a dev server
+npm run e2e   # Playwright with your system Chrome; starts the api and a dev server (E2E_PROD=1: a production build, as CI does)
 ```
 
 Tests that need real batch output (`data/out`) skip themselves when it isn't there.
