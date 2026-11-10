@@ -370,8 +370,8 @@ describe('personas and share links', () => {
     expect(personaRuleText({ kind: 'share', category: 'play', min: 0.5 })).toBe('At least 50% of your moves were on-chain games.');
     expect(personaRuleText({ kind: 'firstDay', max: 3 })).toBe('First transaction within the first 3 days of mainnet.');
   });
-  it('has 8 badges with 14x14 symbols in a 24x24 medallion', () => {
-    expect(PERSONA_IDS).toHaveLength(8);
+  it('has 9 badges with 14x14 symbols in a 24x24 medallion', () => {
+    expect(PERSONA_IDS).toHaveLength(9);
     for (const id of PERSONA_IDS) {
       const rows = personaSymbolRows(id);
       expect(rows.length, id).toBe(14);
@@ -570,5 +570,20 @@ describe('Connect Adena', () => {
     expect(adenaOutcome({ status: 'success', type: 'GET_ACCOUNT', data: { address: 'g1…' } })).toBe('connected');
     expect(adenaOutcome({ status: 'failure', type: 'UNEXPECTED' })).toBe('failed');
     expect(adenaOutcome(undefined)).toBe('failed');
+  });
+});
+
+describe('Validator and the three new achievements', () => {
+  it('says why, and has a rule and progress copy', () => {
+    const d = { ...load('newcomer'), persona: { id: 'validator', title: 'Validator', line: '' } };
+    expect(personaWhy(d)).toBe('You registered as a validator operator on gno.land.');
+    expect(personaRuleText({ kind: 'valoper' })).toMatch(/validator operator/);
+    expect(progressText({ id: 'regular', have: 12, need: 30 })).toBe('12 of 30 active days. 18 to go.');
+    expect(progressText({ id: 'flawless', have: 7, need: 20 })).toBe('7 of 20 transactions, none failed. Keep it clean.');
+    expect(progressText({ id: 'token-gardener', have: 0, need: 1 })).toMatch(/GnoSwap/);
+  });
+  it('orders the achievements with the new ones in place', () => {
+    expect(ACHIEVEMENT_ORDER).toHaveLength(11);
+    expect(ACHIEVEMENT_ORDER.slice(3, 7)).toEqual(['streak', 'regular', 'triple-threat', 'token-gardener']);
   });
 });

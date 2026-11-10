@@ -99,6 +99,7 @@ type acc struct {
 	gov       govStats                  // governance votes, proposals, GNS delegations
 	calls     map[string]map[string]int // pkg_path → func → count
 	deployed  []string
+	valoper   bool // registered a validator operator profile (r/gnops/valopers)
 	lastAt    time.Time
 	actions   map[string]int // message kind → count, for the bot heuristic
 	cats      map[string]int // message category → count, for personas
@@ -435,6 +436,7 @@ func (d *dataset) mainnetDay(t time.Time) int {
 
 var personas = map[string]persona{
 	"builder":          {ID: "builder", Title: "Builder", Line: "You shipped code to mainnet."},
+	"validator":        {ID: "validator", Title: "Validator", Line: "You signed up to help run the chain."},
 	"day-one-explorer": {ID: "day-one-explorer", Title: "Day-One Explorer", Line: "You were here before the map was drawn."},
 	"realm-hopper":     {ID: "realm-hopper", Title: "Realm Hopper", Line: "You never stayed in one realm for long."},
 	"defi-pilot":       {ID: "defi-pilot", Title: "DeFi Pilot", Line: "Swaps, pools and stakes: GnoSwap was your home base."},
@@ -445,7 +447,7 @@ var personas = map[string]persona{
 }
 
 // personaOrder lists persona ids as `wrapped stats` prints them.
-var personaOrder = []string{"builder", "day-one-explorer", "realm-hopper", "defi-pilot", "collector", "player-one", "gnot-courier", "first-steps"}
+var personaOrder = []string{"builder", "validator", "day-one-explorer", "realm-hopper", "defi-pilot", "collector", "player-one", "gnot-courier", "first-steps"}
 
 // choosePersona: first match wins. The dominant message category decides before tx count, so a
 // single NFT mint is a Collector; only accounts that just moved GNOT once or twice are First Steps.
@@ -469,6 +471,8 @@ func choosePersona(a *acc, day int) persona {
 	switch {
 	case len(a.deployed) > 0:
 		return personas["builder"]
+	case a.valoper:
+		return personas["validator"]
 	case day <= personaRules.DayOneMaxDay:
 		return personas["day-one-explorer"]
 	case len(a.calls) >= personaRules.HopperMinRealms:
@@ -487,7 +491,7 @@ func choosePersona(a *acc, day int) persona {
 
 // personaRule describes when a persona applies, for the /personas page (GET /v1/{season}/personas).
 type personaRule struct {
-	Kind     string  `json:"kind"` // deployed | firstDay | realms | share | transfers | fallback
+	Kind     string  `json:"kind"` // deployed | valoper | firstDay | realms | share | transfers | fallback
 	Category string  `json:"category,omitempty"`
 	Min      float64 `json:"min,omitempty"`
 	Max      float64 `json:"max,omitempty"`
@@ -498,6 +502,8 @@ func personaRuleFor(id string) personaRule {
 	switch id {
 	case "builder":
 		return personaRule{Kind: "deployed", Min: 1}
+	case "validator":
+		return personaRule{Kind: "valoper"}
 	case "day-one-explorer":
 		return personaRule{Kind: "firstDay", Max: float64(r.DayOneMaxDay)}
 	case "realm-hopper":
@@ -601,7 +607,7 @@ func (d *dataset) render(ids *shareIDs, updatedAt time.Time) (map[string][]byte,
 			Hours:          a.hours[:],
 		}
 		if !final {
-			w.Progress = d.progressFor(a, w.Achievements)
+			w.Progress = d.progressFor(a, d.failed[addr], w.Achievements)
 		}
 		for i := range w.TopRealms {
 			r := &w.TopRealms[i]

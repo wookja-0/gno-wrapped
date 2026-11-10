@@ -54,6 +54,7 @@ export const rocket = pix([
 export interface PersonaColors { hi: string; mid: string; dark: string; deep: string; edge: string }
 export const PERSONA_COLORS: Record<string, PersonaColors> = {
   'builder': { hi: '#A9CCFF', mid: '#3D8BFF', dark: '#1F4FC7', deep: '#13235E', edge: '#224796' },
+  'validator': { hi: '#FFC6B0', mid: '#FF7A55', dark: '#B5401E', deep: '#2E1B3E', edge: '#7A3A3C' },
   'day-one-explorer': { hi: '#B3F1FF', mid: '#2FD3FF', dark: '#137FAE', deep: '#0E2B55', edge: '#1A6690' },
   'realm-hopper': { hi: '#D2BEFF', mid: '#9B6BFF', dark: '#5B33C9', deep: '#231A5C', edge: '#4D3695' },
   'defi-pilot': { hi: '#A3F5CF', mid: '#1FCF8F', dark: '#0F7E58', deep: '#0E2E46', edge: '#146660' },
@@ -73,6 +74,16 @@ const SYMBOLS: Record<string, string[]> = {
     'MMMMMMMDDDDDDD', 'MMMMMMMDDDDDDD',
     'MMMMMMMDDDDDDD', '..MMMMMDDDDD..',
     '....MMMDDD....', '......MD......',
+  ],
+  // a shield with a check: signed up to help run the chain
+  'validator': [
+    '..............', '.HHHHHHMMMMMD.',
+    '.HMMMMMMMMMMD.', '.HMMMMMMMMMMD.',
+    '.HMMMMMMMMWMD.', '.HMMMMMMMWWMD.',
+    '.HMMMMMMWWMMD.', '.HMWMMMWWMMMD.',
+    '.HMWWMWWMMMDD.', '..HMWWWMMMMD..',
+    '..HMMWMMMMDD..', '...HMMMMMDD...',
+    '....HMMMDD....', '......MD......',
   ],
   'day-one-explorer': [
     '..............', '.SWMMMMMMHH...',
@@ -339,6 +350,9 @@ const ACH_ROWS: Record<string, string[]> = {
   pioneer: ['.WGGGG..', '.WGGGGG.', '.WGGGG..', '.W......', '.W......', '.W......', '.W......', 'OOOOOOO.'], // planted flag
   citizen: ['..WWWW..', '..WWOW..', '..WOWW..', 'BBB..BBB', 'BBBBBBBB', 'BBBBBBBB', 'B.BBBB.B', 'BBBBBBBB'], // ballot into a box
   century: ['YYYYYYYY', 'Y.YYYY.Y', 'Y.YYYY.Y', '.YYYYYY.', '..YYYY..', '...YY...', '..YYYY..', '.YYYYYY.'], // trophy
+  regular: ['.B....B.', 'BBBBBBBB', 'BWWWWWWB', 'BWWWWWGB', 'BWGWWGWB', 'BWWGGWWB', 'BWWWWWWB', 'BBBBBBBB'], // calendar, checked
+  flawless: ['........', '.WWBBBB.', 'WWBBBBBB', 'BBBBBBBB', '.BBBBBB.', '..BBBB..', '...BB...', '........'], // diamond
+  'token-gardener': ['.GG..GG.', 'GGG..GGG', '.GGGGGG.', '...GG...', '...GG...', '.YYYYYY.', 'YYOYYOYY', '.YYYYYY.'], // sprout from a coin
 };
 export const achievementIcon = (id: string, p: number): Art => pix(ACH_ROWS[id] ?? ACH_ROWS.century, ACH_PAL, p);
 export const achievementIconRows = (id: string) => ACH_ROWS[id] ?? [];

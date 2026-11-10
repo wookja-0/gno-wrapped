@@ -405,7 +405,7 @@ test.describe('achievements and timeline', () => {
 
   test('/personas lists all achievements', async ({ page }) => {
     await page.goto('/personas#achievements');
-    await expect(page.locator('#achievements .gw-ach')).toHaveCount(8);
+    await expect(page.locator('#achievements .gw-ach')).toHaveCount(11);
   });
 
   test('intro shows the live ticker (needs the api with batch output)', async ({ page }) => {
@@ -559,7 +559,7 @@ test.describe('personas', () => {
     await expect(page.getByText('You called')).toBeVisible();
     const [tab] = await Promise.all([page.waitForEvent('popup'), page.getByRole('link', { name: /How personas work/ }).click()]);
     await expect(tab).toHaveURL(/\/personas$/);
-    await expect(tab.getByRole('heading', { level: 1 })).toHaveText('Eight personas, one per address');
+    await expect(tab.getByRole('heading', { level: 1 })).toHaveText('Nine personas, one per address');
     await expect(page).toHaveURL(new RegExp(`/s1/${ADDR}`)); // the recap stays open
   });
 
@@ -579,10 +579,12 @@ test.describe('personas', () => {
     await page.goto('/personas');
     const cards = page.locator('.gw-persona-card');
     if (await page.getByText("Persona data isn't available").count()) test.skip(true, 'no batch output for the api');
-    await expect(cards).toHaveCount(8);
+    await expect(cards).toHaveCount(9);
     await expect(cards.first()).toContainText('Builder');
+    await expect(cards.nth(1)).toContainText('Validator');
+    await expect(cards.nth(1)).toContainText('No ranking: registering is the whole of it.');
     await expect(cards.last()).toContainText('First Steps');
-    await expect(cards.nth(3)).toContainText('Ranked by GnoSwap and wugnot moves.');
+    await expect(cards.nth(4)).toContainText('Ranked by GnoSwap and wugnot moves.');
     await expect(page.getByText('there is no public list')).toBeVisible();
   });
 });

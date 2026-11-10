@@ -13,7 +13,8 @@ type personaRank struct {
 }
 
 // rankMetric returns what a persona is ranked by and the address's value; ok=false for personas
-// without a rank (First Steps: everyone made one or two transfers).
+// without a rank (First Steps: everyone made one or two transfers; Validator: registering once is
+// the whole of it).
 func rankMetric(personaID string, a *acc) (metric string, value float64, higherIsBetter, ok bool) {
 	switch personaID {
 	case "builder":

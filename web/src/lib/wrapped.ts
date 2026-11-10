@@ -79,11 +79,12 @@ export interface Calendar { daily?: number[]; weeks?: number[]; activeDays: numb
 
 /** Mainnet arrival order. `order` is omitted behind a share link (it's a direct lookup into chain data). */
 export interface Arrival { order?: number; of: number; tier?: number }
-export type AchievementId = 'early' | 'pioneer' | 'citizen' | 'streak' | 'triple-threat' | 'gas-saver' | 'validators-friend' | 'century';
+export type AchievementId = 'early' | 'pioneer' | 'citizen' | 'streak' | 'triple-threat' | 'gas-saver' | 'validators-friend' | 'century'
+  | 'regular' | 'flawless' | 'token-gardener';
 /** `realms`: pioneer only, owner view only — up to 3 realms, most-used first. */
 export interface Achievement { id: AchievementId; value?: number; realms?: string[] }
 /** An achievement the address can still earn this season, and how far along it is. */
-export type ProgressId = 'century' | 'streak' | 'triple-threat' | 'citizen';
+export type ProgressId = 'century' | 'streak' | 'triple-threat' | 'citizen' | 'regular' | 'flawless' | 'token-gardener';
 export interface Progress { id: ProgressId; have: number; need: number; missing?: ('defi' | 'collect' | 'play')[] }
 export type MilestoneId = 'first-swap' | 'first-collect' | 'first-deploy' | 'tx-100';
 export interface Milestone { id: MilestoneId; date: string }
@@ -362,6 +363,7 @@ export const gnoscanRealm = (path: string) =>
 
 export type PersonaRule =
   | { kind: 'deployed'; min: number }
+  | { kind: 'valoper' }
   | { kind: 'firstDay'; max: number }
   | { kind: 'realms'; min: number }
   | { kind: 'share'; category: 'defi' | 'collect' | 'play'; min: number }
@@ -382,6 +384,7 @@ const pctText = (x: number) => `${Math.round(x * 100)}%`;
 export function personaRuleText(r: PersonaRule): string {
   switch (r.kind) {
     case 'deployed': return `Deployed at least ${r.min} realm${r.min === 1 ? '' : 's'} to mainnet.`;
+    case 'valoper': return 'Registered as a validator operator on gno.land (r/gnops/valopers).';
     case 'firstDay': return `First transaction within the first ${r.max} days of mainnet.`;
     case 'realms': return `Called ${r.min} or more different realms.`;
     case 'share': return `At least ${pctText(r.min)} of your moves were ${CATEGORY[r.category]}.`;
@@ -397,6 +400,7 @@ export function personaWhy(d: WrappedData): string {
   const share = p.share ? pctText(p.share) : '';
   switch (p.id) {
     case 'builder': return `You deployed ${fmt(d.deployedRealms.length)} ${plural(d.deployedRealms.length, 'realm', 'realms')} to mainnet.`;
+    case 'validator': return 'You registered as a validator operator on gno.land.';
     case 'day-one-explorer': return `Your first transaction landed on day ${d.firstTx?.mainnetDay ?? '?'} of mainnet.`;
     case 'realm-hopper': return `You called ${fmt(d.realmCount ?? d.topRealms.length)} different realms.`;
     case 'defi-pilot': return `${share} of your moves went through GnoSwap and wugnot.`;
@@ -411,7 +415,7 @@ export function personaWhy(d: WrappedData): string {
 // ---------- persona rank ----------
 
 const PERSONA_PLURAL: Record<string, string> = {
-  builder: 'Builders', 'day-one-explorer': 'Day-One Explorers', 'realm-hopper': 'Realm Hoppers', 'defi-pilot': 'DeFi Pilots',
+  builder: 'Builders', validator: 'Validators', 'day-one-explorer': 'Day-One Explorers', 'realm-hopper': 'Realm Hoppers', 'defi-pilot': 'DeFi Pilots',
   collector: 'Collectors', 'player-one': 'Player Ones', 'gnot-courier': 'GNOT Couriers',
 };
 /** What each persona is ranked by, as a phrase: "ranked by …". */
@@ -737,8 +741,11 @@ export const ACHIEVEMENTS: Record<AchievementId, { title: string; rule: string; 
   'gas-saver': { title: 'Gas Saver', rule: 'Among the lowest 10% in gas per transaction, with 5+ transactions.', text: () => 'Among the lowest gas per transaction this season.' },
   'validators-friend': { title: "Validators' Friend", rule: 'Among the top 10% in total gas paid.', text: () => 'Among the top 10% in gas paid. The validators thank you.' },
   century: { title: 'Century', rule: '100 or more transactions this season.', text: (v) => `${fmt(v ?? 100)} transactions this season.` },
+  regular: { title: 'Regular', rule: 'Active on 30 or more days this season (UTC days).', text: (v) => `Active on ${fmt(v ?? 30)} days this season.` },
+  flawless: { title: 'Flawless', rule: '20 or more transactions this season, and not one failed.', text: (v) => `${fmt(v ?? 20)} transactions, not one failed.` },
+  'token-gardener': { title: 'Token Gardener', rule: 'Opened or staked a GnoSwap position, or delegated GNS.', text: () => 'You planted your tokens on GnoSwap.' },
 };
-export const ACHIEVEMENT_ORDER: AchievementId[] = ['early', 'pioneer', 'citizen', 'streak', 'triple-threat', 'century', 'validators-friend', 'gas-saver'];
+export const ACHIEVEMENT_ORDER: AchievementId[] = ['early', 'pioneer', 'citizen', 'streak', 'regular', 'triple-threat', 'token-gardener', 'century', 'flawless', 'validators-friend', 'gas-saver'];
 
 export const MILESTONES: Record<MilestoneId, string> = {
   'first-swap': 'First swap on GnoSwap', 'first-collect': 'First NFT mint or buy', 'first-deploy': 'First realm deployed', 'tx-100': '100th transaction',
@@ -776,6 +783,9 @@ export function progressText(p: Progress): string {
     case 'streak': return p.have ? `${fmt(p.have)} of ${fmt(p.need)} days in a row so far. Keep the run going.` : `Be active ${fmt(p.need)} days in a row (UTC days).`;
     case 'triple-threat': return `${p.have} of ${p.need} done. Still to try: ${andList((p.missing ?? []).map((m) => TRY[m]))}.`;
     case 'citizen': return 'Vote on a GovDAO or GnoSwap governance proposal.';
+    case 'regular': return `${fmt(p.have)} of ${fmt(p.need)} active days. ${fmt(p.need - p.have)} to go.`;
+    case 'flawless': return `${fmt(p.have)} of ${fmt(p.need)} transactions, none failed. Keep it clean.`;
+    case 'token-gardener': return 'Open or stake a GnoSwap position, or delegate GNS.';
   }
 }
 

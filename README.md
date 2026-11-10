@@ -18,9 +18,10 @@ and a share card for X and Discord. It follows the chain live, so new activity s
 
 ## Key Features
 
-- **Season persona**: one of eight, picked by rules checked in order, with the reason in your own
+- **Season persona**: one of nine, picked by rules checked in order, with the reason in your own
   numbers and your rank among addresses with the same persona.
-- **Achievements**: eight to collect, from Early Arrival to Citizen (a GovDAO or GnoSwap governance vote).
+- **Achievements**: eleven to collect, from Early Arrival to Citizen (a GovDAO or GnoSwap governance vote),
+  Regular (30 active days), Flawless (20+ transactions, none failed) and Token Gardener (GnoSwap liquidity, staking or GNS delegation).
 - **Next up**: while the season is live, the achievements still in reach and how far along you are
   (e.g. 77 of 100 transactions, 2 of 3 days in a row).
 - **Clock**: your transactions by hour of day in your own time zone, the busiest hour, and whether

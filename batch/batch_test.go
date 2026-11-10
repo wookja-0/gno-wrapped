@@ -306,7 +306,7 @@ func TestHoursAndProgressAreForTheOwnerWhileTheSeasonIsLive(t *testing.T) {
 	if len(w.Hours) != 24 || w.Hours[23] != 2 || w.Hours[2] != 1 {
 		t.Errorf("hours = %v", w.Hours)
 	}
-	want := []string{"century 3/100 []", "streak 2/3 []", "triple-threat 1/3 [collect play]", "citizen 0/1 []"}
+	want := []string{"century 3/100 []", "streak 2/3 []", "triple-threat 1/3 [collect play]", "citizen 0/1 []", "regular 3/30 []", "flawless 3/20 []", "token-gardener 0/1 []"}
 	var got []string
 	for _, p := range w.Progress {
 		got = append(got, fmt.Sprintf("%s %d/%d %v", p.ID, p.Have, p.Need, p.Missing))
@@ -382,5 +382,72 @@ func TestTopRealmsCarryTheCallerOrderForTheOwnerOnly(t *testing.T) {
 	}
 	if r := redact(recap(2)).TopRealms[0]; r.Order != 0 || r.Callers != 3 {
 		t.Errorf("share view: %+v", r)
+	}
+}
+
+func TestValidatorPersonaAndTheNewAchievements(t *testing.T) {
+	start := time.Date(2026, 9, 12, 0, 0, 0, 0, time.UTC)
+	d := &dataset{accs: map[string]*acc{}, failed: map[string]int{}, firstCall: map[string]map[string][2]int{}, deployer: map[string]string{},
+		start: start, end: start.AddDate(0, 0, 111), weeks: 16, days: 111}
+	d.st.GenesisTime, d.st.TipTime = start.Add(-30*24*time.Hour), start.AddDate(0, 0, 60) // nobody is a day-one explorer
+	val, gardener, slip := "g1wrappedvalqqqqqqqqqqqqqqqqqqqqqqqqqqqq", "g1wrappedgardenqqqqqqqqqqqqqqqqqqqqqqqqq", "g1wrappedslipqqqqqqqqqqqqqqqqqqqqqqqqqqq"
+	var txs []json.RawMessage
+	var blocks []blockTime
+	h := 10
+	add := func(who, pkg, fn string, day int, ok bool) {
+		txs = append(txs, json.RawMessage(fmt.Sprintf(`{"block_height":%d,"index":0,"hash":"h%d","success":%t,
+			"messages":[{"value":{"__typename":"MsgCall","caller":%q,"pkg_path":%q,"func":%q}}]}`, h, h, ok, who, pkg, fn)))
+		blocks = append(blocks, blockTime{Height: h, Time: start.AddDate(0, 0, day), NumTxs: 1})
+		h++
+	}
+	add(val, "gno.land/r/gnops/valopers", "Register", 1, true)
+	for day := 0; day < regularMin; day++ { // the gardener: one call a day for 30 days, none failed
+		add(gardener, "gno.land/r/demo/boards", "Post", day, true)
+	}
+	add(gardener, "gno.land/r/gnoswap/position", "Mint", 31, true)
+	for i := 0; i < flawlessMin; i++ {
+		add(slip, "gno.land/r/demo/boards", "Post", 2, true)
+	}
+	add(slip, "gno.land/r/demo/boards", "Post", 3, false) // one failure: no Flawless, and no progress toward it
+	if err := d.applyChunk(chunk{From: 1, To: h, Txs: txs, Blocks: blocks}); err != nil {
+		t.Fatal(err)
+	}
+	ids, _ := loadShareIDs(config{DataDir: t.TempDir()})
+	files, err := d.render(ids, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	recap := func(addr string) wrapped {
+		var shard map[string]wrapped
+		json.Unmarshal(files["s1/"+shardKey(addr)+".json"], &shard)
+		return shard[addr]
+	}
+	ach := func(w wrapped) (ids []string) {
+		for _, a := range w.Achievements {
+			ids = append(ids, a.ID)
+		}
+		return
+	}
+	prog := func(w wrapped) (ids []string) {
+		for _, p := range w.Progress {
+			ids = append(ids, p.ID)
+		}
+		return
+	}
+	if w := recap(val); w.Persona.ID != "validator" || w.PersonaRank != nil {
+		t.Errorf("validator: persona %s, rank %+v", w.Persona.ID, w.PersonaRank)
+	}
+	if got := strings.Join(ach(recap(gardener)), ","); !strings.HasSuffix(got, "regular,flawless,token-gardener") {
+		t.Errorf("gardener achievements = %s", got)
+	}
+	w := recap(slip)
+	if a := strings.Join(ach(w), ","); strings.Contains(a, "flawless") || w.FailedTxs != 1 {
+		t.Errorf("slip: achievements %s, failed %d", a, w.FailedTxs)
+	}
+	if p := strings.Join(prog(w), ","); strings.Contains(p, "flawless") || !strings.Contains(p, "regular") {
+		t.Errorf("slip progress = %s", p)
+	}
+	if r := personaRuleFor("validator"); r.Kind != "valoper" {
+		t.Errorf("rule = %+v", r)
 	}
 }
