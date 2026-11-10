@@ -8,7 +8,7 @@ import {
   ACHIEVEMENTS, activityLead, arrivalSub, arrivalText, builderHeadline, countdownText, dayText, dayTxAction, defiLines, fmt, fmtDate,
   fmtGas, fmtShort, fuelLine, governanceLines, MILESTONES, personaRankText, personaRuleText, personaWhy, plural, RANK_METRIC,
   realmUseText, rankTopPct, SHARE, shareLink, sharePost, successText, summaryRank, topPairText, visitDiff, visitSnapshot, weekRange, weekText,
-  xLength, X_MAX, ACHIEVEMENT_ORDER, MONTHS, progressText, realmOrderLine, realmOrderText, CHRONOTYPES, chronotypeLine, hourLabel, hourText,
+  xLength, X_MAX, ACHIEVEMENT_ORDER, MONTHS, progressText, realmOrderLine, realmOrderText, achievementsOfText, CHRONOTYPES, chronotypeLine, hourLabel, hourText,
   type AchievementId, type CalendarCell, type Chronotype, type Progress, type DayTx, type MilestoneId, type PersonaRule, type RankMetric, type RealmReport,
   type Season, type VisitSnapshot, type WrappedData,
 } from './wrapped';
@@ -105,6 +105,7 @@ const en = {
 
   // achievements, arrival, timeline
   achievementsTitle: 'Achievements', allAchievements: 'All achievements ↗', newTag: 'NEW',
+  collected: (x: number, of: number) => `${x} / ${of}`, notEarned: 'not earned yet', achievementsOf: achievementsOfText,
   achievement: (id: AchievementId) => ACHIEVEMENTS[id],
   milestone: (id: MilestoneId) => MILESTONES[id], firstTransaction: 'First transaction', timelineLabel: 'Season timeline',
   nextUpTitle: 'Next up', nextUpLede: 'Still in reach before the season ends.', progressText: (p: Progress) => progressText(p),
@@ -159,6 +160,8 @@ const en = {
   govKicker: "On gno.land's GovDAO and GnoSwap governance you made", governanceLines,
 
   // share
+  readmeBadge: 'Add a badge to your GitHub README', copyMarkdown: 'Copy Markdown', markdownCopied: 'Markdown copied',
+  readmeBadgeAlt: (title: string) => `README badge preview: ${title}`,
   shareTitle: 'Share your Wrapped', shareToX: 'Share to X', copyDiscord: 'Copy for Discord', copyLink: 'Copy link',
   downloadImage: 'Download image', shareHint: 'The link and images never show your address.',
   copied: 'Copied — paste it in Discord', linkCopied: 'Link copied', copyFailed: "Couldn't copy", saved: (f: string) => `Saved ${f}`,
@@ -213,6 +216,7 @@ const en = {
   story: {
     label: 'Season story', close: 'Close the story', paused: ' · PAUSED', hint: 'Tap or → for next · hold to pause',
     introTitle: (shared: boolean, s: Season) => `${shared ? 'A' : 'Your'} Mainnet Season ${n(s)} on gno.land`, introLine: "Let's unwrap it.",
+    introLineFinal: "The season is over. Here's how it went.", complete: (s: Season) => `SEASON ${n(s)} · COMPLETE`,
     arrived: (shared: boolean, date: string) => `${shared ? 'They' : 'You'} arrived on ${fmtDate(date)}`,
     dayOne: 'Here from the start.', ofMainnet: 'of mainnet',
     sent: (shared: boolean) => `This season ${shared ? 'they' : 'you'} sent`,
@@ -416,7 +420,8 @@ const ko: Copy = {
   statGas: '쓴 가스', statRank: (p) => (p >= 90 ? { value: `상위 ${Math.max(1, 100 - p)}%`, label: '가장 활발한 주소' } : { value: `${p}%`, label: '보다 활발해요' }),
   glance: '시즌 한눈에 보기',
 
-  achievementsTitle: '업적', allAchievements: '전체 업적 ↗', newTag: '새로 획득', achievement: (id) => KO_ACH[id],
+  achievementsTitle: '업적', allAchievements: '전체 업적 ↗', newTag: '새로 획득',
+  collected: (x, of) => `${x} / ${of}`, notEarned: '아직 못 얻음', achievementsOf: (x) => `업적 ${ACHIEVEMENT_ORDER.length}개 중 ${fmt(x)}개`, achievement: (id) => KO_ACH[id],
   milestone: (id) => KO_MILESTONE[id], firstTransaction: '첫 트랜잭션', timelineLabel: '시즌 타임라인',
   nextUpTitle: '다음 업적', nextUpLede: '시즌이 끝나기 전에 아직 얻을 수 있어요.',
   progressText: (p) => {
@@ -492,6 +497,8 @@ const ko: Copy = {
       .filter(([x]) => x).map(([x, label]) => ({ value: `${fmt(x!)}회`, label }));
   },
 
+  readmeBadge: 'GitHub README에 배지 달기', copyMarkdown: '마크다운 복사', markdownCopied: '마크다운을 복사했어요',
+  readmeBadgeAlt: (title) => `README 배지 미리보기: ${title}`,
   shareTitle: '나의 Wrapped 공유하기', shareToX: 'X에 공유', copyDiscord: '디스코드용 복사', copyLink: '링크 복사', downloadImage: '이미지 저장',
   shareHint: '링크와 이미지에는 주소가 절대 나오지 않아요.', copied: '복사했어요. 디스코드에 붙여넣으세요', linkCopied: '링크를 복사했어요',
   copyFailed: '복사하지 못했어요', saved: (f) => `${f} 저장했어요`, saveFailed: '이미지를 저장하지 못했어요', sharePost: koSharePost,
@@ -561,6 +568,7 @@ const ko: Copy = {
   story: {
     label: '시즌 스토리', close: '스토리 닫기', paused: ' · 일시정지', hint: '탭하거나 →로 넘기기 · 길게 눌러 멈추기',
     introTitle: (shared, s) => `gno.land에서 보낸 ${shared ? '' : '나의 '}메인넷 시즌 ${n(s)}`, introLine: '함께 열어봐요.',
+    introLineFinal: '시즌이 끝났어요. 어땠는지 볼까요.', complete: (s) => `SEASON ${n(s)} · COMPLETE`,
     arrived: (_, date) => `${koDate(date)}에 도착`, dayOne: '처음부터 함께였어요.', ofMainnet: '메인넷 일차',
     sent: () => '이번 시즌 보낸 트랜잭션', moreActive: (p) => ['주소의 ', `${p}%`, '보다 활발해요.'] as const,
     showedUp: () => '활동한 날', dayPlural: () => '일',

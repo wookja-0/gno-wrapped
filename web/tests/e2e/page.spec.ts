@@ -396,17 +396,47 @@ test.describe('achievements and timeline', () => {
   test('recap lists achievements, arrival order and the season timeline', async ({ page }) => {
     await open(page, `/s1/${ADDR}?fixture=full`);
     const ach = page.getByRole('region', { name: 'Achievements' });
-    await expect(ach.locator('.gw-ach')).toHaveCount(4);
-    await expect(ach.locator('.gw-ach-title')).toHaveText(['Early Arrival', 'Realm Pioneer', 'On a Roll', 'Triple Threat']);
+    await expect(ach.locator('.gw-ach')).toHaveCount(11); // the whole collection
+    await expect(ach.locator('.gw-ach:not(.gw-ach-locked) .gw-ach-title')).toHaveText(['Early Arrival', 'Realm Pioneer', 'On a Roll', 'Triple Threat']);
+    await expect(ach.locator('.gw-ach-count')).toHaveText('4 / 11');
+    await expect(ach.locator('.gw-ach-locked').first()).toContainText('Voted on or proposed'); // a locked one shows its rule
     await expect(ach).toContainText('9 days in a row on gno.land.');
     await expect(ach).toContainText('One of the first 10 to call 2 popular realms, including gno.land/r/gnoswap/router.');
     await expect(page.getByText('#312 of 5,029 to arrive on mainnet')).toBeVisible();
     await expect(page.getByRole('list', { name: 'Season timeline' }).locator('li')).toHaveCount(4);
   });
 
-  test('no achievements, no section', async ({ page }) => {
+  test('no achievements yet: every one a silhouette, 0 / 11', async ({ page }) => {
     await open(page, `/s1/${ADDR}?fixture=newcomer`);
-    await expect(page.getByRole('region', { name: 'Achievements' })).toHaveCount(0);
+    const ach = page.getByRole('region', { name: 'Achievements' });
+    await expect(ach.locator('.gw-ach-locked')).toHaveCount(11);
+    await expect(ach.locator('.gw-ach-count')).toHaveText('0 / 11');
+  });
+
+  test('README badge: an SVG for the share link, and Markdown to copy', async ({ page, context, request }) => {
+    const res = await request.get('/s1/s/fxfull000000/badge.svg?fixture=full');
+    expect(res.status()).toBe(200);
+    expect(res.headers()['content-type']).toContain('image/svg+xml');
+    const svg = await res.text();
+    expect(svg).toContain('Realm Hopper');
+    expect(svg).not.toContain(ADDR.slice(0, 6));
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await open(page, `/s1/${ADDR}?fixture=full`);
+    const share = page.getByRole('region', { name: 'Share your Wrapped' });
+    await expect(share.getByRole('img', { name: /README badge preview/ })).toHaveAttribute('src', '/s1/s/fxfull000000/badge.svg?fixture=full');
+    await share.getByRole('button', { name: 'Copy Markdown' }).click();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/^\[!\[Gno Wrapped\]\(http:\/\/localhost:\d+\/s1\/s\/fxfull000000\/badge\.svg\)\]\(http:\/\/localhost:\d+\/s1\/s\/fxfull000000\)$/);
+  });
+
+  test('a final season: the story says so and ends with a certificate', async ({ page }) => {
+    await open(page, `/s1/${ADDR}?fixture=whale&story`);
+    const story = page.getByRole('dialog', { name: 'Season story' });
+    await expect(story).toContainText("The season is over. Here's how it went.");
+    await page.keyboard.press('End');
+    for (let n = 0; n < 12; n++) await page.keyboard.press('ArrowRight');
+    await expect(story).toContainText('SEASON 1 · COMPLETE');
+    await expect(story).toContainText('1 of 11 achievements');
+    await expect(story.getByRole('button', { name: 'Download image' })).toBeVisible();
   });
 
   test('/personas lists all achievements', async ({ page }) => {

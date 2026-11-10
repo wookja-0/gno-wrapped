@@ -2,11 +2,12 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { createLimiter } from '../src/lib/limiter';
+import { badgeSvg } from '../src/lib/badgeSvg';
 import { achievementIconRows, PERSONA_IDS, personaBadge, personaBadgeRows, personaOrbit, personaSymbolRows } from '../src/lib/art';
 import {
   ACHIEVEMENT_ORDER, arrivalText, CAL_COLORS, calendarDays, calendarMonths, builderHeadline, calendarWeeks, storyIds, compareRows, defiLines, governanceLines, realmUseText, successRate, successText, topPairText, countdownText, parseShareId, dayLevel, daysLeft, dayText, dayTxAction, daySeries, peakIndex, seasonDays, visitDiff, visitSnapshot, weekLevel, weekText, builderCards, fmtGas, timeline, gnoscanAccount, gnoscanRealm, gnoscanTx, personaRankText, personaRuleText, personaWhy, rankTopPct, shareLink, sharePost, X_MAX, xLength, fuelLine, gasPerTx, isEmpty, ogRankCard, realmShortName,
   slideIds, summaryRank, truncMid, validate, weekRange, type WrappedData,
-  adenaOutcome, walletEnv, combine, pagerSlots, parseAddresses, realmOrderLine, realmOrderText, walletsHref,
+  adenaOutcome, walletEnv, earnedIds, achievementsOfText, readmeMarkdown, combine, pagerSlots, parseAddresses, realmOrderLine, realmOrderText, walletsHref,
   chronotype, chronotypeLine, hasClock, hourText, localHours, nextUp, progressText, tzLabel, tzShift,
 } from '../src/lib/wrapped';
 
@@ -585,5 +586,27 @@ describe('Validator and the three new achievements', () => {
   it('orders the achievements with the new ones in place', () => {
     expect(ACHIEVEMENT_ORDER).toHaveLength(11);
     expect(ACHIEVEMENT_ORDER.slice(3, 7)).toEqual(['streak', 'regular', 'triple-threat', 'token-gardener']);
+  });
+});
+
+describe('collection, share card row and README badge', () => {
+  it('lists earned achievements in collection order', () => {
+    expect(earnedIds(load('full'))).toEqual(['early', 'pioneer', 'streak', 'triple-threat']);
+    expect(earnedIds(load('newcomer'))).toEqual([]);
+    expect(achievementsOfText(4)).toBe('4 of 11 achievements');
+  });
+  it('README badge: an SVG with the persona and numbers, and no address', () => {
+    const d = load('full');
+    const svg = badgeSvg({ ...d, address: '' });
+    expect(svg).toMatch(/^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" width="\d+" height="72"/);
+    expect(svg).toContain('>Realm Hopper</text>');
+    expect(svg).toContain('1,284 transactions · 4/11 achievements');
+    expect(svg).toContain('GNO WRAPPED · MAINNET SEASON 1');
+    expect(svg).not.toContain('g1wrap');
+    expect(badgeSvg({ ...load('whale'), address: '' })).toContain('SEASON 1 · FINAL');
+    expect(badgeSvg({ ...d, persona: { id: 'x', title: 'A<b>&"', line: '' } })).toContain('A&lt;b&gt;&amp;&quot;'); // escaped
+  });
+  it('README Markdown links the badge to the share link', () => {
+    expect(readmeMarkdown(load('full'))).toBe('[![Gno Wrapped](https://wrapped.example/s1/s/fxfull000000/badge.svg)](https://wrapped.example/s1/s/fxfull000000)');
   });
 });

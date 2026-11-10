@@ -1,5 +1,5 @@
 import { COPY, personaIn, type Copy } from './i18n';
-import { fmt, fmtGas, fmtShort, validate, type Season, type WrappedData } from './wrapped';
+import { earnedIds, fmt, fmtGas, fmtShort, validate, type Season, type WrappedData } from './wrapped';
 import type { SummaryVM } from '@/components/SummaryExport';
 
 /** The season, or null when validate() rejected it (screens then show the DATA ERROR banner). */
@@ -38,6 +38,7 @@ export function exportVm(d: WrappedData, c: Copy = COPY.en): SummaryVM {
     stats: summaryStats(d, c),
     topRealm: top ? { path: top.path, detail: topRealmDetail(d, c) } : null,
     dataAsOf: d.dataAsOf,
+    achievements: { ids: earnedIds(d), label: c.achievementsOf(earnedIds(d).length) },
     copy: { persona: c.imagePersona, topRealm: c.imageTopRealm, footer: `${c.dataAsOf(d.dataAsOf)}${c.builtFrom}` },
   };
 }

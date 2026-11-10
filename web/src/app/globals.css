@@ -148,6 +148,12 @@ body { color: #F4F6FF; font-family: 'Archivo', system-ui, sans-serif; }
 .gw-story-label { margin: 0; font-size: 20px; font-weight: 700; }
 .gw-story-line { margin: 0; max-width: 30ch; font-size: 17px; line-height: 1.4; color: #D3DBF7; }
 .gw-story-sub { margin: 0; font-size: 14px; color: #A3AED6; }
+/* last card of a final season: a certificate of it */
+.gw-story-cert { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px 22px 16px; border-radius: 18px; border: 2px solid #FF8A3D; background: rgba(255,138,61,0.08); }
+.gw-story-cert strong { font-size: 24px; font-weight: 900; color: #FF8A3D; }
+.gw-story-cert > span:last-child { font-size: 14px; color: #D3DBF7; }
+.gw-story-cert-tag { color: #FF8A3D; font-size: 11px; }
+.gw-story-actions { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 300px; }
 .gw-story-persona { margin: 4px 0 0; font-size: 44px; line-height: 1; font-weight: 900; letter-spacing: -0.03em; color: #FF8A3D; }
 .gw-story-path { font-size: 16px; }
 .gw-story-list, .gw-story-ach { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; font-size: 20px; }
@@ -168,6 +174,8 @@ body { color: #F4F6FF; font-family: 'Archivo', system-ui, sans-serif; }
 .gw-lang button:focus-visible { outline: 2px solid #7DB3FF; outline-offset: 1px; }
 .gw-lang-narrow { display: none; }
 .gw-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.gw-readme { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-top: 22px; }
+.gw-readme img { max-width: 100%; height: auto; }
 .gw-compare-form { display: flex; flex-direction: column; gap: 8px; margin-top: 20px; max-width: 560px; }
 .gw-compare-label { font-size: 13px; font-weight: 600; color: #A3AED6; }
 .gw-compare-err { margin: 0; font-size: 13px; color: #FFB27A; }
@@ -300,6 +308,12 @@ body { color: #F4F6FF; font-family: 'Archivo', system-ui, sans-serif; }
 .gw-ach-list { list-style: none; margin: 16px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
 .gw-ach { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 16px; background: #0B1131; border: 1px solid #222C58; }
 .gw-ach-title { font-size: 16px; font-weight: 800; color: #FF8A3D; }
+/* the collection: not-yet-earned achievements as grey silhouettes */
+.gw-ach-count { margin-left: 10px; font: 400 14px 'Silkscreen', monospace; letter-spacing: 0.04em; color: #9CC2FF; vertical-align: 3px; }
+.gw-ach-locked { background: transparent; border-style: dashed; border-color: #26305A; }
+.gw-ach-locked > [aria-hidden] { filter: grayscale(1) brightness(0.6); opacity: 0.45; }
+.gw-ach-locked .gw-ach-title { color: #8A95C2; }
+.gw-ach-locked .gw-ach-text { color: #7381B4; }
 /* earned since the last visit: a tag, an orange edge and a sheen that sweeps across twice */
 .gw-ach-new { position: relative; overflow: hidden; border-color: #FF8A3D; }
 .gw-ach-newtag { display: inline-block; margin-left: 8px; padding: 2px 6px; border-radius: 6px; background: #FF8A3D; color: #0A0F2E; font: 400 10px 'Silkscreen', monospace; letter-spacing: 0.04em; vertical-align: 2px; }
