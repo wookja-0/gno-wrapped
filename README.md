@@ -14,7 +14,7 @@ and a share card for X and Discord. It follows the chain live, so new activity s
 > Gno Wrapped is an independent community project, not an official gno.land product.
 > It reads only public on-chain data.
 
-![A recap: persona, rank, headline stats and achievements](docs/screenshots/recap.png)
+![Demo: the recap's badge tilting with its pixel foil, cards lighting up around the pointer, the achievement collection and story mode](docs/demo.gif)
 
 ## Key Features
 
@@ -51,11 +51,17 @@ and a share card for X and Discord. It follows the chain live, so new activity s
 - **Live, then final**: a countdown to the season's end; after it, recaps are marked final.
 - **English and Korean**: English by default, switched in the top bar.
 
+![A recap: persona, rank, headline stats and the start of the achievement collection](docs/screenshots/recap.png)
+
+![The achievement collection: earned ones in colour, the rest as grey silhouettes with their rule](docs/screenshots/collection.png)
+
 Every chart reads out the day under the pointer or the arrow keys and has a Table view. How personas
 and achievements are decided is on the site's `/personas` page and in [`batch/build.go`](batch/build.go)
 and [`batch/achievements.go`](batch/achievements.go).
 
-<p align="center"><img src="docs/screenshots/share-card.png" width="760" alt="Share card shown on X and Discord"></p>
+<p align="center"><img src="docs/screenshots/share-card.png" width="760" alt="Share card shown on X and Discord, with the achievement icons"></p>
+
+<p align="center"><img src="docs/screenshots/readme-badge.svg" alt="README badge: the pixel persona badge, Realm Hopper, 1,284 transactions and 4 of 11 achievements"></p>
 
 <p align="center">
   <img src="docs/screenshots/story-arrival.png" width="250" alt="Story mode on a phone: the mainnet day you arrived">
@@ -63,7 +69,7 @@ and [`batch/achievements.go`](batch/achievements.go).
   <img src="docs/screenshots/story-persona.png" width="250" alt="Story mode: the season persona">
 </p>
 
-![Personas page](docs/screenshots/personas.png)
+![Personas page: nine personas, Validator second](docs/screenshots/personas.png)
 
 ## Getting Started
 
