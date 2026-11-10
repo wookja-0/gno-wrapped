@@ -53,13 +53,22 @@ jobs:
           go-version-file: api/go.mod
           cache-dependency-path: batch/go.sum
       - run: npm ci
+      # next build's cache (the e2e step builds the app): same lockfile, then the closest previous build
+      - uses: actions/cache@v4
+        with:
+          path: web/.next/cache
+          key: next-${{ hashFiles('web/package-lock.json') }}-${{ hashFiles('web/src/**') }}
+          restore-keys: next-${{ hashFiles('web/package-lock.json') }}-
       - run: npx next typegen
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
       # Playwright drives the runner's Google Chrome (channel: 'chrome'). Without batch output the
-      # tests that need real data skip themselves.
+      # tests that need real data skip themselves. E2E_PROD: against a production build, four at a
+      # time (playwright.config.ts), which is several times faster than the dev server here.
       - run: npm run e2e
+        env:
+          E2E_PROD: '1'
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
