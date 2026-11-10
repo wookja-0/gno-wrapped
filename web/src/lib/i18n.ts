@@ -160,8 +160,6 @@ const en = {
   govKicker: "On gno.land's GovDAO and GnoSwap governance you made", governanceLines,
 
   // share
-  readmeBadge: 'Add a badge to your GitHub README', copyMarkdown: 'Copy Markdown', markdownCopied: 'Markdown copied',
-  readmeBadgeAlt: (title: string) => `README badge preview: ${title}`,
   shareTitle: 'Share your Wrapped', shareToX: 'Share to X', copyDiscord: 'Copy for Discord', copyLink: 'Copy link',
   downloadImage: 'Download image', shareHint: 'The link and images never show your address.',
   copied: 'Copied — paste it in Discord', linkCopied: 'Link copied', copyFailed: "Couldn't copy", saved: (f: string) => `Saved ${f}`,
@@ -497,8 +495,6 @@ const ko: Copy = {
       .filter(([x]) => x).map(([x, label]) => ({ value: `${fmt(x!)}회`, label }));
   },
 
-  readmeBadge: 'GitHub README에 배지 달기', copyMarkdown: '마크다운 복사', markdownCopied: '마크다운을 복사했어요',
-  readmeBadgeAlt: (title) => `README 배지 미리보기: ${title}`,
   shareTitle: '나의 Wrapped 공유하기', shareToX: 'X에 공유', copyDiscord: '디스코드용 복사', copyLink: '링크 복사', downloadImage: '이미지 저장',
   shareHint: '링크와 이미지에는 주소가 절대 나오지 않아요.', copied: '복사했어요. 디스코드에 붙여넣으세요', linkCopied: '링크를 복사했어요',
   copyFailed: '복사하지 못했어요', saved: (f) => `${f} 저장했어요`, saveFailed: '이미지를 저장하지 못했어요', sharePost: koSharePost,

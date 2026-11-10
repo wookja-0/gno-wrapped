@@ -6,7 +6,7 @@ import { achievementIcon, door, pump, rocket, personaColors } from '@/lib/art';
 import { exportVm, seasonPill, summaryStats, validSeason } from '@/lib/summary';
 import {
   ACHIEVEMENT_ORDER, builderCards, nextUp, timeline, downloadFilename, fmt, fmtGas, gasPerTx,
-  gnoscanAccount, gnoscanRealm, gnoscanTx, readmeMarkdown, shareLink, shortAddress, slideIds, validate, xIntentUrl, type WrappedData,
+  gnoscanAccount, gnoscanRealm, gnoscanTx, shareLink, shortAddress, slideIds, validate, xIntentUrl, type WrappedData,
 } from '@/lib/wrapped';
 import { personaIn } from '@/lib/i18n';
 import Link from 'next/link';
@@ -37,7 +37,7 @@ const LINK = ['M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1', 'M14 10a4 4 0
  * has no address in any form — no address chip, no Gnoscan account or tx links, no links to realm
  * paths the batch masked — and offers "unwrap your own" instead of the share tools.
  */
-export function WrappedPage({ data, ogSrc, badgeSrc }: { data: WrappedData; ogSrc: string; badgeSrc?: string }) {
+export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string }) {
   const router = useRouter();
   const hydrated = useHydrated();
   const c = useCopy();
@@ -467,14 +467,6 @@ export function WrappedPage({ data, ogSrc, badgeSrc }: { data: WrappedData; ogSr
               <p className="gw-hint" style={{ marginTop: 12 }}>{c.shareHint}</p>
               {season && data.shareId && (
                 <CompareForm season={season.id} pair={(theirs) => [data.shareId!, theirs]} label={c.compareFriend} placeholder={c.theirLink} />
-              )}
-              {season && data.shareId && badgeSrc && (
-                <div className="gw-readme">
-                  <p className="gw-compare-label">{c.readmeBadge}</p>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={badgeSrc} alt={c.readmeBadgeAlt(persona.title)} height={72} />
-                  <button type="button" className="gw-btn" onClick={() => copy(readmeMarkdown(data), c.markdownCopied)}>{c.copyMarkdown}</button>
-                </div>
               )}
             </div>
             {season && (

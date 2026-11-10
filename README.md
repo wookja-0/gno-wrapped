@@ -39,8 +39,6 @@ and a share card for X and Discord. It follows the chain live, so new activity s
 - **Story mode**: the recap as full-screen cards, one at a time. Add `?story` to a recap link.
 - **Sharing**: a post for X and Discord, a 1200×630 preview card and a 1080×1920 image, both with your
   achievement icons. Share links never carry your address ([Privacy](#privacy)).
-- **README badge**: `/s1/s/<id>/badge.svg`, a small card with your persona and numbers for a GitHub
-  README, with the Markdown to copy on your recap. Built from the share link, so no address.
 - **Season's end**: once the season is over, story mode says so and ends with a certificate of it
   (persona, transactions, achievements) to share or save.
 - **Compare**: two share links side by side, with neither address shown.
@@ -60,8 +58,6 @@ and achievements are decided is on the site's `/personas` page and in [`batch/bu
 and [`batch/achievements.go`](batch/achievements.go).
 
 <p align="center"><img src="docs/screenshots/share-card.png" width="760" alt="Share card shown on X and Discord, with the achievement icons"></p>
-
-<p align="center"><img src="docs/screenshots/readme-badge.svg" alt="README badge: the pixel persona badge, Realm Hopper, 1,284 transactions and 4 of 11 achievements"></p>
 
 <p align="center">
   <img src="docs/screenshots/story-arrival.png" width="250" alt="Story mode on a phone: the mainnet day you arrived">

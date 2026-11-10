@@ -413,21 +413,6 @@ test.describe('achievements and timeline', () => {
     await expect(ach.locator('.gw-ach-count')).toHaveText('0 / 11');
   });
 
-  test('README badge: an SVG for the share link, and Markdown to copy', async ({ page, context, request }) => {
-    const res = await request.get('/s1/s/fxfull000000/badge.svg?fixture=full');
-    expect(res.status()).toBe(200);
-    expect(res.headers()['content-type']).toContain('image/svg+xml');
-    const svg = await res.text();
-    expect(svg).toContain('Realm Hopper');
-    expect(svg).not.toContain(ADDR.slice(0, 6));
-    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-    await open(page, `/s1/${ADDR}?fixture=full`);
-    const share = page.getByRole('region', { name: 'Share your Wrapped' });
-    await expect(share.getByRole('img', { name: /README badge preview/ })).toHaveAttribute('src', '/s1/s/fxfull000000/badge.svg?fixture=full');
-    await share.getByRole('button', { name: 'Copy Markdown' }).click();
-    expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/^\[!\[Gno Wrapped\]\(http:\/\/localhost:\d+\/s1\/s\/fxfull000000\/badge\.svg\)\]\(http:\/\/localhost:\d+\/s1\/s\/fxfull000000\)$/);
-  });
-
   test('a final season: the story says so and ends with a certificate', async ({ page }) => {
     await open(page, `/s1/${ADDR}?fixture=whale&story`);
     const story = page.getByRole('dialog', { name: 'Season story' });
