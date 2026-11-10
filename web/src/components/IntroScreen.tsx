@@ -3,8 +3,9 @@
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { CONFIG } from '@/lib/config';
-import { ADDRESS_RE, fmtShort, parseAddresses, WALLETS_MAX, walletsHref } from '@/lib/wrapped';
+import { adenaOutcome, ADDRESS_RE, fmtShort, parseAddresses, WALLETS_MAX, walletEnv, walletsHref, type AdenaResponse, type WalletEnv } from '@/lib/wrapped';
 import Link from 'next/link';
+import { AdenaHelp, type AdenaHelpKind } from './AdenaHelp';
 import { AdenaIcon } from './AdenaIcon';
 import { LiveTicker } from './LiveTicker';
 import { SeasonCountdown } from './SeasonCountdown';
@@ -16,8 +17,8 @@ import { Footer, Nav, Starfield } from './web';
 const RISE = (delay: number) => `gwRise 640ms cubic-bezier(.2,.8,.2,1) ${delay}ms both`;
 
 interface AdenaProvider {
-  AddEstablish(name: string): Promise<unknown>;
-  GetAccount(): Promise<{ status?: string; data?: { address?: string } }>;
+  AddEstablish(name: string): Promise<AdenaResponse>;
+  GetAccount(): Promise<AdenaResponse>;
 }
 
 export function IntroScreen() {
@@ -26,6 +27,7 @@ export function IntroScreen() {
   const [addr, setAddr] = useState('');
   const [err, setErr] = useState('');
   const [final, setFinal] = useState(false); // from the ticker: the season is over
+  const [help, setHelp] = useState<{ kind: AdenaHelpKind; env: WalletEnv } | null>(null);
   const c = useCopy();
   const season = CONFIG.CURRENT_SEASON;
   const seasonPill = `MAINNET ${season.id.toUpperCase()} / ${fmtShort(season.start).toUpperCase()} - ${fmtShort(season.end).toUpperCase()}`;
@@ -48,17 +50,28 @@ export function IntroScreen() {
     open(a);
   };
 
-  // Adena injects window.adena. TODO: verify against a real Adena install (not testable headless).
+  // Adena injects window.adena into every page once installed. Without it, say why: this browser
+  // can't run Adena, or it isn't installed. With it, connect, then read the address; a wallet-less
+  // Adena answers NO_ACCOUNT at once. TODO: verify each case against a real Adena install.
   const connect = async () => {
+    setErr('');
     const adena = (window as unknown as { adena?: AdenaProvider }).adena;
-    if (!adena) return setErr(c.errNoAdena);
+    const env = walletEnv(navigator.userAgent, (navigator as { userAgentData?: { mobile?: boolean } }).userAgentData?.mobile);
+    if (!adena) return setHelp({ kind: env === 'unsupported' ? 'unsupported' : 'install', env });
+    const fail = { locked: c.errAdenaLocked, rejected: c.errAdenaCancel, failed: c.errAdenaRead } as const;
     try {
-      await adena.AddEstablish('Gno Wrapped');
-      const a = (await adena.GetAccount())?.data?.address?.toLowerCase();
+      const est = adenaOutcome(await adena.AddEstablish('Gno Wrapped'));
+      if (est === 'no-account') return setHelp({ kind: 'no-account', env });
+      if (est !== 'connected') return setErr(fail[est]);
+      const res = await adena.GetAccount();
+      const got = adenaOutcome(res);
+      if (got === 'no-account') return setHelp({ kind: 'no-account', env });
+      if (got !== 'connected') return setErr(fail[got]);
+      const a = res.data?.address?.toLowerCase();
       if (a && ADDRESS_RE.test(a)) open(a);
       else setErr(c.errAdenaRead);
     } catch {
-      setErr(c.errAdenaCancel);
+      setErr(c.errAdenaRead);
     }
   };
 
@@ -108,6 +121,15 @@ export function IntroScreen() {
         </p>
       </main>
       <Footer final={final} />
+      {help && (
+        <AdenaHelp
+          kind={help.kind}
+          env={help.env}
+          onClose={() => setHelp(null)}
+          onPaste={() => document.getElementById('gw-addr')?.focus()}
+          onRetry={() => { setHelp(null); connect(); }}
+        />
+      )}
     </div>
   );
 }

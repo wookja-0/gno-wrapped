@@ -696,10 +696,16 @@ test.describe('intro and empty', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Realm Hopper');
   });
 
-  test('Connect Adena without the extension explains what to do', async ({ page }) => {
+  test('Connect Adena without the extension: install it, then reload; or paste an address', async ({ page }) => {
     await open(page, '/');
     await page.getByRole('button', { name: 'Connect Adena' }).click();
-    await expect(page.getByRole('alert').filter({ hasText: 'Adena' })).toContainText('Adena wallet not found');
+    const help = page.getByRole('dialog', { name: "Adena isn't installed" });
+    await expect(help).toContainText('Get it from the Chrome Web Store, then reload this page to connect.');
+    await expect(help.getByRole('link', { name: 'Install Adena' })).toHaveAttribute('href', /chromewebstore\.google\.com\/detail\/adena\//);
+    await expect(help.getByRole('button', { name: 'Reload this page' })).toBeVisible();
+    await help.getByRole('button', { name: 'Paste an address instead' }).click();
+    await expect(help).toHaveCount(0);
+    await expect(page.getByLabel('Wallet address')).toBeFocused();
   });
 
   test('an address the API has no recap for shows EmptyState', async ({ page }) => {
@@ -743,5 +749,76 @@ test.describe('Korean', () => {
     await page.keyboard.press('ArrowRight');
     await expect(story).toContainText('도착');
     await ctx.close();
+  });
+});
+
+// A stand-in for the extension: window.adena answering AddEstablish and GetAccount as Adena does.
+async function fakeAdena(page: Page, establish: object, account: object) {
+  await page.addInitScript(([e, a]) => {
+    (window as unknown as { adena: object; adenaCalls: number }).adenaCalls = 0;
+    (window as unknown as { adena: object }).adena = {
+      AddEstablish: async () => { (window as unknown as { adenaCalls: number }).adenaCalls++; return e; },
+      GetAccount: async () => a,
+    };
+  }, [establish, account]);
+}
+
+test.describe('Connect Adena', () => {
+  test.describe('on a phone', () => {
+    test.use({ userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1' });
+    test('says Adena runs on a computer and offers this page\'s link', async ({ page, context }) => {
+      await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+      await open(page, '/');
+      await page.getByRole('button', { name: 'Connect Adena' }).click();
+      const help = page.getByRole('dialog', { name: 'Adena runs on a computer' });
+      await help.getByRole('button', { name: "Copy this page's link" }).click();
+      await expect(help.getByRole('button', { name: 'Link copied' })).toBeVisible();
+      expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(page.url());
+      await page.keyboard.press('Escape');
+      await expect(help).toHaveCount(0);
+    });
+  });
+
+  test.describe('in Firefox', () => {
+    test.use({ userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:132.0) Gecko/20100101 Firefox/132.0' });
+    test('without Adena: install from Firefox Add-ons', async ({ page }) => {
+      await open(page, '/');
+      await page.getByRole('button', { name: 'Connect Adena' }).click();
+      const help = page.getByRole('dialog', { name: "Adena isn't installed" });
+      await expect(help).toContainText('Get it from Firefox Add-ons');
+      await expect(help.getByRole('link', { name: 'Install Adena' })).toHaveAttribute('href', 'https://addons.mozilla.org/firefox/addon/adena/');
+    });
+  });
+
+  test('installed with no wallet: create one in Adena, then try again', async ({ page }) => {
+    await fakeAdena(page, { status: 'failure', type: 'NO_ACCOUNT' }, { status: 'failure', type: 'NO_ACCOUNT' });
+    await open(page, '/');
+    await page.getByRole('button', { name: 'Connect Adena' }).click();
+    const help = page.getByRole('dialog', { name: 'Adena has no wallet yet' });
+    await expect(help.getByRole('list', { name: 'Steps' }).locator('li')).toHaveCount(3);
+    await help.getByRole('button', { name: 'Try again' }).click();
+    await expect(page.getByRole('dialog', { name: 'Adena has no wallet yet' })).toBeVisible(); // still none
+    expect(await page.evaluate(() => (window as unknown as { adenaCalls: number }).adenaCalls)).toBe(2);
+  });
+
+  test('rejected: says so under the field', async ({ page }) => {
+    await fakeAdena(page, { status: 'failure', type: 'CONNECTION_REJECTED' }, {});
+    await open(page, '/');
+    await page.getByRole('button', { name: 'Connect Adena' }).click();
+    await expect(page.getByRole('alert').filter({ hasText: 'Adena' })).toHaveText('Adena connection was cancelled. Try again, or paste your address below.');
+  });
+
+  test('locked after connecting: unlock and try again', async ({ page }) => {
+    await fakeAdena(page, { status: 'failure', type: 'ALREADY_CONNECTED' }, { status: 'failure', type: 'WALLET_LOCKED' });
+    await open(page, '/');
+    await page.getByRole('button', { name: 'Connect Adena' }).click();
+    await expect(page.getByRole('alert').filter({ hasText: 'Adena' })).toContainText('Adena is locked');
+  });
+
+  test('connected: opens the recap', async ({ page }) => {
+    await fakeAdena(page, { status: 'success', type: 'CONNECTION_SUCCESS' }, { status: 'success', type: 'GET_ACCOUNT', data: { address: ADDR } });
+    await open(page, '/');
+    await page.getByRole('button', { name: 'Connect Adena' }).click();
+    await expect(page).toHaveURL(`/s1/${ADDR}?fixture=full`);
   });
 });

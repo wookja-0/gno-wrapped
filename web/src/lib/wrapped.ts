@@ -907,3 +907,34 @@ export function combine(wallets: Wallet[]): { total: WrappedData; achievements: 
     .filter((a) => a.wallets > 0);
   return { total, achievements };
 }
+
+// ---------- Connect Adena ----------
+
+/**
+ * Where Adena can run: it's a desktop extension from the Chrome Web Store (any Chromium browser:
+ * Chrome, Edge, Brave, Arc, Whale, Opera) or Firefox Add-ons (desktop Firefox only). Phones,
+ * tablets, desktop Safari and apps' built-in browsers (X, Discord, KakaoTalk…) can't install it.
+ * A guess from the user agent: the intro offers pasting an address whatever it says.
+ */
+export type WalletEnv = 'chromium' | 'firefox' | 'unsupported';
+const IN_APP = /FBAN|FBAV|Instagram|Line\/|KAKAOTALK|Discord|Twitter|Telegram|NAVER\(inapp|; wv\)/i;
+export function walletEnv(ua: string, mobile = false): WalletEnv {
+  if (mobile || /Android|iPhone|iPad|iPod|Mobile/i.test(ua) || IN_APP.test(ua)) return 'unsupported';
+  if (/Firefox\//.test(ua)) return 'firefox';
+  if (/Chrome\/|Chromium\/|Edg\//.test(ua)) return 'chromium';
+  return 'unsupported';
+}
+
+/** An Adena response (`AddEstablish`, `GetAccount`): `{ code, status, type, message, data }`. */
+export interface AdenaResponse { status?: string; type?: string; data?: { address?: string } }
+export type AdenaOutcome = 'connected' | 'no-account' | 'locked' | 'rejected' | 'failed';
+/** Adena answers NO_ACCOUNT to every request, with no popup, until a wallet is created or imported. */
+export function adenaOutcome(r: AdenaResponse | null | undefined): AdenaOutcome {
+  switch (r?.type) {
+    case 'NO_ACCOUNT': return 'no-account';
+    case 'WALLET_LOCKED': return 'locked';
+    case 'CONNECTION_REJECTED': return 'rejected';
+    case 'ALREADY_CONNECTED': return 'connected';
+  }
+  return r?.status === 'success' ? 'connected' : 'failed';
+}
