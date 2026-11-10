@@ -1,9 +1,11 @@
 'use client';
 
+import { useRef } from 'react';
 import Link from 'next/link';
 import { seasonPill } from '@/lib/summary';
 import { addDays, fmt, fmtGas, gnoscanRealm, peakIndex, type SeasonData } from '@/lib/wrapped';
 import { DailyChart } from './DailyChart';
+import { useSpotlight } from './Spotlight';
 import { useCopy } from './useLocale';
 import { SeasonCountdown } from './SeasonCountdown';
 import { Pill } from './pixel';
@@ -11,6 +13,8 @@ import { Card, ExtLink, Footer, Nav, PathText, Reveal, Starfield } from './web';
 
 /** /season: the whole chain's Mainnet Season, from the batch's season.json. No address in it. */
 export function SeasonView({ data, loading }: { data: SeasonData | null; loading?: boolean }) {
+  const main = useRef<HTMLElement>(null);
+  useSpotlight(main);
   const c = useCopy();
   const l = c.seasonStats;
   const stats = data ? [
@@ -25,7 +29,7 @@ export function SeasonView({ data, loading }: { data: SeasonData | null; loading
     <div className="gw-page">
       <Starfield />
       <Nav />
-      <main className="gw-main gw-personas">
+      <main className="gw-main gw-personas" ref={main}>
         <Reveal>
           <div className="gw-pills">
             <Pill>{data ? seasonPill(data.season) : 'MAINNET SEASON'}</Pill>

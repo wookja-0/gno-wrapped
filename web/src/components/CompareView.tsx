@@ -1,11 +1,13 @@
 'use client';
 
+import { useRef } from 'react';
 import Link from 'next/link';
 import { achievementIcon } from '@/lib/art';
 import { seasonPill } from '@/lib/summary';
 import { personaIn } from '@/lib/i18n';
 import { ACHIEVEMENT_ORDER, CAL_COLORS, compareRows, weekLevel, type WrappedData } from '@/lib/wrapped';
 import { CompareForm } from './CompareForm';
+import { useSpotlight } from './Spotlight';
 import { useCopy } from './useLocale';
 import { PersonaBadge, Pill, Pixel } from './pixel';
 import { useHydrated } from './useReducedMotion';
@@ -19,6 +21,8 @@ const SIDES = ['A', 'B'] as const;
  * mark is a ▲ and bold text, never color alone.
  */
 export function CompareView({ a, b }: { a: WrappedData; b: WrappedData }) {
+  const main = useRef<HTMLElement>(null);
+  useSpotlight(main);
   const hydrated = useHydrated();
   const c = useCopy();
   const rows = compareRows(a, b);
@@ -30,7 +34,7 @@ export function CompareView({ a, b }: { a: WrappedData; b: WrappedData }) {
     <div className="gw-page" data-hydrated={hydrated || undefined}>
       <Starfield />
       <Nav />
-      <main className="gw-main gw-personas">
+      <main className="gw-main gw-personas" ref={main}>
         <Reveal><Pill>{seasonPill(season)}</Pill></Reveal>
         <Reveal delay={80}><h1 className="gw-h1">{c.compareTitle}</h1></Reveal>
         <Reveal delay={160}>

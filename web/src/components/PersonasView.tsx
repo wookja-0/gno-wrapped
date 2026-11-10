@@ -1,21 +1,26 @@
 'use client';
 
+import { useRef } from 'react';
 import Link from 'next/link';
 import { achievementIcon, personaColors } from '@/lib/art';
 import { ACHIEVEMENT_ORDER, type PersonasData } from '@/lib/wrapped';
 import { PersonaBadge, Pill, Pixel } from './pixel';
+import { Tilt } from './Tilt';
+import { useSpotlight } from './Spotlight';
 import { useCopy } from './useLocale';
 import { Footer, Nav, Reveal, Starfield } from './web';
 
 /** /personas: every persona, the rule that picks it, and how many addresses got it. */
 export function PersonasView({ data, loading }: { data: PersonasData | null; loading?: boolean }) {
+  const main = useRef<HTMLElement>(null);
+  useSpotlight(main);
   const t = useCopy();
   const list = data?.personas ?? [];
   return (
     <div className="gw-page">
       <Starfield />
       <Nav />
-      <main className="gw-main gw-personas">
+      <main className="gw-main gw-personas" ref={main}>
         <Reveal><Pill>{t.personasPill}</Pill></Reveal>
         <Reveal delay={80}><h1 className="gw-h1">{t.personasTitle}</h1></Reveal>
         <Reveal delay={160}>
@@ -32,7 +37,9 @@ export function PersonasView({ data, loading }: { data: PersonasData | null; loa
               <Reveal as="li" key={p.id} id={p.id} className="gw-persona-card" delay={(i % 2) * 90}>
                 <div className="gw-persona-order gw-pixel-label" style={{ color: c.hi }}>{String(i + 1).padStart(2, '0')}</div>
                 <div className="gw-persona-tile" style={{ background: c.deep, borderColor: c.edge }}>
-                  <PersonaBadge id={p.id} p={4} label={t.badge(t.personaTitle(p.id, p.title))} />
+                  <Tilt shape="badge" max={16} touch>
+                    <PersonaBadge id={p.id} p={4} label={t.badge(t.personaTitle(p.id, p.title))} foil />
+                  </Tilt>
                 </div>
                 <div style={{ minWidth: 0 }}>
                   <h2 className="gw-persona-name">{t.personaTitle(p.id, p.title)}</h2>

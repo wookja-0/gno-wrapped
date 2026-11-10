@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { type Art, personaBadge, personaOrbit, wordmark } from '@/lib/art';
+import { type Art, personaBadge, personaBadgeRows, personaOrbit, wordmark } from '@/lib/art';
 
 export function Pixel({ art, style, label }: { art: Art; style?: CSSProperties; label?: string }) {
   return (
@@ -17,12 +17,30 @@ export function Pixel({ art, style, label }: { art: Art; style?: CSSProperties; 
 const SPARKLES: [number, number, number][] = [[1, 5, 0.3], [29, 2, 1.4], [30, 27, 0.8], [3, 29, 2.0]]; // grid x, y, delay (s)
 
 /**
- * Persona badge v2. `orbit` adds the hero treatment: a dashed ring and four twinkling sparkles in the
- * persona color around the badge (box grows from 24p to 34p). Motion stops under prefers-reduced-motion.
+ * Holographic foil over a badge, one cell per badge pixel: a rainbow band across the diagonals that
+ * slides as a surrounding Tilt moves (its --fx), so the sheen stays in the badge's own pixels.
+ * Hidden until the badge is tilted (globals.css .gw-foil).
  */
-export function PersonaBadge({ id, p, label, orbit = false, float = false }: { id: string; p: number; label: string; orbit?: boolean; float?: boolean }) {
+function PixelFoil({ id, p }: { id: string; p: number }) {
+  const rows = personaBadgeRows(id);
+  return (
+    <div className="gw-foil" aria-hidden="true" style={{ gridTemplateColumns: `repeat(${rows[0].length}, ${p}px)`, gridAutoRows: `${p}px` }}>
+      {rows.flatMap((row, y) => [...row].map((ch, x) => (
+        <i key={y * row.length + x} className={ch === '.' ? undefined : 'on'} style={ch === '.' ? undefined : ({ '--d': x + y } as CSSProperties)} />
+      )))}
+    </div>
+  );
+}
+
+/**
+ * Persona badge v2. `orbit` adds the hero treatment: a dashed ring and four twinkling sparkles in the
+ * persona color around the badge (box grows from 24p to 34p). `foil` adds PixelFoil for a Tilt to
+ * drive. Motion stops under prefers-reduced-motion.
+ */
+export function PersonaBadge({ id, p, label, orbit = false, float = false, foil = false }: { id: string; p: number; label: string; orbit?: boolean; float?: boolean; foil?: boolean }) {
   const sh = Math.max(1, Math.round(p * 0.75));
-  const img = <Pixel art={personaBadge(id, p)} label={label} style={{ filter: `drop-shadow(${sh}px ${sh}px 0 #050A24)` }} />;
+  const pixels = <Pixel art={personaBadge(id, p)} label={label} style={{ filter: `drop-shadow(${sh}px ${sh}px 0 #050A24)` }} />;
+  const img = foil ? <div style={{ position: 'relative' }}>{pixels}<PixelFoil id={id} p={p} /></div> : pixels;
   const floating = float ? <div style={{ animation: 'gwFloat 3600ms ease-in-out 900ms infinite' }}>{img}</div> : img;
   if (!orbit) return floating;
   return (

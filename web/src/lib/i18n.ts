@@ -104,7 +104,7 @@ const en = {
   glance: 'Season at a glance',
 
   // achievements, arrival, timeline
-  achievementsTitle: 'Achievements', allAchievements: 'All achievements ↗',
+  achievementsTitle: 'Achievements', allAchievements: 'All achievements ↗', newTag: 'NEW',
   achievement: (id: AchievementId) => ACHIEVEMENTS[id],
   milestone: (id: MilestoneId) => MILESTONES[id], firstTransaction: 'First transaction', timelineLabel: 'Season timeline',
   nextUpTitle: 'Next up', nextUpLede: 'Still in reach before the season ends.', progressText: (p: Progress) => progressText(p),
@@ -416,7 +416,7 @@ const ko: Copy = {
   statGas: '쓴 가스', statRank: (p) => (p >= 90 ? { value: `상위 ${Math.max(1, 100 - p)}%`, label: '가장 활발한 주소' } : { value: `${p}%`, label: '보다 활발해요' }),
   glance: '시즌 한눈에 보기',
 
-  achievementsTitle: '업적', allAchievements: '전체 업적 ↗', achievement: (id) => KO_ACH[id],
+  achievementsTitle: '업적', allAchievements: '전체 업적 ↗', newTag: '새로 획득', achievement: (id) => KO_ACH[id],
   milestone: (id) => KO_MILESTONE[id], firstTransaction: '첫 트랜잭션', timelineLabel: '시즌 타임라인',
   nextUpTitle: '다음 업적', nextUpLede: '시즌이 끝나기 전에 아직 얻을 수 있어요.',
   progressText: (p) => {

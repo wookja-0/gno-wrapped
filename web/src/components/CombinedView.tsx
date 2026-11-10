@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef } from 'react';
 import Link from 'next/link';
 import { achievementIcon } from '@/lib/art';
 import { personaIn } from '@/lib/i18n';
@@ -9,6 +10,7 @@ import { ActivityCalendar } from './ActivityCalendar';
 import { ClockCard } from './HourlyChart';
 import { PersonaBadge, Pill, Pixel } from './pixel';
 import { SeasonCountdown } from './SeasonCountdown';
+import { useSpotlight } from './Spotlight';
 import { useCopy } from './useLocale';
 import { useHydrated } from './useReducedMotion';
 import { WalletForm } from './WalletForm';
@@ -19,6 +21,8 @@ import { Card, Footer, Nav, PathText, Reveal, Starfield } from './web';
  * carries the addresses, like a recap's own link; there's no share link for it.
  */
 export function CombinedView({ wallets }: { wallets: Wallet[] }) {
+  const main = useRef<HTMLElement>(null);
+  useSpotlight(main);
   const hydrated = useHydrated();
   const c = useCopy();
   const { total: d, achievements } = combine(wallets)!;
@@ -43,7 +47,7 @@ export function CombinedView({ wallets }: { wallets: Wallet[] }) {
     <div className="gw-page" data-hydrated={hydrated || undefined}>
       <Starfield />
       <Nav />
-      <main className="gw-main">
+      <main className="gw-main" ref={main}>
         <Reveal>
           <div className="gw-pills">
             <Pill>{seasonPill(season)}</Pill>

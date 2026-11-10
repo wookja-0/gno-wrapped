@@ -20,9 +20,10 @@ function read(raw: string | null): Visit | null {
  * "Since your last visit": what changed since this browser last opened the address's recap. The
  * snapshot lives in localStorage only (nothing is sent anywhere). The comparison point is fixed for
  * the tab's session (sessionStorage), so a reload keeps showing the same changes; each visit then
- * becomes the next one's comparison point.
+ * becomes the next one's comparison point. `onNewAchievements` gets the achievements earned since
+ * then (for the achievement cards to mark), even when this box is dismissed or has nothing else.
  */
-export function SinceLastVisit({ data }: { data: WrappedData }) {
+export function SinceLastVisit({ data, onNewAchievements }: { data: WrappedData; onNewAchievements?: (ids: string[]) => void }) {
   const c = useCopy();
   const [prev, setPrev] = useState<Visit | null>(null); // the visit compared against, once it has changes to show
 
@@ -37,13 +38,14 @@ export function SinceLastVisit({ data }: { data: WrappedData }) {
       }
       localStorage.setItem(k, JSON.stringify({ at: new Date().toISOString(), snap: visitSnapshot(data) } satisfies Visit));
       const prev = read(base);
+      if (prev) onNewAchievements?.(visitSnapshot(data).achievements.filter((id) => !prev.snap.achievements.includes(id)));
       const lines = prev ? visitDiff(prev.snap, data) : [];
       if (sessionStorage.getItem(k + ':dismissed') || !prev || !lines.length) return;
       setPrev(prev); // eslint-disable-line react-hooks/set-state-in-effect -- browser storage is only readable after mount
     } catch {
       // storage disabled (private mode, blocked cookies): no comparison, nothing to show
     }
-  }, [data]);
+  }, [data, onNewAchievements]);
 
   if (!prev) return null;
   const lines = c.visitDiff(prev.snap, data);

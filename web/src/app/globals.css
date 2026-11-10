@@ -56,6 +56,37 @@ body { color: #F4F6FF; font-family: 'Archivo', system-ui, sans-serif; }
 .gw-hero { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 40px; padding: 56px 0 32px; }
 .gw-persona-title { margin: 6px 0 0; font-size: clamp(48px, 7vw, 88px); line-height: 0.98; font-weight: 900; letter-spacing: -0.03em; color: #FF8A3D; }
 .gw-hero-badge { padding-right: 16px; }
+/* Tilt.tsx */
+.gw-tilt { perspective: 900px; }
+.gw-tilt-touch { touch-action: pan-y; } /* a sideways drag tilts it; an up-down drag still scrolls */
+.gw-tilt-inner { position: relative; transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transform-style: preserve-3d; transition: transform 500ms cubic-bezier(.2,.8,.2,1); will-change: transform; }
+.gw-tilt[data-tilting] .gw-tilt-inner { transition: transform 80ms linear; }
+.gw-tilt-glare { position: absolute; inset: 0; opacity: 0; pointer-events: none; mix-blend-mode: screen; background: radial-gradient(circle at var(--gx, 50%) var(--gy, 50%), rgba(255,255,255,0.42), rgba(255,255,255,0) 55%); transition: opacity 300ms; }
+.gw-tilt[data-tilting] .gw-tilt-glare { opacity: 1; }
+.gw-tilt-orbit .gw-tilt-glare { clip-path: circle(34.5% at 50% 50%); }
+.gw-tilt-badge .gw-tilt-glare { clip-path: circle(48% at 50% 50%); }
+.gw-tilt-rect .gw-tilt-glare { border-radius: 16px; }
+/* PixelFoil (pixel.tsx): a rainbow band, one badge pixel per cell, about 18 diagonals wide, sliding with --fx */
+.gw-foil { position: absolute; inset: 0; display: grid; opacity: 0; mix-blend-mode: screen; pointer-events: none; transition: opacity 300ms; }
+.gw-tilt[data-tilting] .gw-foil { opacity: 0.55; }
+.gw-foil .on {
+  --band: calc(var(--fx, 0.5) * 58 - 6);
+  --off: max(calc(var(--d) - var(--band)), calc(var(--band) - var(--d)));
+  background: hsl(calc(var(--d) * 26deg + var(--fx, 0.5) * 140deg) 100% 64%);
+  opacity: max(0, calc(1 - var(--off) / 9)); }
+/* Spotlight.tsx: card borders light up near the pointer, in the persona's colour (--spot) */
+.gw-spotlit :is(.gw-card, .gw-stat, .gw-ach, .gw-persona-card, .gw-privacy-item) { position: relative; }
+.gw-spotlit :is(.gw-card, .gw-stat, .gw-ach, .gw-persona-card, .gw-privacy-item)::before {
+  content: ''; position: absolute; inset: -1px; padding: 1px; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity 400ms;
+  background: radial-gradient(240px circle at var(--mx, -999px) var(--my, -999px), color-mix(in srgb, var(--spot, #8CBEFF) 92%, transparent), transparent 70%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+.gw-spotlit :is(.gw-card, .gw-stat, .gw-ach, .gw-persona-card, .gw-privacy-item)::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity 400ms;
+  background: radial-gradient(360px circle at var(--mx, -999px) var(--my, -999px), color-mix(in srgb, var(--spot, #3D8BFF) 9%, transparent), transparent 70%); }
+.gw-spotlit[data-spot] :is(.gw-card, .gw-stat, .gw-ach, .gw-persona-card, .gw-privacy-item)::before,
+.gw-spotlit[data-spot] :is(.gw-card, .gw-stat, .gw-ach, .gw-persona-card, .gw-privacy-item)::after { opacity: 1; }
+.gw-tilt-rect .gw-tilt-glare { border-radius: 16px; }
+
 .gw-stats { display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); gap: 12px; }
 .gw-stat { padding: 18px 20px; border-radius: 18px; background: #10173A; border: 1px solid #2A3566; }
 .gw-stat-value { font-size: 30px; line-height: 1.1; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -269,6 +300,13 @@ body { color: #F4F6FF; font-family: 'Archivo', system-ui, sans-serif; }
 .gw-ach-list { list-style: none; margin: 16px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
 .gw-ach { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 16px; background: #0B1131; border: 1px solid #222C58; }
 .gw-ach-title { font-size: 16px; font-weight: 800; color: #FF8A3D; }
+/* earned since the last visit: a tag, an orange edge and a sheen that sweeps across twice */
+.gw-ach-new { position: relative; overflow: hidden; border-color: #FF8A3D; }
+.gw-ach-newtag { display: inline-block; margin-left: 8px; padding: 2px 6px; border-radius: 6px; background: #FF8A3D; color: #0A0F2E; font: 400 10px 'Silkscreen', monospace; letter-spacing: 0.04em; vertical-align: 2px; }
+.gw-ach-shine { position: absolute; inset: 0; pointer-events: none; transform: translateX(-110%);
+  background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.32) 46%, rgba(255,209,102,0.3) 54%, transparent 70%);
+  animation: gwShine 1200ms cubic-bezier(.3,.6,.3,1) 900ms 2 forwards; }
+@keyframes gwShine { to { transform: translateX(110%); } }
 .gw-ach-text { margin-top: 2px; font-size: 13px; line-height: 1.4; color: #C9D3F5; overflow-wrap: anywhere; }
 /* next up: achievements still in reach */
 .gw-next-lede { margin: 4px 0 0; font-size: 14px; color: #A3AED6; }

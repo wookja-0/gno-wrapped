@@ -1,7 +1,9 @@
 'use client';
 
+import { useRef } from 'react';
 import { CONFIG } from '@/lib/config';
 import { Pill } from './pixel';
+import { useSpotlight } from './Spotlight';
 import { useCopy } from './useLocale';
 import { useHydrated } from './useReducedMotion';
 import { ExtLink, Footer, Nav, Reveal, Starfield } from './web';
@@ -12,6 +14,8 @@ import { ExtLink, Footer, Nav, Reveal, Starfield } from './web';
  * calls (IntroScreen), localStorage (useLocale, SinceLastVisit) and the api's access log.
  */
 export function PrivacyView() {
+  const main = useRef<HTMLElement>(null);
+  useSpotlight(main);
   const c = useCopy();
   const hydrated = useHydrated();
   const p = c.privacy;
@@ -19,7 +23,7 @@ export function PrivacyView() {
     <div className="gw-page" data-hydrated={hydrated || undefined}>
       <Starfield />
       <Nav />
-      <main className="gw-main gw-personas gw-privacy">
+      <main className="gw-main gw-personas gw-privacy" ref={main}>
         <Reveal><Pill>{p.pill}</Pill></Reveal>
         <Reveal delay={80}><h1 className="gw-h1">{p.title}</h1></Reveal>
         <Reveal delay={160}><p className="gw-lede">{p.lede}</p></Reveal>

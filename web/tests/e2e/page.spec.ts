@@ -262,11 +262,17 @@ test.describe('since your last visit', () => {
     await expect(banner(later)).toContainText('Since your last visit on Dec 23');
     await expect(banner(later)).toContainText('+12 transactions');
     await expect(banner(later)).toContainText('New achievement: On a Roll');
+    const achs = later.getByRole('region', { name: 'Achievements' });
+    await expect(achs.locator('.gw-ach-new')).toHaveCount(1); // the achievement card says so too
+    await expect(achs.locator('.gw-ach-new .gw-ach-title')).toHaveText('On a RollNEW');
     await later.reload();
     await later.locator('[data-hydrated]').waitFor();
     await expect(banner(later)).toContainText('+12 transactions'); // same session, same comparison
     await banner(later).getByRole('button', { name: 'Dismiss' }).click();
     await expect(banner(later)).toHaveCount(0);
+    await later.reload();
+    await later.locator('[data-hydrated]').waitFor();
+    await expect(later.locator('.gw-ach-new')).toHaveCount(1); // dismissing the box keeps the mark on the card
 
     const shared = await context.newPage();
     await open(shared, '/s1/s/fxfull000000?fixture=full');
