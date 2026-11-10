@@ -1,7 +1,7 @@
 name: CI
 
-# Pull requests. On main (a push or a merged pull request), release.yml runs this before it builds
-# and deploys.
+# Pull requests. On main, release.yml runs this before it builds and deploys, unless the commit is a
+# merged pull request that already passed it.
 on:
   pull_request:
   workflow_call:
