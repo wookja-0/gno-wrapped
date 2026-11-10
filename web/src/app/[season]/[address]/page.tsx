@@ -41,6 +41,5 @@ export default async function Page(props: Props) {
   // Preview the card a share link shows (its own OG route, no address), not this page's.
   const q = fixture ? `?fixture=${fixture}` : '';
   const ogSrc = data!.shareId ? `/api/og/${season}/s/${data!.shareId}${q}` : ogImage(season, address, fixture);
-  const badgeSrc = data!.shareId ? `/${season}/s/${data!.shareId}/badge.svg${q}` : undefined;
-  return <WrappedPage data={data!} ogSrc={ogSrc} badgeSrc={badgeSrc} key={fixture ?? address} />;
+  return <WrappedPage data={data!} ogSrc={ogSrc} key={fixture ?? address} />;
 }

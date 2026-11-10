@@ -345,9 +345,6 @@ export function xLength(post: string): number {
 /** Public share link: the unguessable share ID, never the address (falls back for fixtures without one). */
 export const shareLink = (d: WrappedData) =>
   `${SHARE.BASE_URL}/${d.season.id}/${d.shareId ? `s/${d.shareId}` : d.address}`;
-/** README Markdown: the badge image, linking to the share link. Neither has the address. */
-export const readmeMarkdown = (d: WrappedData) =>
-  `[![Gno Wrapped](${SHARE.BASE_URL}/${d.season.id}/s/${d.shareId}/badge.svg)](${shareLink(d)})`;
 export const xIntentUrl = (d: WrappedData, post = sharePost) => 'https://x.com/intent/tweet?text=' + encodeURIComponent(post(d));
 
 // ---------- explorer links ----------

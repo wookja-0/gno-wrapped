@@ -174,8 +174,6 @@ body { color: #F4F6FF; font-family: 'Archivo', system-ui, sans-serif; }
 .gw-lang button:focus-visible { outline: 2px solid #7DB3FF; outline-offset: 1px; }
 .gw-lang-narrow { display: none; }
 .gw-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.gw-readme { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-top: 22px; }
-.gw-readme img { max-width: 100%; height: auto; }
 .gw-compare-form { display: flex; flex-direction: column; gap: 8px; margin-top: 20px; max-width: 560px; }
 .gw-compare-label { font-size: 13px; font-weight: 600; color: #A3AED6; }
 .gw-compare-err { margin: 0; font-size: 13px; color: #FFB27A; }
