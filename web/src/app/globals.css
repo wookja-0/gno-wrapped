@@ -287,6 +287,13 @@ body { color: #F4F6FF; font-family: 'Archivo', system-ui, sans-serif; }
 .gw-why { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin: 14px 0 0; max-width: 560px; font-size: 15px; line-height: 1.45; color: #C9D3F5; }
 .gw-why .gw-ext { margin: 0; font-size: 14px; }
 .gw-personas { max-width: 960px; padding-top: 56px; }
+.gw-privacy-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 32px; }
+.gw-privacy-item { padding: 22px 24px; border-radius: 20px; background: rgba(16,23,58,0.92); border: 1px solid #26305A; }
+.gw-privacy-item:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.gw-privacy-item h2 { margin: 0; font-size: 18px; font-weight: 800; }
+.gw-privacy-item p { margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: #C9D3F5; }
+.gw-privacy-links { display: flex; flex-wrap: wrap; gap: 4px 20px; }
+@media (max-width: 860px) { .gw-privacy-list { grid-template-columns: 1fr; } }
 .gw-persona-list { list-style: none; margin: 32px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .gw-persona-card { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px; align-items: start; padding: 22px; border-radius: 20px; background: rgba(16,23,58,0.92); border: 1px solid #26305A; scroll-margin-top: 90px; }
 .gw-persona-card:target { border-color: #FF8A3D; }
@@ -359,6 +366,7 @@ body { color: #F4F6FF; font-family: 'Archivo', system-ui, sans-serif; }
   .gw-cal-layout { display: block; }
   .gw-cal-layout .gw-chart { margin-top: 18px; }
   .gw-main { padding: 0 18px 40px; }
+  .gw-personas { padding-top: 32px; } /* the shorthand above would zero it */
   .gw-footer-action { margin-top: -16px; }
   .gw-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .gw-nav { padding: 12px 18px; }

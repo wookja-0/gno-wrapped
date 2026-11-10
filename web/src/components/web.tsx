@@ -187,6 +187,7 @@ export function Footer({ dataAsOf, final, children }: { dataAsOf?: string | null
           {dataAsOf ? c.dataAsOf(dataAsOf) : ''}{c.builtFrom} · {final ? c.finalResults : c.updatedLive} ·{' '}
           <a className="gw-source" href={CONFIG.REPO_URL} target="_blank" rel="noopener noreferrer"><GitHubIcon size={14} />{c.source}</a>
         </p>
+        <p>{c.noTrackers} · <Link className="gw-source" href="/privacy">{c.privacyLink}</Link></p>
         <EcosystemLinks />
       </div>
       <Planet />
