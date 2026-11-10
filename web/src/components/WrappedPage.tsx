@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useState, useSyncExternalStore } from 'react';
+import { useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
-import { achievementIcon, door, pump, rocket } from '@/lib/art';
+import { achievementIcon, door, pump, rocket, personaColors } from '@/lib/art';
 import { exportVm, seasonPill, summaryStats, validSeason } from '@/lib/summary';
 import {
   ACHIEVEMENT_ORDER, builderCards, nextUp, timeline, downloadFilename, fmt, fmtGas, gasPerTx,
@@ -13,6 +13,8 @@ import Link from 'next/link';
 import { ActivityCalendar } from './ActivityCalendar';
 import { CompareForm } from './CompareForm';
 import { DiscordIcon, XIcon } from './BrandIcons';
+import { Tilt } from './Tilt';
+import { useSpotlight } from './Spotlight';
 import { ClockCard } from './HourlyChart';
 import { PersonaBadge, Pill, Pixel } from './pixel';
 import { SeasonCountdown } from './SeasonCountdown';
@@ -40,10 +42,13 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
   const hydrated = useHydrated();
   const c = useCopy();
   const [toast, setToast] = useState('');
+  const [newAch, setNewAch] = useState<string[]>([]); // earned since the last visit (SinceLastVisit)
   // story mode: from the hero button, or straight away with ?story in the link (read after hydration)
   const storyInUrl = useSyncExternalStore(noop, () => new URLSearchParams(window.location.search).has('story'), () => false);
   const [story, setStory] = useState<boolean | null>(null); // null = not opened or closed yet
   const errors = useMemo(() => validate(data), [data]);
+  const main = useRef<HTMLElement>(null);
+  useSpotlight(main, data.persona ? personaColors(data.persona.id).hi : undefined);
   const season = validSeason(data);
   const show = useMemo(() => new Set(slideIds(data)), [data]);
   const shared = !!data.shared || !data.address;
@@ -99,7 +104,7 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
       <Starfield />
       <Nav short={short || undefined} onShare={scrollToShare} explorer={shared ? undefined : gnoscanAccount(data.address)} />
 
-      <main className="gw-main">
+      <main className="gw-main" ref={main}>
         {/* hero: persona + headline stats */}
         <section className="gw-hero">
           <div className="gw-hero-text">
@@ -137,11 +142,13 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
             )}
           </div>
           <Reveal className="gw-hero-badge" delay={200}>
-            <PersonaBadge id={persona.id} p={8} label={c.badge(persona.title)} orbit float />
+            <Tilt shape="orbit" max={14} touch>
+              <PersonaBadge id={persona.id} p={8} label={c.badge(persona.title)} orbit float foil />
+            </Tilt>
           </Reveal>
         </section>
 
-        {!shared && <SinceLastVisit data={data} />}
+        {!shared && <SinceLastVisit data={data} onNewAchievements={setNewAch} />}
 
         <section className="gw-stats" aria-label={c.glance} style={{ ['--cols' as string]: stats.length <= 4 ? stats.length : 3 }}>
           {stats.map((s, i) => (
@@ -162,12 +169,16 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
               {[...data.achievements]
                 .sort((a, b) => ACHIEVEMENT_ORDER.indexOf(a.id) - ACHIEVEMENT_ORDER.indexOf(b.id))
                 .map((a, i) => (
-                  <Reveal as="li" key={a.id} className="gw-ach" delay={i * 70}>
+                  <Reveal as="li" key={a.id} className={newAch.includes(a.id) ? 'gw-ach gw-ach-new' : 'gw-ach'} delay={i * 70}>
                     <Pixel art={achievementIcon(a.id, 4)} />
                     <div style={{ minWidth: 0 }}>
-                      <div className="gw-ach-title">{c.achievement(a.id)?.title ?? a.id}</div>
+                      <div className="gw-ach-title">
+                        {c.achievement(a.id)?.title ?? a.id}
+                        {newAch.includes(a.id) && <span className="gw-ach-newtag">{c.newTag}</span>}
+                      </div>
                       <div className="gw-ach-text">{c.achievement(a.id)?.text(a.value, a.realms)}</div>
                     </div>
+                    {newAch.includes(a.id) && <span className="gw-ach-shine" aria-hidden="true" />}
                   </Reveal>
                 ))}
             </ul>
@@ -416,7 +427,7 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
             </div>
             {season && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img className="gw-og-preview" src={ogSrc} width={1200} height={630} alt={c.shareCardAlt(persona.title, data.txCount)} />
+              <Tilt max={6}><img className="gw-og-preview" src={ogSrc} width={1200} height={630} alt={c.shareCardAlt(persona.title, data.txCount)} /></Tilt>
             )}
           </Reveal>
         ) : (
@@ -442,11 +453,12 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
               {season && data.shareId && (
                 <CompareForm season={season.id} pair={(theirs) => [data.shareId!, theirs]} label={c.compareFriend} placeholder={c.theirLink} />
               )}
+
             </div>
             {season && (
               // What X and Discord show for the link.
               // eslint-disable-next-line @next/next/no-img-element
-              <img className="gw-og-preview" src={ogSrc} width={1200} height={630} alt={c.shareCardAlt(persona.title, data.txCount)} />
+              <Tilt max={6}><img className="gw-og-preview" src={ogSrc} width={1200} height={630} alt={c.shareCardAlt(persona.title, data.txCount)} /></Tilt>
             )}
           </Reveal>
         )}

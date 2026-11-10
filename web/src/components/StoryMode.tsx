@@ -6,6 +6,7 @@ import { achievementIcon } from '@/lib/art';
 import { personaIn } from '@/lib/i18n';
 import { ACHIEVEMENT_ORDER, CAL_COLORS, fmt, storyIds, TIMING, weekLevel, xIntentUrl, type StoryId, type WrappedData } from '@/lib/wrapped';
 import { XIcon } from './BrandIcons';
+import { Tilt } from './Tilt';
 import { useClock } from './HourlyChart';
 import { PersonaBadge, Pill, Pixel, Wordmark } from './pixel';
 import { useCopy } from './useLocale';
@@ -217,7 +218,9 @@ function Slide({ id, data: d }: { id: StoryId; data: WrappedData }) {
     persona: () => (
       <>
         <p className="gw-story-kicker">{s.persona(sh)}</p>
-        <PersonaBadge id={d.persona!.id} p={6} label={c.badge(persona.title)} />
+        <Tilt shape="badge" max={14}>
+          <PersonaBadge id={d.persona!.id} p={6} label={c.badge(persona.title)} foil />
+        </Tilt>
         <h2 className="gw-story-persona">{persona.title}</h2>
         <p className="gw-story-line">{persona.line}</p>
         {!d.shared && <p className="gw-story-sub">{c.personaWhy(d)}</p>}
