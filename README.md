@@ -14,69 +14,75 @@ and a share card for X and Discord. It follows the chain live, so new activity s
 > Gno Wrapped is an independent community project, not an official gno.land product.
 > It reads only public on-chain data.
 
-![Demo: the recap's badge tilting with its pixel foil, cards lighting up around the pointer, the achievement collection and story mode](docs/demo.gif)
+![Demo: the home page and its nine personas, a recap's badge tilting and flipping, the achievement collection by rarity, and a persona opened over the list](docs/demo.gif)
 
 ## Key Features
 
+### Your recap
+
 - **Season persona**: one of nine, picked by rules checked in order, with the reason in your own
-  numbers and your rank among addresses with the same persona.
+  numbers. The badge tilts with a pixel foil and flips to show your rank among the same persona.
 - **Achievements**: eleven to collect, from Early Arrival to Citizen (a GovDAO or GnoSwap governance vote),
-  Regular (30 active days), Flawless (20+ transactions, none failed) and Token Gardener (GnoSwap liquidity, staking or GNS delegation).
-- **Collection**: all eleven achievements on your recap, the ones you haven't earned yet as grey
-  silhouettes with their rule, a count (7 / 11), and how rare each one is (Legendary for 1% of
-  addresses or fewer, then Epic, Rare, Common).
-- **Persona badge**: tilts toward the pointer with a pixel holographic foil, and flips to show where
-  you stand among that persona.
-- **Next up**: while the season is live, the achievements still in reach and how far along you are
-  (e.g. 77 of 100 transactions, 2 of 3 days in a row).
-- **Clock**: your transactions by hour of day in your own time zone, the busiest hour, and whether
-  you're an Early Bird, an Afternoon or Evening Regular, or a Night Owl.
-- **Arrival and activity**: your mainnet day and arrival order, a season timeline, transactions,
-  percentile and success rate.
-- **Calendar**: every day of the season and your longest streak; click a day for its first 100
-  transactions, linked to [Gnoscan](https://gnoscan.io).
+  Regular (30 active days), Flawless (20+ transactions, none failed) and Token Gardener (GnoSwap liquidity,
+  staking or GNS delegation). Each shows how rare it is (Legendary for 1% of addresses or fewer, then Epic,
+  Rare, Common); the rest wait as grey silhouettes with their rule, and while the season is live,
+  Next up shows how close you are (e.g. 77 of 100 transactions).
+- **Your season in numbers**: arrival day and order, a timeline, transactions, percentile and success rate;
+  a calendar with your longest streak (click a day for its transactions, linked to [Gnoscan](https://gnoscan.io));
+  your transactions by hour in your own time zone (Early Bird, Afternoon or Evening Regular, Night Owl).
 - **Realms, GnoSwap and governance**: your top realms and your place among each one's callers
-  (#37 of 1,204, by first call); swaps by week, your favorite pair, positions,
-  fees and rewards; votes, proposals and GNS delegations.
-- **Builder report**: each realm you deployed, and how many other addresses called it.
-- **Story mode**: the recap as full-screen cards, one at a time. Add `?story` to a recap link.
-- **Sharing**: a post for X and Discord, a 1200×630 preview card, a 1080×1920 image and a 1080×1350
-  trading card, all with your achievement icons. Share links never carry your address ([Privacy](#privacy)).
-- **Season's end**: once the season is over, story mode says so and ends with a certificate of it
-  (persona, transactions, achievements) to share or save.
-- **Compare**: two share links side by side, with neither address shown.
-- **Several wallets**: up to five of your addresses added up on one page (`/s1/wallets/<a>,<b>`):
-  transactions, days, hours, realms, GnoSwap and gas combined, personas and achievements per wallet.
+  (#37 of 1,204, by first call); swaps by week, your favorite pair, positions, fees and rewards;
+  votes, proposals and GNS delegations. Builders also see how many addresses called each realm they deployed.
+- **Story mode**: the recap as full-screen cards (`?story` on a recap link). Once the season is over,
+  it ends with a certificate to share or save.
 - **Since your last visit**: what changed since you last opened your recap, kept in your browser only.
+
+### Sharing
+
+- A post for X and Discord, a 1200×630 preview card, a 1080×1920 image and a 1080×1350 trading card,
+  all with your achievement icons. Share links never carry your address ([Privacy](#privacy)).
+- **Compare**: two share links side by side, with neither address shown.
+
+### Around the season
+
+- **Home page**: connect Adena or paste an address, next to the season's live numbers and the nine personas.
+- **Persona pages**: `/personas` lists the nine with their rules; `/personas/<id>` shows how the addresses
+  with that persona spent the season (median transactions and active days, busiest time of day, top realms,
+  achievements, how the ranking spreads). From the list, it opens over it.
 - **Season page**: `/season`, the same recap for the whole chain.
-- **Persona pages**: `/personas/<id>` for each persona: its rule and place in the order, how rare it is,
-  and how the addresses with it spent the season (median transactions and active days, busiest time
-  of day, the realms they called most, the achievements they hold, how the ranking spreads and what
-  the top 10% reach). From `/personas` it opens over the list; a link to it opens the page.
+- **Several wallets**: up to five of your addresses added up on one page (`/s1/wallets/<a>,<b>`).
 - **Live, then final**: a countdown to the season's end; after it, recaps are marked final.
-- **English and Korean**: English by default, switched in the top bar.
+- **English and Korean**, switched in the top bar. Every chart has a Table view and reads out the day
+  under the pointer or the arrow keys.
 
-![A recap: persona, rank, headline stats and the start of the achievement collection](docs/screenshots/recap.png)
+The persona and achievement rules are in [`batch/build.go`](batch/build.go) and
+[`batch/achievements.go`](batch/achievements.go).
 
-![The achievement collection: earned ones in colour with their rarity, the rest as grey silhouettes with their rule](docs/screenshots/collection.png)
+## Screenshots
 
-Every chart reads out the day under the pointer or the arrow keys and has a Table view. How personas
-and achievements are decided is on the site's `/personas` page and in [`batch/build.go`](batch/build.go)
-and [`batch/achievements.go`](batch/achievements.go).
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/intro.png" alt="The home page: connect Adena or paste an address, live season stats, and the nine personas"></td>
+    <td width="50%"><img src="docs/screenshots/recap.png" alt="A recap: persona, rank, headline stats and the start of the achievement collection"></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/collection.png" alt="The achievement collection: earned ones in colour with their rarity, the rest as grey silhouettes with their rule"></td>
+    <td width="50%"><img src="docs/screenshots/persona-detail.png" alt="A persona opened from the list: its rule, rarity and how the addresses with it spent the season"></td>
+  </tr>
+</table>
 
-<p align="center"><img src="docs/screenshots/share-card.png" width="760" alt="Share card shown on X and Discord, with the achievement icons"></p>
-
-<p align="center"><img src="docs/screenshots/trading-card.png" width="360" alt="The 1080x1350 trading card: the persona badge with a foil, the persona, three numbers and the achievements framed by rarity"></p>
+<table>
+  <tr>
+    <td width="69%"><img src="docs/screenshots/share-card.png" alt="Share card shown on X and Discord, with the achievement icons"></td>
+    <td width="31%"><img src="docs/screenshots/trading-card.png" alt="The 1080x1350 trading card: the persona badge with a foil, the persona, three numbers and the achievements framed by rarity"></td>
+  </tr>
+</table>
 
 <p align="center">
-  <img src="docs/screenshots/story-arrival.png" width="250" alt="Story mode on a phone: the mainnet day you arrived">
-  <img src="docs/screenshots/story-achievements.png" width="250" alt="Story mode: the achievements you unlocked">
-  <img src="docs/screenshots/story-persona.png" width="250" alt="Story mode: the season persona">
+  <img src="docs/screenshots/story-arrival.png" width="220" alt="Story mode on a phone: the mainnet day you arrived">
+  <img src="docs/screenshots/story-achievements.png" width="220" alt="Story mode: the achievements you unlocked">
+  <img src="docs/screenshots/story-persona.png" width="220" alt="Story mode: the season persona">
 </p>
-
-![Personas page: nine personas, Validator second](docs/screenshots/personas.png)
-
-![A persona opened from the list: its rule, rarity and how the addresses with it spent the season](docs/screenshots/persona-detail.png)
 
 ## Getting Started
 
@@ -90,8 +96,6 @@ docker compose logs -f ingest                 # follow the chain
 
 Open http://localhost:3000. The first start fetches the whole season from the indexer
 (about 180 range queries, a few minutes, ~20 MB); after that only new blocks.
-
-![The intro page: connect Adena or paste an address, with live season stats and the nine personas](docs/screenshots/intro.png)
 
 Set `SHARE_BASE_URL` in `.env` to the public origin used in share links and preview cards, then
 rebuild the web image (`docker compose up -d --build web`).
