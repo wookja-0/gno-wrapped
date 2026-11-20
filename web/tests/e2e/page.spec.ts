@@ -406,6 +406,33 @@ test.describe('achievements and timeline', () => {
     await expect(page.getByRole('list', { name: 'Season timeline' }).locator('li')).toHaveCount(4);
   });
 
+  test('each achievement says how rare it is; the rarest tilt with a foil', async ({ page }) => {
+    await open(page, `/s1/${ADDR}?fixture=full`);
+    const ach = page.getByRole('region', { name: 'Achievements' });
+    await expect(ach.locator('.gw-ach').filter({ hasText: 'Early Arrival' }).locator('.gw-rarity')).toHaveText(/^Common · 20% of addresses$/i);
+    await expect(ach.locator('.gw-ach').filter({ hasText: 'Realm Pioneer' }).locator('.gw-rarity')).toHaveText(/^Epic · 2\.4% of addresses$/i);
+    await expect(ach.locator('.gw-ach-locked').filter({ hasText: 'Citizen' }).locator('.gw-rarity')).toHaveText(/^Legendary · 1\.0% of addresses$/i);
+  });
+
+  test('the badge flips to its back: where the persona stands', async ({ page }) => {
+    await open(page, `/s1/${ADDR}?fixture=full`);
+    const flip = page.getByRole('button', { name: 'Realm Hopper badge: flip it for the details' });
+    await expect(flip).toHaveAttribute('aria-pressed', 'false');
+    await flip.click();
+    await expect(flip).toHaveAttribute('aria-pressed', 'true');
+    await expect(flip.locator('.gw-badge-back')).toContainText('#12 of 221 Realm Hoppers');
+    await expect(flip.locator('.gw-badge-back')).toContainText('4.5% of addresses got this persona');
+    await flip.press('Enter'); // the keyboard flips it back
+    await expect(flip).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  test('Download card saves the 1080x1350 trading card', async ({ page }) => {
+    await open(page, `/s1/${ADDR}?fixture=full`);
+    await expect(page.locator('#gw-card-export > div')).toHaveCSS('height', '1350px');
+    const [file] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Download card' }).click()]);
+    expect(file.suggestedFilename()).toBe('gno-wrapped-s1-card.png');
+  });
+
   test('no achievements yet: every one a silhouette, 0 / 11', async ({ page }) => {
     await open(page, `/s1/${ADDR}?fixture=newcomer`);
     const ach = page.getByRole('region', { name: 'Achievements' });
@@ -706,6 +733,18 @@ test.describe('intro and empty', () => {
       await expect(link).toHaveAttribute('href', href);
       await expect(link).toHaveAttribute('target', '_blank');
     }
+  });
+
+  test('intro: "Which one are you?" shows the nine personas and leads to the address field', async ({ page }) => {
+    await open(page, '/');
+    const pick = page.getByRole('region', { name: 'Which one are you?' });
+    const tiles = pick.getByRole('link');
+    await expect(tiles).toHaveCount(9);
+    await expect(tiles.nth(1)).toHaveAttribute('href', '/personas#validator');
+    await expect(tiles.nth(1)).toHaveAccessibleName("Validator: how it's picked");
+    await pick.getByRole('button', { name: 'Find your persona' }).click();
+    await expect(page.getByLabel('Wallet address')).toBeFocused();
+    expect(await overflowing(page)).toEqual([]);
   });
 
   test('intro validates the address and opens the recap', async ({ page }) => {

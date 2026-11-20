@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { CONFIG } from '@/lib/config';
 import { adenaOutcome, ADDRESS_RE, fmtShort, parseAddresses, WALLETS_MAX, walletEnv, walletsHref, type AdenaResponse, type WalletEnv } from '@/lib/wrapped';
 import Link from 'next/link';
 import { AdenaHelp, type AdenaHelpKind } from './AdenaHelp';
 import { AdenaIcon } from './AdenaIcon';
+import { PersonaPick } from './PersonaPick';
+import { useSpotlight } from './Spotlight';
 import { LiveTicker } from './LiveTicker';
 import { SeasonCountdown } from './SeasonCountdown';
 import { Pill, Wordmark } from './pixel';
@@ -29,6 +31,8 @@ export function IntroScreen() {
   const [final, setFinal] = useState(false); // from the ticker: the season is over
   const [help, setHelp] = useState<{ kind: AdenaHelpKind; env: WalletEnv } | null>(null);
   const c = useCopy();
+  const main = useRef<HTMLElement>(null);
+  useSpotlight(main);
   const season = CONFIG.CURRENT_SEASON;
   const seasonPill = `MAINNET ${season.id.toUpperCase()} / ${fmtShort(season.start).toUpperCase()} - ${fmtShort(season.end).toUpperCase()}`;
 
@@ -79,7 +83,8 @@ export function IntroScreen() {
     <div className="gw-page" data-hydrated={hydrated || undefined}>
       <Starfield />
       <Nav />
-      <main className="gw-main gw-intro">
+      <main className="gw-main gw-intro" ref={main}>
+        <div className="gw-intro-copy">
         <div style={{ animation: RISE(0), display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
           <Pill>{seasonPill}</Pill>
           <SeasonCountdown season={season} final={final} />
@@ -119,6 +124,8 @@ export function IntroScreen() {
           <Link href="/personas" className="gw-ext">{c.meetPersonas}</Link>
           <Link href="/season" className="gw-ext">{c.seeSeason}</Link>
         </p>
+        </div>
+        <div className="gw-intro-pick" style={{ animation: RISE(320) }}><PersonaPick /></div>
       </main>
       <Footer final={final} />
       {help && (

@@ -1,5 +1,8 @@
 import { COPY, personaIn, type Copy } from './i18n';
-import { earnedIds, fmt, fmtGas, fmtShort, validate, type Season, type WrappedData } from './wrapped';
+import { personaColors } from './art';
+import { CONFIG } from './config';
+import type { CardVM } from '@/components/TradingCard';
+import { earnedIds, fmt, fmtGas, fmtShort, rankTopPct, rarityOf, validate, type Season, type SeasonShares, type WrappedData } from './wrapped';
 import type { SummaryVM } from '@/components/SummaryExport';
 
 /** The season, or null when validate() rejected it (screens then show the DATA ERROR banner). */
@@ -40,5 +43,28 @@ export function exportVm(d: WrappedData, c: Copy = COPY.en): SummaryVM {
     dataAsOf: d.dataAsOf,
     achievements: { ids: earnedIds(d), label: c.achievementsOf(earnedIds(d).length) },
     copy: { persona: c.imagePersona, topRealm: c.imageTopRealm, footer: `${c.dataAsOf(d.dataAsOf)}${c.builtFrom}` },
+  };
+}
+
+/** The 1080x1350 trading card ("Download card"). Coarse numbers only: no exact arrival order or rank. */
+export function cardVm(d: WrappedData, c: Copy = COPY.en, shares?: SeasonShares): CardVM {
+  const p = personaIn(c, d.persona) ?? { id: '', title: '', line: '' };
+  const share = d.persona ? shares?.personas[d.persona.id] : undefined;
+  const ids = earnedIds(d);
+  return {
+    seasonTag: `SEASON ${d.season.id.replace(/^s/i, '').toUpperCase()}${d.final ? ' · FINAL' : ''}`,
+    persona: { id: p.id, title: p.title, line: p.line },
+    colors: personaColors(p.id),
+    personaNote: share !== undefined ? c.personaShare(share) : undefined,
+    rankNote: d.personaRank && d.persona ? c.rankTopNote(rankTopPct(d.personaRank), d.persona.id, p.title) : undefined,
+    stats: [
+      { label: c.statTransactions, value: fmt(d.txCount) },
+      { label: c.statActiveDays, value: fmt(d.calendar?.activeDays ?? 0) },
+      { label: c.statArrived, value: c.statDay(d.firstTx?.mainnetDay ?? '?') },
+    ],
+    achievements: ids.map((id) => ({ id, rarity: shares?.achievements[id] !== undefined ? rarityOf(shares.achievements[id]!) : undefined })),
+    achievementsLabel: c.achievementsOf(ids.length),
+    site: CONFIG.SHARE_BASE_URL.replace(/^https?:\/\//, ''),
+    dataAsOf: c.dataAsOf(d.dataAsOf).replace(/ · $/, ''),
   };
 }

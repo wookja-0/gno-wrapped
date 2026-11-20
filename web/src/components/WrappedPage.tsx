@@ -2,11 +2,11 @@
 
 import { useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
-import { achievementIcon, door, pump, rocket, personaColors } from '@/lib/art';
-import { exportVm, seasonPill, summaryStats, validSeason } from '@/lib/summary';
+import { achievementIcon, door, pump, rocket, personaColors, achievementIconRows } from '@/lib/art';
+import { cardVm, exportVm, seasonPill, summaryStats, validSeason } from '@/lib/summary';
 import {
   ACHIEVEMENT_ORDER, builderCards, nextUp, timeline, downloadFilename, fmt, fmtGas, gasPerTx,
-  gnoscanAccount, gnoscanRealm, gnoscanTx, shareLink, shortAddress, slideIds, validate, xIntentUrl, type WrappedData,
+  gnoscanAccount, gnoscanRealm, gnoscanTx, rarityOf, shareLink, type SeasonShares, shortAddress, slideIds, validate, xIntentUrl, type WrappedData,
 } from '@/lib/wrapped';
 import { personaIn } from '@/lib/i18n';
 import Link from 'next/link';
@@ -14,9 +14,11 @@ import { ActivityCalendar } from './ActivityCalendar';
 import { CompareForm } from './CompareForm';
 import { DiscordIcon, XIcon } from './BrandIcons';
 import { Tilt } from './Tilt';
+import { Flip } from './Flip';
+import { TradingCard } from './TradingCard';
 import { useSpotlight } from './Spotlight';
 import { ClockCard } from './HourlyChart';
-import { PersonaBadge, Pill, Pixel } from './pixel';
+import { PersonaBadge, Pill, Pixel, PixelFoil } from './pixel';
 import { SeasonCountdown } from './SeasonCountdown';
 import { StoryMode } from './StoryMode';
 import { SinceLastVisit } from './SinceLastVisit';
@@ -37,7 +39,7 @@ const LINK = ['M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1', 'M14 10a4 4 0
  * has no address in any form — no address chip, no Gnoscan account or tx links, no links to realm
  * paths the batch masked — and offers "unwrap your own" instead of the share tools.
  */
-export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string }) {
+export function WrappedPage({ data, ogSrc, shares }: { data: WrappedData; ogSrc: string; shares?: SeasonShares }) {
   const router = useRouter();
   const hydrated = useHydrated();
   const c = useCopy();
@@ -55,6 +57,8 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
   const short = shared ? '' : shortAddress(data.address);
   const masked = (path: string) => path.includes('…'); // the batch masks the owner's address in paths
   const persona = personaIn(c, data.persona) ?? { id: '', title: '', line: '' };
+  const pc = personaColors(persona.id);
+  const personaShare = data.persona ? shares?.personas[data.persona.id] : undefined;
   const link = season ? shareLink(data) : '';
   const pct = data.percentile || 0;
 
@@ -65,15 +69,16 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
   const copy = (text: string, msg: string) => {
     navigator.clipboard?.writeText(text).then(() => flash(msg), () => flash(c.copyFailed));
   };
-  const download = async () => {
-    const node = document.querySelector<HTMLElement>('#gw-summary-export > div');
+  // "Download image" (1080x1920) or "Download card" (1080x1350): a hidden frame captured as a PNG
+  const download = async (frame: 'summary' | 'card' = 'summary') => {
+    const node = document.querySelector<HTMLElement>(`#gw-${frame}-export > div`);
     if (!node || !season) return;
     try {
       await document.fonts.ready;
       const { toPng } = await import('html-to-image');
       const a = document.createElement('a');
-      a.href = await toPng(node, { width: 1080, height: 1920, pixelRatio: 1, cacheBust: true });
-      a.download = downloadFilename(data);
+      a.href = await toPng(node, { width: 1080, height: frame === 'card' ? 1350 : 1920, pixelRatio: 1, cacheBust: true });
+      a.download = frame === 'card' ? downloadFilename(data).replace(/\.png$/, '-card.png') : downloadFilename(data);
       a.click();
       flash(c.saved(a.download));
     } catch (e) {
@@ -143,9 +148,30 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
             )}
           </div>
           <Reveal className="gw-hero-badge" delay={200}>
-            <Tilt shape="orbit" max={14} touch>
-              <PersonaBadge id={persona.id} p={8} label={c.badge(persona.title)} orbit float foil />
-            </Tilt>
+            <Flip
+              label={c.flipLabel(persona.title)}
+              front={(
+                <Tilt shape="orbit" max={14} touch>
+                  <PersonaBadge id={persona.id} p={8} label={c.badge(persona.title)} orbit float foil />
+                </Tilt>
+              )}
+              back={(
+                // the badge's back: where this persona stands, and why
+                <div className="gw-badge-back" style={{ ['--ph' as string]: pc.hi, ['--pm' as string]: pc.mid, ['--pd' as string]: pc.deep, ['--pe' as string]: pc.edge }}>
+                  <span className="gw-pixel-label gw-badge-back-tag">{c.seasonPersona(shared)}</span>
+                  <strong>{persona.title}</strong>
+                  {data.personaRank ? (
+                    <>
+                      <span className="gw-badge-back-rank">{c.personaRankText(data)}</span>
+                      <span>{c.topPct(data.personaRank)} · {c.rankedBy(data.personaRank.metric)}</span>
+                    </>
+                  ) : <span>{c.noRanking(persona.id)}</span>}
+                  {personaShare !== undefined && <span className="gw-badge-back-share">{c.personaShare(personaShare)}</span>}
+                  <span className="gw-badge-back-flip">{c.flipBack}</span>
+                </div>
+              )}
+            />
+            <p className="gw-hint gw-flip-hint">{c.flipHint}</p>
           </Reveal>
         </section>
 
@@ -174,25 +200,42 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
               {ACHIEVEMENT_ORDER.map((id, i) => {
                 const a = earned.get(id);
                 const isNew = newAch.includes(id);
-                return a ? (
-                  <Reveal as="li" key={id} className={isNew ? 'gw-ach gw-ach-new' : 'gw-ach'} delay={i * 40}>
-                    <Pixel art={achievementIcon(id, 4)} />
+                const share = shares?.achievements[id];
+                const tier = share === undefined ? undefined : rarityOf(share);
+                const tag = tier && <div className={`gw-rarity gw-rarity-${tier}`}>{c.rarity(tier)} · {c.rarityShare(share!)}</div>;
+                if (!a) {
+                  return (
+                    <Reveal as="li" key={id} className="gw-ach gw-ach-locked" delay={i * 40}>
+                      <Pixel art={achievementIcon(id, 4)} />
+                      <div style={{ minWidth: 0 }}>
+                        <div className="gw-ach-title">{c.achievement(id).title}<span className="gw-sr"> ({c.notEarned})</span></div>
+                        <div className="gw-ach-text">{c.achievement(id).rule}</div>
+                        {tag}
+                      </div>
+                    </Reveal>
+                  );
+                }
+                const legendary = tier === 'legendary';
+                const body = (
+                  <>
+                    {legendary ? (
+                      // the rarest ones shine: the card tilts and a foil runs through the icon's pixels
+                      <div style={{ position: 'relative' }}><Pixel art={achievementIcon(id, 4)} /><PixelFoil rows={achievementIconRows(id)} p={4} /></div>
+                    ) : <Pixel art={achievementIcon(id, 4)} />}
                     <div style={{ minWidth: 0 }}>
                       <div className="gw-ach-title">
                         {c.achievement(id)?.title ?? id}
                         {isNew && <span className="gw-ach-newtag">{c.newTag}</span>}
                       </div>
                       <div className="gw-ach-text">{c.achievement(id)?.text(a.value, a.realms)}</div>
+                      {tag}
                     </div>
+                  </>
+                );
+                return (
+                  <Reveal as="li" key={id} className={['gw-ach', tier ? `gw-ach-${tier}` : '', isNew ? 'gw-ach-new' : ''].join(' ')} delay={i * 40}>
+                    {legendary ? <Tilt max={8} touch className="gw-ach-tilt">{body}</Tilt> : body}
                     {isNew && <span className="gw-ach-shine" aria-hidden="true" />}
-                  </Reveal>
-                ) : (
-                  <Reveal as="li" key={id} className="gw-ach gw-ach-locked" delay={i * 40}>
-                    <Pixel art={achievementIcon(id, 4)} />
-                    <div style={{ minWidth: 0 }}>
-                      <div className="gw-ach-title">{c.achievement(id).title}<span className="gw-sr"> ({c.notEarned})</span></div>
-                      <div className="gw-ach-text">{c.achievement(id).rule}</div>
-                    </div>
                   </Reveal>
                 );
               })}
@@ -460,8 +503,11 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
                 <button type="button" className="gw-btn" onClick={() => copy(link, c.linkCopied)}>
                   <Icon d={LINK} size={16} /> {c.copyLink}
                 </button>
-                <button type="button" className="gw-btn" onClick={download}>
+                <button type="button" className="gw-btn" onClick={() => download('summary')}>
                   <Icon d={['M12 4v11', 'M7 10l5 5 5-5', 'M5 20h14']} size={16} /> {c.downloadImage}
+                </button>
+                <button type="button" className="gw-btn" onClick={() => download('card')}>
+                  <Icon d={['M6 3h12v18H6z', 'M9 7h6', 'M9 17h6']} size={16} /> {c.downloadCard}
                 </button>
               </div>
               <p className="gw-hint" style={{ marginTop: 12 }}>{c.shareHint}</p>
@@ -488,8 +534,13 @@ export function WrappedPage({ data, ogSrc }: { data: WrappedData; ogSrc: string 
           <SummaryExport vm={exportVm(data, c)} />
         </div>
       )}
+      {!shared && season && (
+        <div id="gw-card-export" aria-hidden="true" style={{ position: 'absolute', left: -20000, top: 0, width: 1080, height: 1350, pointerEvents: 'none' }}>
+          <TradingCard vm={cardVm(data, c, shares)} />
+        </div>
+      )}
 
-      {(story ?? storyInUrl) && season && <StoryMode data={data} onClose={() => setStory(false)} onDownload={shared ? undefined : download} />}
+      {(story ?? storyInUrl) && season && <StoryMode data={data} onClose={() => setStory(false)} onDownload={shared ? undefined : () => download('summary')} />}
       {toast && <div role="status" className="gw-toast">{toast}</div>}
       {errors.length > 0 && <DataErrorBanner errors={errors} />}
     </div>

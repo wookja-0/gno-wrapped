@@ -1,0 +1,123 @@
+{
+  "season": {
+    "id": "s1",
+    "start": "2026-09-12",
+    "end": "2026-12-31"
+  },
+  "dataAsOf": "2026-10-21",
+  "final": false,
+  "addresses": 5052,
+  "personas": [
+    {
+      "id": "builder",
+      "title": "Builder",
+      "line": "You shipped code to mainnet.",
+      "rule": {
+        "kind": "deployed",
+        "min": 1
+      },
+      "rankBy": "deployed",
+      "count": 31
+    },
+    {
+      "id": "validator",
+      "title": "Validator",
+      "line": "You signed up to help run the chain.",
+      "rule": {
+        "kind": "valoper"
+      },
+      "count": 43
+    },
+    {
+      "id": "day-one-explorer",
+      "title": "Day-One Explorer",
+      "line": "You were here before the map was drawn.",
+      "rule": {
+        "kind": "firstDay",
+        "max": 3
+      },
+      "rankBy": "firstTx",
+      "count": 66
+    },
+    {
+      "id": "realm-hopper",
+      "title": "Realm Hopper",
+      "line": "You never stayed in one realm for long.",
+      "rule": {
+        "kind": "realms",
+        "min": 8
+      },
+      "rankBy": "realms",
+      "count": 225
+    },
+    {
+      "id": "defi-pilot",
+      "title": "DeFi Pilot",
+      "line": "Swaps, pools and stakes: GnoSwap was your home base.",
+      "rule": {
+        "kind": "share",
+        "category": "defi",
+        "min": 0.5
+      },
+      "rankBy": "defi",
+      "count": 518
+    },
+    {
+      "id": "collector",
+      "title": "Collector",
+      "line": "You minted and bought your way across gno.land.",
+      "rule": {
+        "kind": "share",
+        "category": "collect",
+        "min": 0.5
+      },
+      "rankBy": "collect",
+      "count": 158
+    },
+    {
+      "id": "player-one",
+      "title": "Player One",
+      "line": "On-chain games got the most of your moves.",
+      "rule": {
+        "kind": "share",
+        "category": "play",
+        "min": 0.5
+      },
+      "rankBy": "play",
+      "count": 58
+    },
+    {
+      "id": "gnot-courier",
+      "title": "GNOT Courier",
+      "line": "You kept GNOT moving between wallets.",
+      "rule": {
+        "kind": "transfers",
+        "min": 3
+      },
+      "rankBy": "transfer",
+      "count": 1600
+    },
+    {
+      "id": "first-steps",
+      "title": "First Steps",
+      "line": "Everyone starts somewhere.",
+      "rule": {
+        "kind": "fallback"
+      },
+      "count": 2353
+    }
+  ],
+  "achievements": {
+    "century": 97,
+    "citizen": 49,
+    "early": 1000,
+    "flawless": 531,
+    "gas-saver": 768,
+    "pioneer": 120,
+    "regular": 141,
+    "streak": 819,
+    "token-gardener": 547,
+    "triple-threat": 109,
+    "validators-friend": 510
+  }
+}

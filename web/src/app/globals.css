@@ -68,23 +68,23 @@ body { color: #F4F6FF; font-family: 'Archivo', system-ui, sans-serif; }
 .gw-tilt-rect .gw-tilt-glare { border-radius: 16px; }
 /* PixelFoil (pixel.tsx): a rainbow band, one badge pixel per cell, about 18 diagonals wide, sliding with --fx */
 .gw-foil { position: absolute; inset: 0; display: grid; opacity: 0; mix-blend-mode: screen; pointer-events: none; transition: opacity 300ms; }
-.gw-tilt[data-tilting] .gw-foil { opacity: 0.55; }
+.gw-tilt[data-tilting] .gw-foil, .gw-foil-still { opacity: 0.55; }
 .gw-foil .on {
-  --band: calc(var(--fx, 0.5) * 58 - 6);
+  --band: calc(var(--fx, 0.5) * (var(--span, 46) + 12) - 6); /* --span: the art's diagonals (46 for a 24x24 badge) */
   --off: max(calc(var(--d) - var(--band)), calc(var(--band) - var(--d)));
   background: hsl(calc(var(--d) * 26deg + var(--fx, 0.5) * 140deg) 100% 64%);
   opacity: max(0, calc(1 - var(--off) / 9)); }
 /* Spotlight.tsx: card borders light up near the pointer, in the persona's colour (--spot) */
-.gw-spotlit :is(.gw-card, .gw-stat, .gw-ach, .gw-persona-card, .gw-privacy-item) { position: relative; }
-.gw-spotlit :is(.gw-card, .gw-stat, .gw-ach, .gw-persona-card, .gw-privacy-item)::before {
+.gw-spotlit :is(.gw-card, .gw-stat, .gw-ach, .gw-persona-card, .gw-privacy-item, .gw-pick-tile) { position: relative; }
+.gw-spotlit :is(.gw-card, .gw-stat, .gw-ach, .gw-persona-card, .gw-privacy-item, .gw-pick-tile)::before {
   content: ''; position: absolute; inset: -1px; padding: 1px; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity 400ms;
   background: radial-gradient(240px circle at var(--mx, -999px) var(--my, -999px), color-mix(in srgb, var(--spot, #8CBEFF) 92%, transparent), transparent 70%);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
-.gw-spotlit :is(.gw-card, .gw-stat, .gw-ach, .gw-persona-card, .gw-privacy-item)::after {
+.gw-spotlit :is(.gw-card, .gw-stat, .gw-ach, .gw-persona-card, .gw-privacy-item, .gw-pick-tile)::after {
   content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity 400ms;
   background: radial-gradient(360px circle at var(--mx, -999px) var(--my, -999px), color-mix(in srgb, var(--spot, #3D8BFF) 9%, transparent), transparent 70%); }
-.gw-spotlit[data-spot] :is(.gw-card, .gw-stat, .gw-ach, .gw-persona-card, .gw-privacy-item)::before,
-.gw-spotlit[data-spot] :is(.gw-card, .gw-stat, .gw-ach, .gw-persona-card, .gw-privacy-item)::after { opacity: 1; }
+.gw-spotlit[data-spot] :is(.gw-card, .gw-stat, .gw-ach, .gw-persona-card, .gw-privacy-item, .gw-pick-tile)::before,
+.gw-spotlit[data-spot] :is(.gw-card, .gw-stat, .gw-ach, .gw-persona-card, .gw-privacy-item, .gw-pick-tile)::after { opacity: 1; }
 .gw-tilt-rect .gw-tilt-glare { border-radius: 16px; }
 
 .gw-stats { display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); gap: 12px; }
@@ -309,6 +309,30 @@ body { color: #F4F6FF; font-family: 'Archivo', system-ui, sans-serif; }
 /* the collection: not-yet-earned achievements as grey silhouettes */
 .gw-ach-count { margin-left: 10px; font: 400 14px 'Silkscreen', monospace; letter-spacing: 0.04em; color: #9CC2FF; vertical-align: 3px; }
 .gw-ach-locked { background: transparent; border-style: dashed; border-color: #26305A; }
+/* rarity: a tag under the text, and the tier's colour on an earned card's edge */
+.gw-rarity { margin-top: 6px; font: 400 10px 'Silkscreen', monospace; letter-spacing: 0.05em; text-transform: uppercase; }
+.gw-rarity-legendary { color: #FFD166; } .gw-rarity-epic { color: #B48CFF; } .gw-rarity-rare { color: #5AA2FF; } .gw-rarity-common { color: #8A95C2; }
+.gw-ach-locked .gw-rarity { opacity: 0.75; }
+.gw-ach-legendary { border-color: rgba(255,209,102,0.7); box-shadow: inset 0 0 0 1px rgba(255,209,102,0.25); }
+.gw-ach-epic { border-color: rgba(180,140,255,0.55); }
+.gw-ach-rare { border-color: rgba(90,162,255,0.45); }
+.gw-ach-tilt { flex: 1; min-width: 0; }
+.gw-ach-tilt .gw-tilt-inner { display: flex; align-items: center; gap: 14px; }
+/* the badge flips (Flip.tsx): the back says where the persona stands */
+.gw-flip { display: inline-block; perspective: 1200px; cursor: pointer; border-radius: 28px; outline: none; -webkit-tap-highlight-color: transparent; }
+.gw-flip:focus-visible { outline: 2px solid #7DB3FF; outline-offset: 6px; }
+.gw-flip-inner { display: grid; transform-style: preserve-3d; transition: transform 650ms cubic-bezier(.2,.8,.2,1); }
+.gw-flip-inner[data-flipped] { transform: rotateY(180deg); }
+.gw-flip-front, .gw-flip-back { grid-area: 1 / 1; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.gw-flip-back { transform: rotateY(180deg); display: flex; align-items: center; justify-content: center; }
+@media (prefers-reduced-motion: reduce) { .gw-flip-inner { transition: none; } }
+.gw-badge-back { box-sizing: border-box; width: 100%; height: 100%; max-width: 272px; max-height: 272px; padding: 22px 20px; border-radius: 28px; border: 4px solid var(--pm); background: linear-gradient(160deg, var(--pd), #0A1030 75%); box-shadow: 0 0 0 3px #050A24, inset 0 0 0 2px var(--pe); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; font-size: 13px; line-height: 1.35; color: #C9D3F5; }
+.gw-badge-back strong { font-size: 24px; font-weight: 900; color: #FF8A3D; letter-spacing: -0.02em; }
+.gw-badge-back-tag { font-size: 10px; color: var(--ph); }
+.gw-badge-back-rank { font-size: 17px; font-weight: 800; color: #F4F6FF; }
+.gw-badge-back-share { color: var(--ph); }
+.gw-badge-back-flip { margin-top: 6px; font-size: 11px; color: #7E8BBF; }
+.gw-flip-hint { margin-top: 10px; text-align: center; font-size: 12px; }
 .gw-ach-locked > [aria-hidden] { filter: grayscale(1) brightness(0.6); opacity: 0.45; }
 .gw-ach-locked .gw-ach-title { color: #8A95C2; }
 .gw-ach-locked .gw-ach-text { color: #7381B4; }
@@ -382,6 +406,32 @@ body { color: #F4F6FF; font-family: 'Archivo', system-ui, sans-serif; }
 
 /* ---------- intro / empty / loading ---------- */
 .gw-intro { max-width: 640px; padding-top: 56px; }
+/* the intro's "Which one are you?" (PersonaPick): beside the form on wide screens, under it on narrow ones */
+.gw-intro-pick { margin-top: 48px; }
+@media (min-width: 1100px) {
+  .gw-intro { max-width: 1160px; display: grid; grid-template-columns: minmax(0, 620px) minmax(0, 400px); justify-content: space-between; align-items: center; column-gap: 56px; }
+  .gw-intro-pick { margin-top: 0; }
+}
+.gw-pick { padding: 24px; border-radius: 26px; background: rgba(16,23,58,0.72); border: 1px solid #26305A; }
+.gw-pick-lede { margin: 6px 0 0; font-size: 14px; line-height: 1.45; color: #A3AED6; }
+.gw-pick-grid { list-style: none; margin: 18px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.gw-pick-grid li { display: flex; } /* tiles in a row share the tallest one's height */
+.gw-pick-tile { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 6px 12px; border-radius: 18px; border: 1px solid var(--pe); background: linear-gradient(170deg, var(--pd), #0B1131 85%); color: #E3E8FA; text-decoration: none; font-size: 12px; font-weight: 700; text-align: center; transition: transform 200ms, border-color 200ms; }
+.gw-pick-tile:hover, .gw-pick-tile:focus-visible { border-color: var(--ph); color: #FFFFFF; }
+.gw-pick-tile:focus-visible { outline: 2px solid #7DB3FF; outline-offset: 2px; }
+/* "Find your persona": a holographic border like the badges' foil, sliding on hover, with an arrow to the form */
+.gw-pick-cta { position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; height: 54px; margin-top: 16px; border: 2px solid transparent; border-radius: 16px; color: #F4F6FF; font: 800 16px 'Archivo', system-ui, sans-serif; cursor: pointer;
+  background: linear-gradient(#141D4A, #10173A) padding-box, linear-gradient(90deg, #FF5FA2, #FFD166, #5BD15B, #3D8BFF, #9B6BFF, #FF5FA2) border-box;
+  background-size: 100% 100%, 200% 100%; transition: background-position 700ms cubic-bezier(.2,.8,.2,1), transform 150ms; }
+.gw-pick-cta::after { content: ''; position: absolute; inset: 0; transform: translateX(-120%); pointer-events: none; background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.22) 50%, transparent 65%); }
+.gw-pick-cta:hover { background-position: 0 0, 100% 0; }
+.gw-pick-cta:hover::after { transform: translateX(120%); transition: transform 800ms cubic-bezier(.3,.6,.3,1); }
+.gw-pick-cta:active { transform: translateY(1px); }
+.gw-pick-cta:focus-visible { outline: 2px solid #7DB3FF; outline-offset: 3px; }
+.gw-pick-arrow { display: inline-flex; transform: rotate(90deg); transition: transform 300ms; } /* up: the form is above */
+@media (min-width: 1100px) { .gw-pick-arrow { transform: none; } } /* left: the form is beside */
+.gw-pick-cta:hover .gw-pick-arrow { transform: rotate(90deg) translateX(-3px); }
+@media (min-width: 1100px) { .gw-pick-cta:hover .gw-pick-arrow { transform: translateX(-4px); } }
 .gw-intro-mark { margin-top: 32px; }
 .gw-intro-form { display: flex; flex-direction: column; gap: 18px; margin-top: 34px; }
 .gw-intro-form > .gw-btn-lg { width: 100%; }

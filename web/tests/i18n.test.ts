@@ -47,7 +47,7 @@ describe('Korean copy', () => {
     for (const f of FIXTURES) {
       const d = load(f);
       const post = ko.sharePost(d);
-      expect(post, f).toMatch(/^나의 메인넷 시즌 1, gno\.land/);
+      expect(post, f).toMatch(/^gno\.land에서 보낸 나의 메인넷 시즌 1/);
       expect(post, f).toContain(shareLink(d));
       expect(xLength(post), f).toBeLessThanOrEqual(X_MAX);
     }

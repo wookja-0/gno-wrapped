@@ -23,7 +23,10 @@ and a share card for X and Discord. It follows the chain live, so new activity s
 - **Achievements**: eleven to collect, from Early Arrival to Citizen (a GovDAO or GnoSwap governance vote),
   Regular (30 active days), Flawless (20+ transactions, none failed) and Token Gardener (GnoSwap liquidity, staking or GNS delegation).
 - **Collection**: all eleven achievements on your recap, the ones you haven't earned yet as grey
-  silhouettes with their rule, and a count (7 / 11).
+  silhouettes with their rule, a count (7 / 11), and how rare each one is (Legendary for 1% of
+  addresses or fewer, then Epic, Rare, Common).
+- **Persona badge**: tilts toward the pointer with a pixel holographic foil, and flips to show where
+  you stand among that persona.
 - **Next up**: while the season is live, the achievements still in reach and how far along you are
   (e.g. 77 of 100 transactions, 2 of 3 days in a row).
 - **Clock**: your transactions by hour of day in your own time zone, the busiest hour, and whether
@@ -37,8 +40,8 @@ and a share card for X and Discord. It follows the chain live, so new activity s
   fees and rewards; votes, proposals and GNS delegations.
 - **Builder report**: each realm you deployed, and how many other addresses called it.
 - **Story mode**: the recap as full-screen cards, one at a time. Add `?story` to a recap link.
-- **Sharing**: a post for X and Discord, a 1200×630 preview card and a 1080×1920 image, both with your
-  achievement icons. Share links never carry your address ([Privacy](#privacy)).
+- **Sharing**: a post for X and Discord, a 1200×630 preview card, a 1080×1920 image and a 1080×1350
+  trading card, all with your achievement icons. Share links never carry your address ([Privacy](#privacy)).
 - **Season's end**: once the season is over, story mode says so and ends with a certificate of it
   (persona, transactions, achievements) to share or save.
 - **Compare**: two share links side by side, with neither address shown.
