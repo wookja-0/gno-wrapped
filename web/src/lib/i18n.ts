@@ -8,7 +8,7 @@ import {
   ACHIEVEMENTS, activityLead, arrivalSub, arrivalText, builderHeadline, countdownText, dayText, dayTxAction, defiLines, fmt, fmtDate,
   fmtGas, fmtShort, fuelLine, governanceLines, MILESTONES, personaRankText, personaRuleText, personaWhy, plural, RANK_METRIC,
   realmUseText, rankTopPct, SHARE, shareLink, sharePost, successText, summaryRank, topPairText, visitDiff, visitSnapshot, weekRange, weekText,
-  xLength, X_MAX, ACHIEVEMENT_ORDER, MONTHS, progressText, realmOrderLine, realmOrderText, achievementsOfText, sharePct, PERSONA_PLURAL, type Rarity, CHRONOTYPES, chronotypeLine, hourLabel, hourText,
+  xLength, X_MAX, ACHIEVEMENT_ORDER, MONTHS, progressText, realmOrderLine, realmOrderText, achievementsOfText, ordinal, sharePct, PERSONA_PLURAL, type Rarity, CHRONOTYPES, chronotypeLine, hourLabel, hourText,
   type AchievementId, type CalendarCell, type Chronotype, type Progress, type DayTx, type MilestoneId, type PersonaRule, type RankMetric, type RealmReport,
   type Season, type VisitSnapshot, type WrappedData,
 } from './wrapped';
@@ -192,6 +192,18 @@ const en = {
   recapWeeks: (side: string, weeks: number[]) => `Recap ${side}: ${weeks.join(', ')} active days per week`,
   weekOf: (range: string, x: number) => `Week of ${range}: ${x} of 7 days`,
 
+  // persona detail (/personas/<id>)
+  personaDetailsLabel: (title: string) => `${title}: details`, personaMore: 'Details →',
+  allPersonas: '← All personas', personaOf: (i: number, n: number) => `${String(i).padStart(2, '0')} / ${String(n).padStart(2, '0')}`,
+  personaOrder: (i: number) => (i === 0 ? 'Checked first.' : `Checked ${ordinal(i + 1)}, only if none of the ${i} before it fit.`),
+  statsTitle: (id: string, title: string) => `How ${PERSONA_PLURAL[id] ?? title} spent the season`,
+  medianTxs: 'Transactions (median)', medianDays: 'Active days (median)', busiestTime: 'Busiest time of day (your time zone)',
+  realmsTheyUsed: 'Realms they called most', ofThem: (x: number) => `${fmt(x)} of them`,
+  achievementsTheyHold: 'Achievements they hold', heldBy: (pct: string) => `${pct} of them`,
+  top10Line: (n: number, m: RankMetric) => `The top 10% have ${fmt(n)} or more ${RANK_METRIC[m]}.`,
+  fewerThan5: 'fewer than 5', smallGroups: 'Anything counted over fewer than 5 addresses is left out; bots are left out too.',
+  prevPersona: 'Previous persona', nextPersona: 'Next persona', personaStatsNone: 'No stats yet.',
+
   // personas page
   personasPill: 'SEASON PERSONAS', personasTitle: 'Nine personas, one per address',
   personasLede: "Your persona isn't a score or a rank. It's one label picked from your on-chain activity this season: the rules below are checked in order, and the first one that fits is yours.",
@@ -277,6 +289,11 @@ const KO_PERSONA: Record<string, [string, string]> = {
   'first-steps': ['첫걸음', '누구나 처음은 있어요.'],
 };
 const koTitle = (id: string, fallback: string) => KO_PERSONA[id]?.[0] ?? fallback;
+/** "빌더는", "디파이 파일럿은": 은 after a final consonant, 는 otherwise (non-Hangul endings take 는). */
+const topicOf = (word: string) => {
+  const ch = word.charCodeAt(word.length - 1) - 0xac00;
+  return word + (ch >= 0 && ch < 11172 && ch % 28 !== 0 ? '은' : '는');
+};
 const KO_METRIC: Record<RankMetric, string> = {
   deployed: '배포한 렐름 수', firstTx: '첫 트랜잭션 시점', realms: '호출한 렐름 수', defi: 'GnoSwap·wugnot 활동 수',
   collect: 'NFT 민팅·구매 수', play: '온체인 게임 활동 수', transfer: 'GNOT 전송 수',
@@ -553,6 +570,17 @@ const ko: Copy = {
   } as Record<string, string>)[label] ?? label,
   weekOf: (range, x) => `${range} 주: 7일 중 ${x}일`, comparison: '비교', persona: '페르소나',
   recapWeeks: (side, weeks) => `결과 ${side}의 주별 활동일: ${weeks.join(', ')}`,
+
+  personaDetailsLabel: (title) => `${title}: 자세히 보기`, personaMore: '자세히 보기 →',
+  allPersonas: '← 모든 페르소나',
+  personaOrder: (i) => (i === 0 ? '가장 먼저 확인해요.' : `${i + 1}번째로 확인해요. 앞의 ${i}개에 하나도 해당하지 않을 때만이에요.`),
+  statsTitle: (id, title) => `${topicOf(koTitle(id, title))} 이렇게 활동했어요`,
+  medianTxs: '트랜잭션 (중앙값)', medianDays: '활동일 (중앙값)', busiestTime: '가장 많이 활동한 시간대 (내 시간대 기준)',
+  realmsTheyUsed: '가장 많이 쓴 렐름', ofThem: (x) => `${fmt(x)}명`,
+  achievementsTheyHold: '많이 가진 업적', heldBy: (pct) => `${pct} 보유`,
+  top10Line: (n, m) => `상위 10%는 ${KO_METRIC[m]} ${fmt(n)} 이상이에요.`,
+  fewerThan5: '5명 미만', smallGroups: '5명 미만인 항목과 봇은 빼고 보여줘요.',
+  prevPersona: '이전 페르소나', nextPersona: '다음 페르소나', personaStatsNone: '아직 통계가 없어요.',
 
   personasPill: 'SEASON PERSONAS', personasTitle: '주소마다 하나, 페르소나 9종',
   personasLede: '페르소나는 점수나 순위가 아니에요. 이번 시즌 온체인 활동으로 고른 이름표 하나예요. 아래 규칙을 순서대로 확인해서 처음 맞는 것이 내 페르소나예요.',

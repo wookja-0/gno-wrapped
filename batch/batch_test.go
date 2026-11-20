@@ -451,3 +451,55 @@ func TestValidatorPersonaAndTheNewAchievements(t *testing.T) {
 		t.Errorf("rule = %+v", r)
 	}
 }
+
+func TestPersonaStatsSpreadAndHideSmallGroups(t *testing.T) {
+	if m := median([]int{5, 1, 9, 3}); m != 5 {
+		t.Errorf("median = %d", m)
+	}
+	// 20 addresses: 1..20 realms deployed
+	var vs []int
+	for i := 1; i <= 20; i++ {
+		vs = append(vs, i)
+	}
+	r := spread(vs)
+	if r.Top10 != 19 { // the 2nd from the top of 20
+		t.Errorf("top10 = %d", r.Top10)
+	}
+	got := map[int]rankBucket{}
+	for _, b := range r.Buckets {
+		got[b.From] = b
+	}
+	if b := got[1]; !b.Few || b.Count != 0 { // one address with 1: withheld
+		t.Errorf("bucket 1: %+v", b)
+	}
+	if b := got[10]; b.Count != 10 || b.To != 19 {
+		t.Errorf("bucket 10-19: %+v", b)
+	}
+
+	d := &dataset{accs: map[string]*acc{}}
+	personaOf := map[string]string{}
+	ach := map[string][]achievement{}
+	for i := 0; i < 6; i++ {
+		addr := fmt.Sprintf("g1%038d", i)
+		calls := map[string]map[string]int{"gno.land/r/demo/boards": {"Post": 1}}
+		if i == 0 {
+			calls["gno.land/r/rare/thing"] = map[string]int{"Do": 1} // one caller only
+		}
+		d.accs[addr] = &acc{txs: 10 + i, days: map[int]bool{1: true, 2: true}, calls: calls}
+		personaOf[addr] = "realm-hopper"
+		ach[addr] = []achievement{{ID: "streak"}}
+		if i < 2 {
+			ach[addr] = append(ach[addr], achievement{ID: "citizen"}) // two holders only
+		}
+	}
+	s := d.personaStats(personaOf, ach)["realm-hopper"]
+	if s.Addresses != 6 || s.MedianTxs != 13 || s.MedianDays != 2 {
+		t.Errorf("stats %+v", s)
+	}
+	if len(s.TopRealms) != 1 || s.TopRealms[0].Path != "gno.land/r/demo/boards" {
+		t.Errorf("realms %+v: the one-caller realm must not show", s.TopRealms)
+	}
+	if s.Achievements["streak"] != 6 || s.Achievements["citizen"] != 0 {
+		t.Errorf("achievements %+v", s.Achievements)
+	}
+}

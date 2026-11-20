@@ -606,8 +606,8 @@ test.describe('personas', () => {
     await open(page, `/s1/${ADDR}?fixture=full`);
     await expect(page.getByText('You called')).toBeVisible();
     const [tab] = await Promise.all([page.waitForEvent('popup'), page.getByRole('link', { name: /How personas work/ }).click()]);
-    await expect(tab).toHaveURL(/\/personas$/);
-    await expect(tab.getByRole('heading', { level: 1 })).toHaveText('Nine personas, one per address');
+    await expect(tab).toHaveURL(/\/personas\/realm-hopper$/); // straight to its own persona's page
+    await expect(tab.getByRole('heading', { level: 1 })).toHaveText('Realm Hopper');
     await expect(page).toHaveURL(new RegExp(`/s1/${ADDR}`)); // the recap stays open
   });
 
@@ -740,7 +740,7 @@ test.describe('intro and empty', () => {
     const pick = page.getByRole('region', { name: 'Which one are you?' });
     const tiles = pick.getByRole('link');
     await expect(tiles).toHaveCount(9);
-    await expect(tiles.nth(1)).toHaveAttribute('href', '/personas#validator');
+    await expect(tiles.nth(1)).toHaveAttribute('href', '/personas/validator');
     await expect(tiles.nth(1)).toHaveAccessibleName("Validator: how it's picked");
     await pick.getByRole('button', { name: 'Find your persona' }).click();
     await expect(page.getByLabel('Wallet address')).toBeFocused();
@@ -904,5 +904,52 @@ test.describe('privacy', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Gno Wrapped가 아는 것');
     await expect(page.locator('footer')).toContainText('쿠키·추적 없음');
     expect(await overflowing(page)).toEqual([]);
+  });
+});
+
+test.describe('a persona in detail', () => {
+  test('from /personas: opens over the list as a modal, with its own URL; Esc goes back', async ({ page }) => {
+    await page.goto('/personas');
+    await page.locator('.gw-persona-card').first().waitFor();
+    await page.waitForLoadState('networkidle'); // hydrated: the link navigates on the client, so it's intercepted
+    await page.getByRole('link', { name: 'Validator: details' }).click();
+    const modal = page.getByRole('dialog', { name: 'Validator' });
+    await expect(modal).toBeVisible();
+    await expect(page).toHaveURL('/personas/validator');
+    await expect(modal.getByRole('heading', { level: 1 })).toHaveText('Validator');
+    await expect(modal).toContainText('Checked 2nd, only if none of the 1 before it fit.');
+    await expect(modal.getByRole('heading', { name: 'How Validators spent the season' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Nine personas, one per address' })).toBeAttached(); // the list stays behind
+
+    await modal.getByRole('link', { name: /^Next persona: Day-One Explorer/ }).click();
+    await expect(page).toHaveURL('/personas/day-one-explorer');
+    await expect(page.getByRole('dialog', { name: 'Day-One Explorer' })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page).toHaveURL('/personas'); // the next link replaced the entry, so one Back closes it
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+  });
+
+  test('a link straight to it is a full page', async ({ page }) => {
+    await open(page, '/personas/realm-hopper');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Realm Hopper');
+    await expect(page.getByRole('link', { name: '← All personas' })).toHaveAttribute('href', '/personas');
+    await expect(page.getByText(/^The top 10% have \d[\d,]* or more different realms called\.$/)).toBeVisible();
+    await expect(page.getByText('Anything counted over fewer than 5 addresses is left out; bots are left out too.')).toBeVisible();
+    expect(await overflowing(page)).toEqual([]);
+  });
+
+  test('on a phone, in Korean', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.addInitScript(() => localStorage.setItem('gw-lang', 'ko'));
+    await open(page, '/personas/defi-pilot');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('디파이 파일럿');
+    await expect(page.getByRole('heading', { name: '디파이 파일럿은 이렇게 활동했어요' })).toBeVisible();
+    expect(await overflowing(page)).toEqual([]);
+  });
+
+  test('an unknown persona is not found', async ({ page }) => {
+    await page.goto('/personas/nope');
+    await expect(page.getByText('This page could not be found.')).toBeVisible();
   });
 });

@@ -27,7 +27,7 @@ export function PersonaPick() {
           const title = c.personaTitle(id, PERSONA_TITLES[id] ?? id);
           return (
             <li key={id}>
-              <Link href={`/personas#${id}`} className="gw-pick-tile" style={{ ['--pd' as string]: col.deep, ['--pe' as string]: col.edge, ['--ph' as string]: col.hi }} aria-label={c.introPickTile(title)}>
+              <Link href={`/personas/${id}`} className="gw-pick-tile" style={{ ['--pd' as string]: col.deep, ['--pe' as string]: col.edge, ['--ph' as string]: col.hi }} aria-label={c.introPickTile(title)}>
                 <Tilt shape="badge" max={18}>
                   <PersonaBadge id={id} p={3} label={c.badge(title)} foil />
                 </Tilt>

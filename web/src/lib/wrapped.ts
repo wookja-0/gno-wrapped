@@ -371,7 +371,23 @@ export type PersonaRule =
   | { kind: 'fallback' };
 
 /** GET /v1/{season}/personas: the batch's rules (checked in order, first match wins) and counts. */
-export interface PersonaInfo extends Persona { rule: PersonaRule; rankBy?: RankMetric; count: number }
+export interface PersonaInfo extends Persona { rule: PersonaRule; rankBy?: RankMetric; count: number; stats?: PersonaStats }
+
+/**
+ * How the (non-bot) addresses with a persona used the season, as aggregates (batch/personastats.go):
+ * anything over fewer than 5 addresses is left out, or marked `few` in the rank spread.
+ */
+export interface PersonaStats {
+  addresses: number; medianTxs: number; medianDays: number;
+  hours: number[]; // txs per UTC hour, summed
+  topRealms?: { path: string; addresses: number }[];
+  achievements?: Partial<Record<AchievementId, number>>;
+  rank?: { top10: number; buckets: { from: number; to?: number; count: number; few?: boolean }[] };
+}
+/** 1st, 2nd, 3rd, 4th … */
+export const ordinal = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'}`;
+/** "1–4", "5", "1,000+" */
+export const bucketLabel = (b: { from: number; to?: number }) => (!b.to ? `${fmt(b.from)}+` : b.from === b.to ? fmt(b.from) : `${fmt(b.from)}–${fmt(b.to)}`);
 export interface PersonasData {
   season: Season; dataAsOf: string; final?: boolean; addresses: number; personas: PersonaInfo[];
   achievements?: Partial<Record<AchievementId, number>>; // how many addresses have each
