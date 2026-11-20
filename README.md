@@ -58,13 +58,15 @@ and a share card for X and Discord. It follows the chain live, so new activity s
 
 ![A recap: persona, rank, headline stats and the start of the achievement collection](docs/screenshots/recap.png)
 
-![The achievement collection: earned ones in colour, the rest as grey silhouettes with their rule](docs/screenshots/collection.png)
+![The achievement collection: earned ones in colour with their rarity, the rest as grey silhouettes with their rule](docs/screenshots/collection.png)
 
 Every chart reads out the day under the pointer or the arrow keys and has a Table view. How personas
 and achievements are decided is on the site's `/personas` page and in [`batch/build.go`](batch/build.go)
 and [`batch/achievements.go`](batch/achievements.go).
 
 <p align="center"><img src="docs/screenshots/share-card.png" width="760" alt="Share card shown on X and Discord, with the achievement icons"></p>
+
+<p align="center"><img src="docs/screenshots/trading-card.png" width="360" alt="The 1080x1350 trading card: the persona badge with a foil, the persona, three numbers and the achievements framed by rarity"></p>
 
 <p align="center">
   <img src="docs/screenshots/story-arrival.png" width="250" alt="Story mode on a phone: the mainnet day you arrived">
@@ -73,6 +75,8 @@ and [`batch/achievements.go`](batch/achievements.go).
 </p>
 
 ![Personas page: nine personas, Validator second](docs/screenshots/personas.png)
+
+![A persona opened from the list: its rule, rarity and how the addresses with it spent the season](docs/screenshots/persona-detail.png)
 
 ## Getting Started
 
@@ -87,7 +91,7 @@ docker compose logs -f ingest                 # follow the chain
 Open http://localhost:3000. The first start fetches the whole season from the indexer
 (about 180 range queries, a few minutes, ~20 MB); after that only new blocks.
 
-![The intro page: connect Adena or paste an address, with live season stats](docs/screenshots/intro.png)
+![The intro page: connect Adena or paste an address, with live season stats and the nine personas](docs/screenshots/intro.png)
 
 Set `SHARE_BASE_URL` in `.env` to the public origin used in share links and preview cards, then
 rebuild the web image (`docker compose up -d --build web`).
