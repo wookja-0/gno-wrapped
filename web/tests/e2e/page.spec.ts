@@ -924,9 +924,14 @@ test.describe('a persona in detail', () => {
     await modal.getByRole('link', { name: /^Next persona: Day-One Explorer/ }).click();
     await expect(page).toHaveURL('/personas/day-one-explorer');
     await expect(page.getByRole('dialog', { name: 'Day-One Explorer' })).toBeVisible();
+    // Next keeps Validator rendered but hidden: its dialog must close, not stay open behind this one
+    await expect(page.locator('dialog[open]')).toHaveCount(1);
+    await expect(page.locator('html')).toHaveCSS('overflow', 'hidden');
     await page.keyboard.press('Escape');
     await expect(page).toHaveURL('/personas'); // the next link replaced the entry, so one Back closes it
     await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.locator('dialog[open]')).toHaveCount(0);
+    await expect(page.locator('html')).not.toHaveCSS('overflow', 'hidden');
   });
 
   test('a link straight to it is a full page', async ({ page }) => {

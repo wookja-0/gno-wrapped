@@ -13,13 +13,14 @@ export function PersonaModal({ children }: { children: ReactNode }) {
   const c = useCopy();
   const router = useRouter();
   const ref = useRef<HTMLDialogElement>(null);
+  // Next keeps the persona you left (prev/next) rendered but hidden, and runs this cleanup when it
+  // hides it: close that dialog, or it stays open behind the new one. (The list's scroll lock is CSS.)
   useEffect(() => {
     const d = ref.current;
-    if (d && !d.open) d.showModal();
-    const html = document.documentElement;
-    const overflow = html.style.overflow;
-    html.style.overflow = 'hidden'; // the list behind doesn't scroll
-    return () => { html.style.overflow = overflow; };
+    if (!d) return;
+    if (d.open && !d.matches(':modal')) d.close();
+    if (!d.open) d.showModal();
+    return () => d.close();
   }, []);
   const close = () => router.back();
   return (
