@@ -34,10 +34,12 @@ export function PersonasView({ data, loading }: { data: PersonasData | null; loa
             const pct = data && data.addresses ? (p.count / data.addresses) * 100 : 0;
             const c = personaColors(p.id);
             return (
-              <Reveal as="li" key={p.id} id={p.id} className="gw-persona-card" delay={(i % 2) * 90}>
+              <Reveal as="li" key={p.id} id={p.id} className="gw-persona-item" delay={(i % 2) * 90}>
+                {/* the whole card opens the persona: over this list as a modal (app/personas/@modal) */}
+                <Link href={`/personas/${p.id}`} scroll={false} className="gw-persona-card" aria-label={t.personaDetailsLabel(t.personaTitle(p.id, p.title))}>
                 <div className="gw-persona-order gw-pixel-label" style={{ color: c.hi }}>{String(i + 1).padStart(2, '0')}</div>
                 <div className="gw-persona-tile" style={{ background: c.deep, borderColor: c.edge }}>
-                  <Tilt shape="badge" max={16} touch>
+                  <Tilt shape="badge" max={16}>
                     <PersonaBadge id={p.id} p={4} label={t.badge(t.personaTitle(p.id, p.title))} foil />
                   </Tilt>
                 </div>
@@ -50,7 +52,9 @@ export function PersonasView({ data, loading }: { data: PersonasData | null; loa
                     <div className="gw-persona-bar"><div style={{ width: `${Math.max(pct, 0.6)}%`, background: c.mid }} /></div>
                     <span>{t.shareOfAddresses(pct, p.count)}</span>
                   </div>
+                  <span className="gw-persona-more">{t.personaMore}</span>
                 </div>
+                </Link>
               </Reveal>
             );
           })}

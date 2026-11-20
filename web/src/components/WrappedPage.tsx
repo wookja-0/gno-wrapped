@@ -127,7 +127,7 @@ export function WrappedPage({ data, ogSrc, shares }: { data: WrappedData; ogSrc:
             <Reveal delay={300}>
               <p className="gw-why">
                 <span>{c.personaWhy(data)}</span>
-                <Link href="/personas" target="_blank" rel="noopener" className="gw-ext">{c.howPersonasWork}</Link>
+                <Link href={persona.id ? `/personas/${persona.id}` : '/personas'} target="_blank" rel="noopener" className="gw-ext">{c.howPersonasWork}</Link>
               </p>
             </Reveal>
             {data.personaRank && (

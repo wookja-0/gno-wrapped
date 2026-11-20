@@ -369,8 +369,52 @@ body { color: #F4F6FF; font-family: 'Archivo', system-ui, sans-serif; }
 .gw-privacy-links { display: flex; flex-wrap: wrap; gap: 4px 20px; }
 @media (max-width: 860px) { .gw-privacy-list { grid-template-columns: 1fr; } }
 .gw-persona-list { list-style: none; margin: 32px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-.gw-persona-card { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px; align-items: start; padding: 22px; border-radius: 20px; background: rgba(16,23,58,0.92); border: 1px solid #26305A; scroll-margin-top: 90px; }
-.gw-persona-card:target { border-color: #FF8A3D; }
+.gw-persona-item { display: flex; scroll-margin-top: 90px; } /* the card is a link inside it */
+.gw-persona-card { flex: 1; color: inherit; text-decoration: none; cursor: pointer; transition: border-color 200ms; position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px; align-items: start; padding: 22px; border-radius: 20px; background: rgba(16,23,58,0.92); border: 1px solid #26305A; scroll-margin-top: 90px; }
+.gw-persona-item:target .gw-persona-card { border-color: #FF8A3D; }
+.gw-persona-card:hover { border-color: #3A4680; }
+.gw-persona-card:focus-visible { outline: 2px solid #7DB3FF; outline-offset: 3px; }
+.gw-persona-more { display: inline-block; margin-top: 12px; font-size: 13px; font-weight: 700; color: #9CC2FF; }
+.gw-persona-card:hover .gw-persona-more { text-decoration: underline; text-underline-offset: 3px; }
+
+/* one persona (PersonaDetail): the /personas/<id> page, and the modal over /personas (PersonaModal) */
+.gw-persona-modal { width: min(840px, calc(100% - 32px)); max-height: 88vh; padding: 0; border: 1px solid #2F3B73; border-radius: 26px; background: #0D1440; color: #F4F6FF; overflow: auto; box-shadow: 0 30px 80px rgba(2,6,24,0.65); }
+.gw-persona-modal[open] { animation: gwRise 320ms cubic-bezier(.2,.8,.2,1) both; }
+.gw-persona-modal::backdrop { background: rgba(5,10,36,0.72); backdrop-filter: blur(3px); }
+.gw-persona-modal-body { position: relative; padding: 26px 30px 28px; }
+.gw-persona-modal-close { position: absolute; top: 16px; right: 16px; z-index: 2; }
+.gw-pd-top { display: flex; align-items: center; gap: 12px; min-height: 32px; padding-right: 44px; }
+.gw-pd-order { margin-left: auto; color: var(--ph); }
+.gw-pd-head { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 26px; align-items: start; margin-top: 14px; }
+.gw-pd-badge { padding: 16px; border-radius: 24px; border: 1px solid var(--pe); background: linear-gradient(160deg, var(--pd), #0B1131 90%); }
+.gw-pd-title { margin: 0; font-size: clamp(36px, 5vw, 52px); line-height: 1; font-weight: 900; letter-spacing: -0.03em; color: #FF8A3D; }
+.gw-pd-line { margin: 8px 0 0; font-size: 17px; line-height: 1.4; color: #D3DBF7; }
+.gw-pd-rule { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: #0B1131; border: 1px solid #222C58; font-size: 15px; line-height: 1.45; }
+.gw-pd-meta { margin: 10px 0 0; font-size: 13px; line-height: 1.5; color: #A3AED6; }
+.gw-pd-share { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 12px 0 0; font-size: 13px; color: #C9D3F5; }
+.gw-pd-section { margin-top: 30px; padding-top: 24px; border-top: 1px solid #1A2350; }
+.gw-pd-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
+.gw-pd-sub { margin: 26px 0 12px; font-size: 16px; font-weight: 800; }
+.gw-pd-count { font-size: 13px; color: #A3AED6; white-space: nowrap; font-variant-numeric: tabular-nums; text-align: right; }
+.gw-pd-held, .gw-pd-spread { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.gw-pd-held li { display: grid; grid-template-columns: 24px 160px minmax(0, 1fr) 84px; align-items: center; gap: 12px; }
+.gw-pd-held-name { font-size: 14px; font-weight: 700; }
+.gw-pd-spread li { display: grid; grid-template-columns: 96px minmax(0, 1fr) 84px; align-items: center; gap: 12px; }
+.gw-pd-bucket { font-size: 13px; color: #C9D3F5; }
+.gw-pd-bar { height: 10px; background: #1E2750; }
+.gw-pd-bar i { display: block; height: 100%; background: var(--pm); }
+.gw-pd-nav { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; margin-top: 28px; padding-top: 20px; border-top: 1px solid #1A2350; }
+@media (max-width: 600px) {
+  .gw-persona-modal { width: 100%; max-width: 100%; max-height: 92dvh; margin: auto 0 0; border-radius: 24px 24px 0 0; border-bottom: 0; }
+  .gw-persona-modal[open] { animation: gwSheet 340ms cubic-bezier(.2,.8,.2,1) both; }
+  .gw-persona-modal-body { padding: 22px 18px 26px; }
+  .gw-pd-head { grid-template-columns: 1fr; justify-items: start; gap: 16px; }
+  .gw-pd-tiles { grid-template-columns: 1fr; }
+  .gw-pd-held li { grid-template-columns: 24px minmax(0, 1fr) auto; row-gap: 6px; }
+  .gw-pd-spread li { grid-template-columns: minmax(0, 1fr) auto; row-gap: 6px; }
+  .gw-pd-held .gw-pd-bar, .gw-pd-spread .gw-pd-bar { grid-column: 1 / -1; grid-row: 2; }
+  .gw-pd-nav { justify-content: center; }
+}
 .gw-persona-order { position: absolute; top: 14px; right: 16px; color: #7DB3FF; }
 .gw-persona-tile { width: 112px; height: 112px; box-sizing: border-box; border-radius: 18px; border: 1px solid #26305A; display: flex; align-items: center; justify-content: center; }
 .gw-persona-name { margin: 0; padding-right: 28px; font-size: 24px; font-weight: 900; letter-spacing: -0.02em; color: #FF8A3D; }

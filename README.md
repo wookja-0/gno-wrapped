@@ -49,6 +49,10 @@ and a share card for X and Discord. It follows the chain live, so new activity s
   transactions, days, hours, realms, GnoSwap and gas combined, personas and achievements per wallet.
 - **Since your last visit**: what changed since you last opened your recap, kept in your browser only.
 - **Season page**: `/season`, the same recap for the whole chain.
+- **Persona pages**: `/personas/<id>` for each persona: its rule and place in the order, how rare it is,
+  and how the addresses with it spent the season (median transactions and active days, busiest time
+  of day, the realms they called most, the achievements they hold, how the ranking spreads and what
+  the top 10% reach). From `/personas` it opens over the list; a link to it opens the page.
 - **Live, then final**: a countdown to the season's end; after it, recaps are marked final.
 - **English and Korean**: English by default, switched in the top bar.
 
@@ -143,6 +147,9 @@ All data is public on-chain data. Share links still never carry the address:
   to the address), and Realm Pioneer doesn't say which realms.
   The share card and image never show the address either.
 - Persona ranks are shown only on the owner's own recap. There is no public leaderboard.
+- Persona pages show aggregates only. Bots are left out, and so is anything counted over fewer than
+  5 addresses (a realm, an achievement, a bucket of the ranking), so a small persona can't single
+  anyone out.
 
 Exact stats are still derived from public data, so a determined person could match a shared recap
 against the chain. Share links prevent casual exposure; they don't make a recap anonymous.

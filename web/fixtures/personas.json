@@ -17,7 +17,118 @@
         "min": 1
       },
       "rankBy": "deployed",
-      "count": 31
+      "count": 31,
+      "stats": {
+        "addresses": 31,
+        "medianTxs": 18,
+        "medianDays": 3,
+        "hours": [
+          83,
+          97,
+          51,
+          256,
+          270,
+          197,
+          166,
+          153,
+          145,
+          203,
+          231,
+          212,
+          230,
+          176,
+          175,
+          73,
+          103,
+          135,
+          260,
+          172,
+          223,
+          289,
+          164,
+          94
+        ],
+        "topRealms": [
+          {
+            "path": "gno.land/r/gnoland/wugnot",
+            "addresses": 6,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/g1leu8d2vsplhehcfkjg50mwgdpxdkt8tztu95wr/bubblerumble3",
+            "addresses": 5,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/g1t2kg2vtr3fukg43eujkn6x53gfdyakhngt4sfd/gnofly/nfts/planes",
+            "addresses": 5,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/gnoswap/gns",
+            "addresses": 5,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/gnoswap/position",
+            "addresses": 5,
+            "calls": 0
+          }
+        ],
+        "achievements": {
+          "early": 9,
+          "flawless": 8,
+          "pioneer": 7,
+          "streak": 10,
+          "token-gardener": 5,
+          "validators-friend": 23
+        },
+        "rank": {
+          "top10": 27,
+          "buckets": [
+            {
+              "from": 1,
+              "to": 1,
+              "count": 11
+            },
+            {
+              "from": 2,
+              "to": 2,
+              "count": 0,
+              "few": true
+            },
+            {
+              "from": 3,
+              "to": 4,
+              "count": 5
+            },
+            {
+              "from": 5,
+              "to": 9,
+              "count": 0,
+              "few": true
+            },
+            {
+              "from": 10,
+              "to": 19,
+              "count": 0,
+              "few": true
+            },
+            {
+              "from": 20,
+              "to": 49,
+              "count": 0,
+              "few": true
+            },
+            {
+              "from": 200,
+              "to": 499,
+              "count": 0,
+              "few": true
+            }
+          ]
+        }
+      }
     },
     {
       "id": "validator",
@@ -26,7 +137,49 @@
       "rule": {
         "kind": "valoper"
       },
-      "count": 43
+      "count": 43,
+      "stats": {
+        "addresses": 43,
+        "medianTxs": 1,
+        "medianDays": 1,
+        "hours": [
+          1,
+          1,
+          1,
+          4,
+          3,
+          1,
+          3,
+          3,
+          4,
+          11,
+          3,
+          5,
+          2,
+          6,
+          6,
+          2,
+          7,
+          8,
+          1,
+          4,
+          6,
+          2,
+          0,
+          2
+        ],
+        "topRealms": [
+          {
+            "path": "gno.land/r/gnops/valopers",
+            "addresses": 43,
+            "calls": 0
+          }
+        ],
+        "achievements": {
+          "early": 16,
+          "validators-friend": 39
+        }
+      }
     },
     {
       "id": "day-one-explorer",
@@ -37,7 +190,74 @@
         "max": 3
       },
       "rankBy": "firstTx",
-      "count": 66
+      "count": 66,
+      "stats": {
+        "addresses": 58,
+        "medianTxs": 4,
+        "medianDays": 4,
+        "hours": [
+          165,
+          72,
+          51,
+          95,
+          46,
+          68,
+          78,
+          129,
+          119,
+          158,
+          118,
+          164,
+          149,
+          130,
+          124,
+          116,
+          100,
+          92,
+          95,
+          95,
+          84,
+          90,
+          63,
+          74
+        ],
+        "topRealms": [
+          {
+            "path": "gno.land/r/gnoland/wugnot",
+            "addresses": 12,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/gnoswap/router",
+            "addresses": 12,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/gnoswap/gns",
+            "addresses": 10,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/g1ecsuj0q572jr0dhu29q9njtnmw03hyu7tyyvv6/kourt",
+            "addresses": 8,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/gnoswap/gov/staker",
+            "addresses": 7,
+            "calls": 0
+          }
+        ],
+        "achievements": {
+          "century": 10,
+          "early": 58,
+          "flawless": 5,
+          "pioneer": 6,
+          "streak": 12,
+          "token-gardener": 10,
+          "validators-friend": 16
+        }
+      }
     },
     {
       "id": "realm-hopper",
@@ -48,7 +268,96 @@
         "min": 8
       },
       "rankBy": "realms",
-      "count": 225
+      "count": 225,
+      "stats": {
+        "addresses": 225,
+        "medianTxs": 21,
+        "medianDays": 7,
+        "hours": [
+          208,
+          203,
+          159,
+          252,
+          328,
+          427,
+          497,
+          494,
+          672,
+          879,
+          668,
+          648,
+          592,
+          704,
+          791,
+          596,
+          605,
+          530,
+          610,
+          468,
+          664,
+          360,
+          243,
+          329
+        ],
+        "topRealms": [
+          {
+            "path": "gno.land/r/gnoland/wugnot",
+            "addresses": 223,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/gnoswap/router",
+            "addresses": 221,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/gnoswap/gns",
+            "addresses": 217,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/gnoswap/position",
+            "addresses": 192,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/gnoswap/gnft",
+            "addresses": 188,
+            "calls": 0
+          }
+        ],
+        "achievements": {
+          "century": 28,
+          "citizen": 33,
+          "early": 68,
+          "flawless": 67,
+          "pioneer": 43,
+          "streak": 114,
+          "token-gardener": 213,
+          "triple-threat": 83,
+          "validators-friend": 173
+        },
+        "rank": {
+          "top10": 16,
+          "buckets": [
+            {
+              "from": 5,
+              "to": 9,
+              "count": 126
+            },
+            {
+              "from": 10,
+              "to": 19,
+              "count": 92
+            },
+            {
+              "from": 20,
+              "to": 49,
+              "count": 7
+            }
+          ]
+        }
+      }
     },
     {
       "id": "defi-pilot",
@@ -60,7 +369,127 @@
         "min": 0.5
       },
       "rankBy": "defi",
-      "count": 518
+      "count": 518,
+      "stats": {
+        "addresses": 518,
+        "medianTxs": 4,
+        "medianDays": 2,
+        "hours": [
+          77,
+          91,
+          125,
+          138,
+          107,
+          111,
+          238,
+          355,
+          273,
+          222,
+          171,
+          148,
+          285,
+          313,
+          343,
+          152,
+          154,
+          113,
+          95,
+          69,
+          92,
+          83,
+          130,
+          103
+        ],
+        "topRealms": [
+          {
+            "path": "gno.land/r/gnoland/wugnot",
+            "addresses": 506,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/gnoswap/router",
+            "addresses": 439,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/gnoswap/gns",
+            "addresses": 366,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/gnoswap/position",
+            "addresses": 228,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/gnoswap/gnft",
+            "addresses": 204,
+            "calls": 0
+          }
+        ],
+        "achievements": {
+          "citizen": 10,
+          "early": 128,
+          "flawless": 23,
+          "pioneer": 33,
+          "streak": 45,
+          "token-gardener": 315,
+          "triple-threat": 8,
+          "validators-friend": 111
+        },
+        "rank": {
+          "top10": 35,
+          "buckets": [
+            {
+              "from": 1,
+              "to": 1,
+              "count": 0,
+              "few": true
+            },
+            {
+              "from": 2,
+              "to": 2,
+              "count": 27
+            },
+            {
+              "from": 3,
+              "to": 4,
+              "count": 103
+            },
+            {
+              "from": 5,
+              "to": 9,
+              "count": 162
+            },
+            {
+              "from": 10,
+              "to": 19,
+              "count": 130
+            },
+            {
+              "from": 20,
+              "to": 49,
+              "count": 64
+            },
+            {
+              "from": 50,
+              "to": 99,
+              "count": 21
+            },
+            {
+              "from": 100,
+              "to": 199,
+              "count": 7
+            },
+            {
+              "from": 200,
+              "to": 499,
+              "count": 0,
+              "few": true
+            }
+          ]
+        }
+      }
     },
     {
       "id": "collector",
@@ -72,7 +501,103 @@
         "min": 0.5
       },
       "rankBy": "collect",
-      "count": 158
+      "count": 158,
+      "stats": {
+        "addresses": 158,
+        "medianTxs": 1,
+        "medianDays": 1,
+        "hours": [
+          27,
+          6,
+          8,
+          6,
+          140,
+          13,
+          8,
+          4,
+          16,
+          21,
+          10,
+          12,
+          5,
+          17,
+          9,
+          8,
+          4,
+          17,
+          10,
+          9,
+          4,
+          3,
+          3,
+          3
+        ],
+        "topRealms": [
+          {
+            "path": "gno.land/r/g1nmqhha0ua730vejxqhrelldm4pga5j5ptle5ea/guardians",
+            "addresses": 119,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/g1n4pl5uc4yt5r96m9w6fmdznx3x0jyg8l6arhmt/bazaar/c/bazaargens",
+            "addresses": 18,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/g17khqpukees4237dtn3astzapmp462vjhsz6st4/settlers/nft",
+            "addresses": 11,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/g1t2kg2vtr3fukg43eujkn6x53gfdyakhngt4sfd/gnofly/nfts/planes",
+            "addresses": 9,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/g1j4ehkkrqcr53a233wamtvqggt3skr86c6777xd/guardians_pilot_v1",
+            "addresses": 5,
+            "calls": 0
+          }
+        ],
+        "achievements": {
+          "early": 7,
+          "pioneer": 5,
+          "validators-friend": 5
+        },
+        "rank": {
+          "top10": 2,
+          "buckets": [
+            {
+              "from": 1,
+              "to": 1,
+              "count": 140
+            },
+            {
+              "from": 2,
+              "to": 2,
+              "count": 10
+            },
+            {
+              "from": 3,
+              "to": 4,
+              "count": 0,
+              "few": true
+            },
+            {
+              "from": 5,
+              "to": 9,
+              "count": 0,
+              "few": true
+            },
+            {
+              "from": 100,
+              "to": 199,
+              "count": 0,
+              "few": true
+            }
+          ]
+        }
+      }
     },
     {
       "id": "player-one",
@@ -84,7 +609,117 @@
         "min": 0.5
       },
       "rankBy": "play",
-      "count": 58
+      "count": 58,
+      "stats": {
+        "addresses": 57,
+        "medianTxs": 11,
+        "medianDays": 5,
+        "hours": [
+          92,
+          104,
+          111,
+          135,
+          135,
+          230,
+          210,
+          257,
+          189,
+          197,
+          225,
+          340,
+          216,
+          319,
+          251,
+          168,
+          227,
+          264,
+          162,
+          107,
+          94,
+          57,
+          89,
+          101
+        ],
+        "topRealms": [
+          {
+            "path": "gno.land/r/g1leu8d2vsplhehcfkjg50mwgdpxdkt8tztu95wr/bubblerumble5",
+            "addresses": 33,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/g1leu8d2vsplhehcfkjg50mwgdpxdkt8tztu95wr/bubblerumble6",
+            "addresses": 30,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/g1leu8d2vsplhehcfkjg50mwgdpxdkt8tztu95wr/bubblerumble3",
+            "addresses": 27,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/g1leu8d2vsplhehcfkjg50mwgdpxdkt8tztu95wr/bubblerumble2",
+            "addresses": 17,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/g1leu8d2vsplhehcfkjg50mwgdpxdkt8tztu95wr/bubblerumble",
+            "addresses": 10,
+            "calls": 0
+          }
+        ],
+        "achievements": {
+          "flawless": 18,
+          "pioneer": 11,
+          "streak": 34,
+          "validators-friend": 10
+        },
+        "rank": {
+          "top10": 88,
+          "buckets": [
+            {
+              "from": 1,
+              "to": 1,
+              "count": 5
+            },
+            {
+              "from": 2,
+              "to": 2,
+              "count": 0,
+              "few": true
+            },
+            {
+              "from": 3,
+              "to": 4,
+              "count": 7
+            },
+            {
+              "from": 5,
+              "to": 9,
+              "count": 13
+            },
+            {
+              "from": 10,
+              "to": 19,
+              "count": 8
+            },
+            {
+              "from": 20,
+              "to": 49,
+              "count": 14
+            },
+            {
+              "from": 50,
+              "to": 99,
+              "count": 5
+            },
+            {
+              "from": 1000,
+              "count": 0,
+              "few": true
+            }
+          ]
+        }
+      }
     },
     {
       "id": "gnot-courier",
@@ -95,7 +730,115 @@
         "min": 3
       },
       "rankBy": "transfer",
-      "count": 1600
+      "count": 1600,
+      "stats": {
+        "addresses": 1600,
+        "medianTxs": 10,
+        "medianDays": 9,
+        "hours": [
+          981,
+          67,
+          1904,
+          1718,
+          708,
+          80,
+          2051,
+          6882,
+          805,
+          1194,
+          1051,
+          1760,
+          1452,
+          526,
+          1207,
+          1293,
+          655,
+          976,
+          1513,
+          1716,
+          598,
+          370,
+          1446,
+          2251
+        ],
+        "topRealms": [
+          {
+            "path": "gno.land/r/nym-thegnomic001/gnomic_airdrop",
+            "addresses": 33,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/g1n4pl5uc4yt5r96m9w6fmdznx3x0jyg8l6arhmt/bazaar/c/bazaargens",
+            "addresses": 13,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/g1nmqhha0ua730vejxqhrelldm4pga5j5ptle5ea/guardians",
+            "addresses": 13,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/nym-thegnomic001/gnomic",
+            "addresses": 13,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/gnoland/wugnot",
+            "addresses": 6,
+            "calls": 0
+          }
+        ],
+        "achievements": {
+          "century": 40,
+          "early": 480,
+          "flawless": 404,
+          "gas-saver": 764,
+          "pioneer": 6,
+          "regular": 124,
+          "streak": 582,
+          "validators-friend": 47
+        },
+        "rank": {
+          "top10": 51,
+          "buckets": [
+            {
+              "from": 2,
+              "to": 2,
+              "count": 12
+            },
+            {
+              "from": 3,
+              "to": 4,
+              "count": 362
+            },
+            {
+              "from": 5,
+              "to": 9,
+              "count": 422
+            },
+            {
+              "from": 10,
+              "to": 19,
+              "count": 367
+            },
+            {
+              "from": 20,
+              "to": 49,
+              "count": 254
+            },
+            {
+              "from": 50,
+              "to": 99,
+              "count": 143
+            },
+            {
+              "from": 100,
+              "to": 199,
+              "count": 40
+            }
+          ]
+        }
+      }
     },
     {
       "id": "first-steps",
@@ -104,7 +847,72 @@
       "rule": {
         "kind": "fallback"
       },
-      "count": 2353
+      "count": 2353,
+      "stats": {
+        "addresses": 2353,
+        "medianTxs": 1,
+        "medianDays": 1,
+        "hours": [
+          48,
+          61,
+          127,
+          56,
+          54,
+          28,
+          365,
+          179,
+          96,
+          228,
+          187,
+          311,
+          124,
+          134,
+          86,
+          53,
+          31,
+          62,
+          26,
+          737,
+          31,
+          89,
+          38,
+          130
+        ],
+        "topRealms": [
+          {
+            "path": "gno.land/r/nym-thegnomic001/gnomic_airdrop",
+            "addresses": 81,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/g1n4pl5uc4yt5r96m9w6fmdznx3x0jyg8l6arhmt/bazaar/c/bazaargens",
+            "addresses": 37,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/gnoland/wugnot",
+            "addresses": 28,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/g1n4pl5uc4yt5r96m9w6fmdznx3x0jyg8l6arhmt/gnomi/padv3",
+            "addresses": 22,
+            "calls": 0
+          },
+          {
+            "path": "gno.land/r/g1nmqhha0ua730vejxqhrelldm4pga5j5ptle5ea/guardians",
+            "addresses": 16,
+            "calls": 0
+          }
+        ],
+        "achievements": {
+          "early": 224,
+          "pioneer": 9,
+          "streak": 13,
+          "triple-threat": 8,
+          "validators-friend": 81
+        }
+      }
     }
   ],
   "achievements": {

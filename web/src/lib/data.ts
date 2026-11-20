@@ -37,6 +37,12 @@ export async function getShared(season: string, id: string): Promise<WrappedData
   return getJson<WrappedData>(v1(season, 'share', id));
 }
 
+/** /personas data, or in fixture mode (tests) the fixture's when the api has none. */
+export async function getPersonasOrFixture(season: string): Promise<PersonasData | null> {
+  const p = await getPersonas(season).catch(() => null);
+  return p ?? (await getFixturePersonas());
+}
+
 export async function getPersonas(season: string): Promise<PersonasData> {
   'use cache';
   cacheLife('minutes');

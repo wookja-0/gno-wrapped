@@ -641,14 +641,16 @@ func (d *dataset) render(ids *shareIDs, updatedAt time.Time) (map[string][]byte,
 	}
 	type personaInfo struct {
 		persona
-		Rule   personaRule `json:"rule"`
-		RankBy string      `json:"rankBy,omitempty"`
-		Count  int         `json:"count"`
+		Rule   personaRule   `json:"rule"`
+		RankBy string        `json:"rankBy,omitempty"`
+		Count  int           `json:"count"`
+		Stats  *personaStats `json:"stats,omitempty"` // for /personas/<id>
 	}
+	stats := d.personaStats(personaOf, ex.achievements)
 	var list []personaInfo
 	for _, id := range personaOrder {
 		rankBy, _, _, _ := rankMetric(id, &acc{})
-		list = append(list, personaInfo{persona: personas[id], Rule: personaRuleFor(id), RankBy: rankBy, Count: counts[id]})
+		list = append(list, personaInfo{persona: personas[id], Rule: personaRuleFor(id), RankBy: rankBy, Count: counts[id], Stats: stats[id]})
 	}
 	files[filepath.Join(season.ID, "personas.json")], _ = json.MarshalIndent(map[string]any{
 		"season": season, "dataAsOf": asOf, "final": final, "addresses": len(d.accs), "personas": list, "achievements": achCounts,
