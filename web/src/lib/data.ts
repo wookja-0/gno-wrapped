@@ -2,7 +2,7 @@ import 'server-only';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { cacheLife } from 'next/cache';
-import { DAY_TX_CAP, type DayTx, type PersonasData, type SeasonData, type WrappedData } from './wrapped';
+import { DAY_TX_CAP, seasonShares, type DayTx, type PersonasData, type SeasonData, type SeasonShares, type WrappedData } from './wrapped';
 
 // Backend (api/): GET /v1/{season}/{address} → WrappedData, /v1/{season}/share/{id} → redacted
 // WrappedData, /v1/{season}/personas → PersonasData, /v1/{season} → meta.
@@ -91,6 +91,18 @@ export async function getFixture(name: string, shared = false): Promise<WrappedD
   if (!FIXTURES_ENABLED || !FIXTURE_NAMES.includes(name)) return null;
   const d = JSON.parse(await readFile(path.join(process.cwd(), 'fixtures', `${name}.json`), 'utf8')) as WrappedData;
   return shared ? redactFixture(d) : d;
+}
+
+/** Dev/test only: persona and achievement counts for fixture recaps (real aggregates, no address). */
+export async function getFixturePersonas(): Promise<PersonasData | null> {
+  if (!FIXTURES_ENABLED) return null;
+  return JSON.parse(await readFile(path.join(process.cwd(), 'fixtures', 'personas.json'), 'utf8')) as PersonasData;
+}
+
+/** Shares for a recap's rarity tiers; undefined until the batch has written personas.json. */
+export async function getShares(season: string, fixture?: string): Promise<SeasonShares | undefined> {
+  const p = fixture ? await getFixturePersonas() : await getPersonas(season).catch(() => null);
+  return seasonShares(p);
 }
 
 /** Dev/test only: the fixture whose shareId this is, as its share view (for /compare). */

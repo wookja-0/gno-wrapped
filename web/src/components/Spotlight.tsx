@@ -3,7 +3,7 @@
 import { useEffect, type RefObject } from 'react';
 import { useReducedMotion } from './useReducedMotion';
 
-const LIT = '.gw-card, .gw-stat, .gw-ach, .gw-persona-card, .gw-privacy-item';
+const LIT = '.gw-card, .gw-stat, .gw-ach, .gw-persona-card, .gw-privacy-item, .gw-pick-tile';
 const TOUCH_MS = 900; // a tap lights the cards around it this long
 
 /**

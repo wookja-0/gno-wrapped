@@ -8,7 +8,7 @@ import {
   ACHIEVEMENTS, activityLead, arrivalSub, arrivalText, builderHeadline, countdownText, dayText, dayTxAction, defiLines, fmt, fmtDate,
   fmtGas, fmtShort, fuelLine, governanceLines, MILESTONES, personaRankText, personaRuleText, personaWhy, plural, RANK_METRIC,
   realmUseText, rankTopPct, SHARE, shareLink, sharePost, successText, summaryRank, topPairText, visitDiff, visitSnapshot, weekRange, weekText,
-  xLength, X_MAX, ACHIEVEMENT_ORDER, MONTHS, progressText, realmOrderLine, realmOrderText, achievementsOfText, CHRONOTYPES, chronotypeLine, hourLabel, hourText,
+  xLength, X_MAX, ACHIEVEMENT_ORDER, MONTHS, progressText, realmOrderLine, realmOrderText, achievementsOfText, sharePct, PERSONA_PLURAL, type Rarity, CHRONOTYPES, chronotypeLine, hourLabel, hourText,
   type AchievementId, type CalendarCell, type Chronotype, type Progress, type DayTx, type MilestoneId, type PersonaRule, type RankMetric, type RealmReport,
   type Season, type VisitSnapshot, type WrappedData,
 } from './wrapped';
@@ -76,6 +76,8 @@ const en = {
   moreWallets: 'More than one wallet?', moreWalletsHint: 'Add another address to see your wallets added up.',
   errWalletDup: 'That wallet is already here.', errWalletsMax: (max: number) => `Up to ${max} wallets at a time.`,
   introSeveral: 'Several wallets? Paste their addresses separated by commas.',
+  introPick: 'Which one are you?', introPickLede: 'Nine personas, picked from what you did on gno.land this season.',
+  introPickTile: (title: string) => `${title}: how it's picked`, introPickCta: 'Find your persona',
   statActiveDays: 'Active days', statStreak: 'Longest streak', statDays: (x: number) => `${fmt(x)} ${plural(x, 'day', 'days')}`,
   combinedRealms: 'Most-called realms across your wallets', combinedAchievements: 'Achievements, by wallet',
   achievementWallets: (x: number, of: number) => `${fmt(x)} of ${fmt(of)} wallets`,
@@ -106,6 +108,12 @@ const en = {
   // achievements, arrival, timeline
   achievementsTitle: 'Achievements', allAchievements: 'All achievements ↗', newTag: 'NEW',
   collected: (x: number, of: number) => `${x} / ${of}`, notEarned: 'not earned yet', achievementsOf: achievementsOfText,
+  rarity: (r: Rarity) => ({ legendary: 'Legendary', epic: 'Epic', rare: 'Rare', common: 'Common' })[r],
+  rarityShare: (share: number) => `${sharePct(share)} of addresses`,
+  personaShare: (share: number) => `${sharePct(share)} of addresses got this persona`,
+  rankTopNote: (pct: number, id: string, title: string) => `Top ${pct}% of ${PERSONA_PLURAL[id] ?? title}`,
+  flipLabel: (title: string) => `${title} badge: flip it for the details`, flipHint: 'Tap the badge to flip it', flipBack: 'Tap to flip back',
+  downloadCard: 'Download card',
   achievement: (id: AchievementId) => ACHIEVEMENTS[id],
   milestone: (id: MilestoneId) => MILESTONES[id], firstTransaction: 'First transaction', timelineLabel: 'Season timeline',
   nextUpTitle: 'Next up', nextUpLede: 'Still in reach before the season ends.', progressText: (p: Progress) => progressText(p),
@@ -264,14 +272,14 @@ const KO_PERSONA: Record<string, [string, string]> = {
   'realm-hopper': ['렐름 호퍼', '한 렐름에 오래 머무른 적이 없어요.'],
   'defi-pilot': ['디파이 파일럿', '스왑, 풀, 스테이킹까지. GnoSwap이 본거지였어요.'],
   collector: ['컬렉터', 'gno.land 곳곳에서 민팅하고 사들였어요.'],
-  'player-one': ['플레이어 원', '온체인 게임에 가장 많은 무브를 썼어요.'],
+  'player-one': ['플레이어 원', '온체인 게임에 가장 많은 시간을 쏟았어요.'],
   'gnot-courier': ['GNOT 배달부', '지갑 사이로 GNOT을 부지런히 날랐어요.'],
   'first-steps': ['첫걸음', '누구나 처음은 있어요.'],
 };
 const koTitle = (id: string, fallback: string) => KO_PERSONA[id]?.[0] ?? fallback;
 const KO_METRIC: Record<RankMetric, string> = {
-  deployed: '배포한 렐름 수', firstTx: '첫 트랜잭션 시점', realms: '호출한 렐름 수', defi: 'GnoSwap·wugnot 무브 수',
-  collect: 'NFT 민팅·구매 수', play: '온체인 게임 무브 수', transfer: 'GNOT 전송 수',
+  deployed: '배포한 렐름 수', firstTx: '첫 트랜잭션 시점', realms: '호출한 렐름 수', defi: 'GnoSwap·wugnot 활동 수',
+  collect: 'NFT 민팅·구매 수', play: '온체인 게임 활동 수', transfer: 'GNOT 전송 수',
 };
 const KO_CATEGORY: Record<string, string> = { defi: 'GnoSwap과 wugnot', collect: 'NFT 민팅·구매', play: '온체인 게임' };
 const pct = (x: number) => `${Math.round(x * 100)}%`;
@@ -280,14 +288,14 @@ const KO_ACH: Record<AchievementId, { title: string; rule: string; text: (v?: nu
   early: { title: '선발대', rule: '메인넷에 도착한 첫 1,000개 주소 안에 들었어요.', text: (v) => `메인넷 첫 ${fmt(v ?? 1000)}명 안에 들었어요.` },
   pioneer: {
     title: '렐름 개척자', rule: '50개 이상 주소가 쓰는 렐름을 처음 호출한 10명 안에 들었어요(배포자는 제외).',
-    text: (v = 1, realms) => (realms?.length ? (v === 1 ? `${realms[0]}을(를) 처음 호출한 10명 중 하나예요.` : `인기 렐름 ${fmt(v)}곳을 처음 호출한 10명 안에 들었어요. ${realms[0]} 포함.`) : `인기 렐름 ${fmt(v)}곳을 처음 호출한 10명 안에 들었어요.`),
+    text: (v = 1, realms) => (realms?.length ? (v === 1 ? `이 렐름을 처음 호출한 10명 중 하나예요: ${realms[0]}` : `인기 렐름 ${fmt(v)}곳에서 처음 호출한 10명 안에 들었어요(${realms[0]} 등).`) : `인기 렐름 ${fmt(v)}곳에서 처음 호출한 10명 안에 들었어요.`),
   },
   citizen: { title: '한 표 행사', rule: 'gno.land GovDAO나 GnoSwap 거버넌스 제안에 투표하거나 제안했어요.', text: (v = 1) => `이번 시즌 거버넌스 투표·제안 ${fmt(v)}회.` },
   streak: { title: '연속 출석', rule: '3일 이상 연속으로 활동했어요(UTC 기준).', text: (v) => `${fmt(v ?? 3)}일 연속 gno.land에서 활동했어요.` },
   'triple-threat': { title: '삼관왕', rule: '디파이, NFT, 온체인 게임을 모두 써봤어요.', text: () => '디파이, NFT, 온체인 게임. 셋 다 해봤어요.' },
   'gas-saver': { title: '가스 절약왕', rule: '트랜잭션 5회 이상이면서 트랜잭션당 가스가 하위 10%예요.', text: () => '이번 시즌 트랜잭션당 가스가 가장 적은 편이에요.' },
   'validators-friend': { title: '밸리데이터의 친구', rule: '낸 가스 총액이 상위 10%예요.', text: () => '가스 총액 상위 10%. 밸리데이터가 고마워해요.' },
-  century: { title: '백 번 클럽', rule: '이번 시즌 트랜잭션 100회 이상.', text: (v) => `이번 시즌 트랜잭션 ${fmt(v ?? 100)}회.` },
+  century: { title: '백 번 클럽', rule: '이번 시즌 트랜잭션이 100회 이상이에요.', text: (v) => `이번 시즌 트랜잭션 ${fmt(v ?? 100)}회.` },
   regular: { title: '단골', rule: '이번 시즌 30일 이상 활동했어요(UTC 기준).', text: (v) => `이번 시즌 ${fmt(v ?? 30)}일 활동했어요.` },
   flawless: { title: '무결점', rule: '이번 시즌 트랜잭션 20회 이상, 실패는 한 번도 없어요.', text: (v) => `트랜잭션 ${fmt(v ?? 20)}회, 실패 0회.` },
   'token-gardener': { title: '토큰 정원사', rule: 'GnoSwap 포지션을 열거나 스테이킹했거나, GNS를 위임했어요.', text: () => 'GnoSwap에 토큰을 심어 키웠어요.' },
@@ -309,8 +317,8 @@ function koSharePost(d: WrappedData): string {
     d.swaps?.count ? `🔄 GnoSwap 스왑 ${fmt(d.swaps.count)}회` : '',
   ].filter(Boolean) as string[];
   const link = shareLink(d), tag = SHARE.HASHTAG;
-  const head = `나의 메인넷 시즌 ${n(d.season)}, gno.land${d.final ? ' 최종 결산' : ''} 🎁`;
-  const build = (body: string[]) => [head, '', ...body, '', '내 것도 열어보기 👇', link, '', tag].join('\n');
+  const head = `gno.land에서 보낸 나의 메인넷 시즌 ${n(d.season)}${d.final ? ' 최종 결산' : ''} 🎁`;
+  const build = (body: string[]) => [head, '', ...body, '', '내 결과도 확인해 보세요 👇', link, '', tag].join('\n');
   let post = build(lines);
   for (let k = lines.length - 1; k >= 2 && xLength(post) > X_MAX; k--) post = build(lines.slice(0, k)); // optional lines go first
   return post;
@@ -328,7 +336,7 @@ const ko: Copy = {
   date: koDate, short_: koShort, week: koWeek, month: (m) => `${m + 1}월`, badge: (t) => `${t} 배지`,
 
   introTitle: (s) => `gno.land에서 보낸 나의 메인넷 시즌 ${n(s)}`,
-  introLede: 'gno.land 메인넷 첫 시즌을 풀어봐요. 언제 도착했는지, 어떤 렐름을 불렀는지, 스왑과 가스, 그리고 나의 페르소나까지.',
+  introLede: 'gno.land 메인넷 첫 시즌을 돌아봐요. 언제 처음 왔는지, 어떤 렐름을 썼는지, 스왑과 가스, 그리고 나의 페르소나까지.',
   connectAdena: 'Adena 연결', orPaste: '또는 주소 붙여넣기', walletAddress: '지갑 주소', unwrap: '열어보기',
   trySample: '샘플 보기:', sampleActive: '활발한 지갑', sampleEmpty: '활동 없음',
   meetPersonas: '시즌 페르소나 9종 보기 →', seeSeason: '시즌 전체 보기 →',
@@ -336,7 +344,7 @@ const ko: Copy = {
   errAdenaRead: 'Adena에서 주소를 읽지 못했어요. 아래에 직접 붙여넣어 주세요.', errAdenaCancel: 'Adena 연결이 취소됐어요. 다시 시도하거나 아래에 주소를 붙여넣어 주세요.',
   errAdenaLocked: 'Adena가 잠겨 있어요. 잠금을 풀고 다시 시도하거나 아래에 주소를 붙여넣어 주세요.',
   adenaUnsupportedTitle: 'Adena는 컴퓨터 브라우저에서 쓸 수 있어요',
-  adenaUnsupportedBody: 'Adena는 컴퓨터의 Chrome, Edge, Brave, Firefox에서 쓰는 브라우저 확장이에요. 그 브라우저에서 이 페이지를 열어 연결하세요.',
+  adenaUnsupportedBody: 'Adena는 컴퓨터의 Chrome, Edge, Brave, Firefox에서 쓰는 브라우저 확장 프로그램이에요. 그 브라우저에서 이 페이지를 열어 연결해 주세요.',
   adenaInstallTitle: 'Adena가 설치돼 있지 않아요',
   adenaInstallBody: (store) => `${store}에서 설치한 뒤 이 페이지를 새로고침하면 연결돼요.`,
   adenaStore: { chromium: 'Chrome 웹 스토어', firefox: 'Firefox 부가 기능' },
@@ -369,6 +377,8 @@ const ko: Copy = {
   moreWallets: '지갑이 여러 개인가요?', moreWalletsHint: '다른 주소를 추가하면 지갑들을 합쳐서 볼 수 있어요.',
   errWalletDup: '이미 추가한 지갑이에요.', errWalletsMax: (max) => `한 번에 최대 ${max}개까지예요.`,
   introSeveral: '지갑이 여러 개라면 주소를 쉼표로 구분해 붙여넣으세요.',
+  introPick: '나는 어떤 페르소나일까?', introPickLede: '이번 시즌 gno.land 활동으로 정해지는 9가지 페르소나예요.',
+  introPickTile: (title) => `${title}: 정하는 기준 보기`, introPickCta: '내 페르소나 찾기',
   statActiveDays: '활동일', statStreak: '최장 연속', statDays: (x) => `${fmt(x)}일`,
   combinedRealms: '지갑 전체에서 가장 많이 호출한 렐름', combinedAchievements: '지갑별 업적',
   achievementWallets: (x, of) => `지갑 ${fmt(of)}개 중 ${fmt(x)}개`,
@@ -389,11 +399,11 @@ const ko: Copy = {
       case 'validator': return 'gno.land 밸리데이터 운영자로 등록했어요.';
       case 'day-one-explorer': return `첫 트랜잭션이 메인넷 ${d.firstTx?.mainnetDay ?? '?'}일차에 있었어요.`;
       case 'realm-hopper': return `서로 다른 렐름 ${fmt(d.realmCount ?? d.topRealms.length)}곳을 호출했어요.`;
-      case 'defi-pilot': return `무브의 ${s}가 GnoSwap과 wugnot이었어요.`;
-      case 'collector': return `무브의 ${s}가 NFT 민팅·구매였어요.`;
-      case 'player-one': return `무브의 ${s}가 온체인 게임이었어요.`;
-      case 'gnot-courier': return `트랜잭션 ${fmt(d.txCount)}회 중 무브의 ${s}가 GNOT 전송이었어요.`;
-      case 'first-steps': return `트랜잭션 ${fmt(d.txCount)}회, 첫걸음이에요.`;
+      case 'defi-pilot': return `활동의 ${s}가 GnoSwap과 wugnot이었어요.`;
+      case 'collector': return `활동의 ${s}가 NFT 민팅·구매였어요.`;
+      case 'player-one': return `활동의 ${s}가 온체인 게임이었어요.`;
+      case 'gnot-courier': return `활동의 ${s}가 GNOT 전송이었어요(트랜잭션 ${fmt(d.txCount)}회).`;
+      case 'first-steps': return `트랜잭션 ${fmt(d.txCount)}회. 이제 막 첫걸음을 뗐어요.`;
     }
     return '';
   },
@@ -404,9 +414,9 @@ const ko: Copy = {
       case 'valoper': return 'gno.land 밸리데이터 운영자로 등록했어요(r/gnops/valopers).';
       case 'firstDay': return `메인넷 첫 ${r.max}일 안에 첫 트랜잭션을 보냈어요.`;
       case 'realms': return `서로 다른 렐름을 ${r.min}곳 이상 호출했어요.`;
-      case 'share': return `무브의 ${pct(r.min)} 이상이 ${KO_CATEGORY[r.category]}였어요.`;
+      case 'share': return `활동의 ${pct(r.min)} 이상이 ${KO_CATEGORY[r.category]}였어요.`;
       case 'transfers': return `대부분 GNOT 전송이고, 트랜잭션이 ${r.min}회 이상이에요.`;
-      case 'fallback': return '그 밖의 모두: GNOT 전송 한두 번.';
+      case 'fallback': return '나머지 모두: GNOT 전송 한두 번 정도예요.';
     }
   },
   rankedBy: (m) => `${KO_METRIC[m]} 기준`, rankedByFull: (m) => `${KO_METRIC[m]} 기준으로 순위를 매겨요.`,
@@ -415,11 +425,17 @@ const ko: Copy = {
   playStory: () => '▶ 스토리로 보기',
 
   statTransactions: '트랜잭션', statArrived: '메인넷 도착', statDay: (x) => `${x}일차`, statDeployed: '배포한 렐름', statSwaps: 'GnoSwap 스왑',
-  statGas: '쓴 가스', statRank: (p) => (p >= 90 ? { value: `상위 ${Math.max(1, 100 - p)}%`, label: '가장 활발한 주소' } : { value: `${p}%`, label: '보다 활발해요' }),
+  statGas: '쓴 가스', statRank: (p) => (p >= 90 ? { value: `상위 ${Math.max(1, 100 - p)}%`, label: '가장 활발한 주소' } : { value: `${p}%`, label: '활동량 백분위' }),
   glance: '시즌 한눈에 보기',
 
   achievementsTitle: '업적', allAchievements: '전체 업적 ↗', newTag: '새로 획득',
-  collected: (x, of) => `${x} / ${of}`, notEarned: '아직 못 얻음', achievementsOf: (x) => `업적 ${ACHIEVEMENT_ORDER.length}개 중 ${fmt(x)}개`, achievement: (id) => KO_ACH[id],
+  collected: (x, of) => `${x} / ${of}`, notEarned: '아직 못 얻음', achievementsOf: (x) => `업적 ${ACHIEVEMENT_ORDER.length}개 중 ${fmt(x)}개`,
+  rarity: (r) => ({ legendary: '전설', epic: '영웅', rare: '희귀', common: '일반' })[r],
+  rarityShare: (share) => `주소의 ${sharePct(share)}`,
+  personaShare: (share) => `주소의 ${sharePct(share)}가 받은 페르소나`,
+  rankTopNote: (pct, id, title) => `${koTitle(id, title)} 중 상위 ${pct}%`,
+  flipLabel: (title) => `${title} 배지: 뒤집어서 자세히 보기`, flipHint: '배지를 누르면 뒤집혀요', flipBack: '누르면 다시 돌아가요',
+  downloadCard: '카드 저장', achievement: (id) => KO_ACH[id],
   milestone: (id) => KO_MILESTONE[id], firstTransaction: '첫 트랜잭션', timelineLabel: '시즌 타임라인',
   nextUpTitle: '다음 업적', nextUpLede: '시즌이 끝나기 전에 아직 얻을 수 있어요.',
   progressText: (p) => {
@@ -435,7 +451,7 @@ const ko: Copy = {
   },
   arrivedOn: (date) => `${koDate(date)}에 도착`, day: 'DAY',
   arrivalSub: (day) => (day === 1 ? '처음부터 함께였어요.' : '메인넷 일차'),
-  arrivalText: (d) => (d.arrival?.order ? `메인넷 도착 순서 ${fmt(d.arrival.of)}명 중 ${fmt(d.arrival.order)}번째` : d.arrival?.tier ? `메인넷 첫 ${fmt(d.arrival.tier)}명 안` : null),
+  arrivalText: (d) => (d.arrival?.order ? `메인넷에 ${fmt(d.arrival.order)}번째로 도착했어요(${fmt(d.arrival.of)}명 중)` : d.arrival?.tier ? `메인넷에 처음 온 ${fmt(d.arrival.tier)}명 중 하나예요` : null),
   viewFirstTx: '첫 트랜잭션 보기',
 
   sentThisSeason: '이번 시즌 보낸 트랜잭션', txPlural: () => '건', leastActive: '덜 활발', mostActive: '가장 활발',
@@ -458,7 +474,7 @@ const ko: Copy = {
   moreThatDayFrom: (x, short) => `${short}의 이날 ${fmt(x)}건 더, Gnoscan에서 보기`, fromWallet: (short) => `${short}에서 보냄`, timesUtc: '시각은 UTC 기준이에요.', pages: '페이지',
   range: (a, b, of) => `${fmt(of)}건 중 ${fmt(a)}–${fmt(b)}`, prevPage: '이전 페이지', nextPage: '다음 페이지', page: (x) => `${x}페이지`,
 
-  clockKicker: '하루 중 나의 gno.land 시간', chronotype: (id) => KO_CHRONO[id],
+  clockKicker: '나의 gno.land 하루', chronotype: (id) => KO_CHRONO[id],
   chronotypeLine: (t) => `트랜잭션의 ${Math.round(t.share * 100)}%가 ${hourLabel(t.from)}–${hourLabel(t.from + 6)} 사이에 있었어요.`,
   perHour: '시간대별 트랜잭션', colHour: '시각', hintHour: '마우스를 올리거나 방향키로 보세요',
   hourText: (h, x) => `${hourLabel(h)}–${String(h).padStart(2, '0')}:59 트랜잭션 ${fmt(x)}건`,
@@ -545,11 +561,11 @@ const ko: Copy = {
   shareOfAddresses: (p, x) => `${p < 1 ? p.toFixed(1) : Math.round(p)}% · 주소 ${fmt(x)}개`,
   achievementsLede: '페르소나와 별개로 모을 수 있어요. 얻은 업적은 결과 페이지에 나와요.',
   achievementShare: (p, x) => `${p.toFixed(1)}% · 주소 ${fmt(x)}개`,
-  personasNote: (x, s, asOf) => `메인넷 시즌 ${n(s)}에 활동한 주소 ${fmt(x)}개 기준, ${asOf} 데이터예요. "무브"는 트랜잭션 안의 메시지예요. wugnot은 GnoSwap용으로 GNOT을 감싸는 것이라 디파이로 세요. 페르소나 순위는 본인 결과에서만 보이고 공개 목록은 없어요.`,
+  personasNote: (x, s, asOf) => `메인넷 시즌 ${n(s)}에 활동한 주소 ${fmt(x)}개 기준, ${asOf} 데이터예요. "활동"은 트랜잭션 안의 메시지 하나하나를 세요. wugnot은 GnoSwap용으로 GNOT을 감싸는 것이라 디파이로 세요. 페르소나 순위는 본인 결과에서만 보이고 공개 목록은 없어요.`,
   findPersona: '내 페르소나 찾기', wholeSeason: '시즌 전체 보기 →',
 
   seasonTitle: (s) => `메인넷 시즌 ${n(s)}, gno.land 전체`,
-  seasonLede: (final) => `시즌${final ? '' : ' 지금까지'}의 모든 주소, 모든 렐름, 모든 블록. 내 결과와 같은 공개 데이터로 만든 체인의 결산이에요.`,
+  seasonLede: (final) => `${final ? '이번 시즌' : '이번 시즌 지금까지'}의 모든 주소, 렐름, 블록. 내 결과와 같은 공개 데이터로 만든 gno.land 전체의 결산이에요.`,
   seasonUnavailable: '지금은 시즌 데이터를 불러올 수 없어요.', inNumbers: '숫자로 본 시즌',
   seasonStats: { addresses: '주소', transactions: '트랜잭션', swaps: 'GnoSwap 스왑', deployed: '배포된 렐름', gas: '쓴 가스(GNOT)' },
   busiestDay: '가장 바빴던 날: ', newAddresses: '일별 신규 주소',

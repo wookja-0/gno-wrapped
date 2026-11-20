@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { EmptyState } from '@/components/StatusScreens';
 import { WrappedPage } from '@/components/WrappedPage';
-import { FIXTURES_ENABLED, getFixture, getSeasonStatus, getWrapped } from '@/lib/data';
+import { FIXTURES_ENABLED, getFixture, getSeasonStatus, getShares, getWrapped } from '@/lib/data';
 import { ADDRESS_RE, isEmpty } from '@/lib/wrapped';
 
 type Props = PageProps<'/[season]/[address]'>;
@@ -41,5 +41,5 @@ export default async function Page(props: Props) {
   // Preview the card a share link shows (its own OG route, no address), not this page's.
   const q = fixture ? `?fixture=${fixture}` : '';
   const ogSrc = data!.shareId ? `/api/og/${season}/s/${data!.shareId}${q}` : ogImage(season, address, fixture);
-  return <WrappedPage data={data!} ogSrc={ogSrc} key={fixture ?? address} />;
+  return <WrappedPage data={data!} ogSrc={ogSrc} shares={await getShares(season, fixture)} key={fixture ?? address} />;
 }

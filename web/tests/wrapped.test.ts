@@ -2,11 +2,12 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { createLimiter } from '../src/lib/limiter';
+import { cardVm } from '../src/lib/summary';
 import { achievementIconRows, PERSONA_IDS, personaBadge, personaBadgeRows, personaOrbit, personaSymbolRows } from '../src/lib/art';
 import {
   ACHIEVEMENT_ORDER, arrivalText, CAL_COLORS, calendarDays, calendarMonths, builderHeadline, calendarWeeks, storyIds, compareRows, defiLines, governanceLines, realmUseText, successRate, successText, topPairText, countdownText, parseShareId, dayLevel, daysLeft, dayText, dayTxAction, daySeries, peakIndex, seasonDays, visitDiff, visitSnapshot, weekLevel, weekText, builderCards, fmtGas, timeline, gnoscanAccount, gnoscanRealm, gnoscanTx, personaRankText, personaRuleText, personaWhy, rankTopPct, shareLink, sharePost, X_MAX, xLength, fuelLine, gasPerTx, isEmpty, ogRankCard, realmShortName,
   slideIds, summaryRank, truncMid, validate, weekRange, type WrappedData,
-  adenaOutcome, walletEnv, earnedIds, achievementsOfText, combine, pagerSlots, parseAddresses, realmOrderLine, realmOrderText, walletsHref,
+  adenaOutcome, walletEnv, rarityOf, sharePct, seasonShares, earnedIds, achievementsOfText, combine, pagerSlots, parseAddresses, realmOrderLine, realmOrderText, walletsHref,
   chronotype, chronotypeLine, hasClock, hourText, localHours, nextUp, progressText, tzLabel, tzShift,
 } from '../src/lib/wrapped';
 
@@ -593,5 +594,28 @@ describe('collection and share card row', () => {
     expect(earnedIds(load('full'))).toEqual(['early', 'pioneer', 'streak', 'triple-threat']);
     expect(earnedIds(load('newcomer'))).toEqual([]);
     expect(achievementsOfText(4)).toBe('4 of 11 achievements');
+  });
+});
+
+describe('rarity and the trading card', () => {
+  const personas = JSON.parse(readFileSync(path.join(__dirname, '../fixtures/personas.json'), 'utf8'));
+  it('tiers by the share of addresses', () => {
+    expect([0.0097, 0.01, 0.024, 0.05, 0.105, 0.15, 0.2].map(rarityOf)).toEqual(['legendary', 'legendary', 'epic', 'epic', 'rare', 'rare', 'common']);
+    expect([0.0097, 0.045, 0.105, 0.47].map(sharePct)).toEqual(['1.0%', '4.5%', '11%', '47%']);
+    const sh = seasonShares(personas)!;
+    expect(rarityOf(sh.achievements.citizen!)).toBe('legendary');
+    expect(rarityOf(sh.achievements.early!)).toBe('common');
+    expect(sh.personas['realm-hopper']).toBeCloseTo(225 / 5052);
+    expect(seasonShares(null)).toBeUndefined();
+  });
+  it('the card says nothing that leads to the address', () => {
+    const d = load('full');
+    const vm = cardVm(d, undefined, seasonShares(personas));
+    const text = JSON.stringify(vm);
+    expect(text).not.toContain('g1wrap');
+    expect(text).not.toContain('312'); // the exact arrival order
+    expect(vm.stats.map((s) => s.value)).toEqual(['1,284', '34', 'Day 22']);
+    expect(vm.rankNote).toBe('Top 6% of Realm Hoppers');
+    expect(vm.achievements.map((a) => `${a.id}:${a.rarity}`)).toEqual(['early:common', 'pioneer:epic', 'streak:common', 'triple-threat:epic']);
   });
 });

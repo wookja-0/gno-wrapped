@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { WrappedPage } from '@/components/WrappedPage';
-import { FIXTURES_ENABLED, getFixture, getShared } from '@/lib/data';
+import { FIXTURES_ENABLED, getFixture, getShared, getShares } from '@/lib/data';
 import { isEmpty } from '@/lib/wrapped';
 
 // A shared recap: reached by an unguessable share ID, served without any trace of the address.
@@ -36,5 +36,5 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 export default async function Page(props: Props) {
   const { season, id, fixture, data } = await load(props);
   if (isEmpty(data)) notFound();
-  return <WrappedPage data={data!} ogSrc={ogImage(season, id, fixture)} key={fixture ?? id} />;
+  return <WrappedPage data={data!} ogSrc={ogImage(season, id, fixture)} shares={await getShares(season, fixture)} key={fixture ?? id} />;
 }

@@ -414,7 +414,12 @@ export function personaWhy(d: WrappedData): string {
 
 // ---------- persona rank ----------
 
-const PERSONA_PLURAL: Record<string, string> = {
+/** Persona names in English, for screens without batch data (the intro). The batch's are the same. */
+export const PERSONA_TITLES: Record<string, string> = {
+  builder: 'Builder', validator: 'Validator', 'day-one-explorer': 'Day-One Explorer', 'realm-hopper': 'Realm Hopper', 'defi-pilot': 'DeFi Pilot',
+  collector: 'Collector', 'player-one': 'Player One', 'gnot-courier': 'GNOT Courier', 'first-steps': 'First Steps',
+};
+export const PERSONA_PLURAL: Record<string, string> = {
   builder: 'Builders', validator: 'Validators', 'day-one-explorer': 'Day-One Explorers', 'realm-hopper': 'Realm Hoppers', 'defi-pilot': 'DeFi Pilots',
   collector: 'Collectors', 'player-one': 'Player Ones', 'gnot-courier': 'GNOT Couriers',
 };
@@ -746,6 +751,27 @@ export const ACHIEVEMENTS: Record<AchievementId, { title: string; rule: string; 
   'token-gardener': { title: 'Token Gardener', rule: 'Opened or staked a GnoSwap position, or delegated GNS.', text: () => 'You planted your tokens on GnoSwap.' },
 };
 export const ACHIEVEMENT_ORDER: AchievementId[] = ['early', 'pioneer', 'citizen', 'streak', 'regular', 'triple-threat', 'token-gardener', 'century', 'flawless', 'validators-friend', 'gas-saver'];
+
+// ---------- rarity ----------
+
+/** How rare an achievement is, by the share of addresses that have it. */
+export type Rarity = 'legendary' | 'epic' | 'rare' | 'common';
+/** 1% of addresses or fewer: legendary; 5%: epic; 15%: rare; more: common. */
+export const rarityOf = (share: number): Rarity => (share <= 0.01 ? 'legendary' : share <= 0.05 ? 'epic' : share <= 0.15 ? 'rare' : 'common');
+export const RARITY_COLORS: Record<Rarity, string> = { legendary: '#FFD166', epic: '#B48CFF', rare: '#5AA2FF', common: '#8A95C2' };
+/** "1.0%", "4.5%", "16%": one decimal under 10%. */
+export const sharePct = (share: number) => { const x = share * 100; return x < 10 ? `${x.toFixed(1)}%` : `${Math.round(x)}%`; };
+
+/** Shares of addresses (0–1) with each achievement and persona, from /personas data. */
+export interface SeasonShares { achievements: Partial<Record<AchievementId, number>>; personas: Record<string, number> }
+export function seasonShares(p: PersonasData | null): SeasonShares | undefined {
+  if (!p?.addresses) return undefined;
+  const of = (n: number) => n / p.addresses;
+  return {
+    achievements: Object.fromEntries(ACHIEVEMENT_ORDER.map((id) => [id, of(p.achievements?.[id] ?? 0)])),
+    personas: Object.fromEntries(p.personas.map((x) => [x.id, of(x.count)])),
+  };
+}
 
 /** Earned achievements in collection order, for the share card and image. */
 export const earnedIds = (d: WrappedData): AchievementId[] => ACHIEVEMENT_ORDER.filter((id) => d.achievements?.some((a) => a.id === id));
